@@ -3,9 +3,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import FluidNav from "../../components/FluidNav";
-import { saveStoredUser } from "../../lib/auth";
+import {
+  getStoredUser,
+  saveStoredUser,
+  subscribeAuthChange,
+} from "../../lib/auth";
 
 type AuthMode = "login" | "register";
 
@@ -20,6 +24,24 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const resetIfSignedOut = () => {
+      if (!getStoredUser()) {
+        setSubmitting(false);
+        setError(null);
+      }
+    };
+
+    resetIfSignedOut();
+    const unsubscribe = subscribeAuthChange(resetIfSignedOut);
+    window.addEventListener("pageshow", resetIfSignedOut);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener("pageshow", resetIfSignedOut);
+    };
+  }, []);
 
   const switchMode = (nextMode: AuthMode) => {
     setMode(nextMode);
@@ -60,13 +82,20 @@ export default function LoginPage() {
         : trimmedEmail.split("@")[0] || "Operador";
 
     // TODO: Conectar con endpoint real de autenticación (/api/auth/login o /api/auth/register)
-    saveStoredUser({
-      name: displayName,
-      email: trimmedEmail,
-      organization: organization.trim() || undefined,
-    });
+    try {
+      saveStoredUser({
+        name: displayName,
+        email: trimmedEmail,
+        organization: organization.trim() || undefined,
+      });
+      router.push("/dashboard");
+    } catch {
+      setSubmitting(false);
+      setError("No se pudo guardar la sesión. Inténtalo de nuevo.");
+      return;
+    }
 
-    router.push("/dashboard");
+    window.setTimeout(() => setSubmitting(false), 1500);
   };
 
   const handleGoogleAuth = () => {
@@ -74,13 +103,20 @@ export default function LoginPage() {
     setSubmitting(true);
 
     // TODO: Redirigir al flujo real de Google OAuth (e.g. /api/auth/google)
-    saveStoredUser({
-      name: "Cuenta Google",
-      email: "operador@gmail.com",
-      organization: "Google OAuth",
-    });
+    try {
+      saveStoredUser({
+        name: "Cuenta Google",
+        email: "operador@gmail.com",
+        organization: "Google OAuth",
+      });
+      router.push("/dashboard");
+    } catch {
+      setSubmitting(false);
+      setError("No se pudo iniciar sesión con Google. Inténtalo de nuevo.");
+      return;
+    }
 
-    router.push("/dashboard");
+    window.setTimeout(() => setSubmitting(false), 1500);
   };
 
   return (
