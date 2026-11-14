@@ -10,6 +10,7 @@ from app.routers.fires import router as fires_router
 from app.services.calendar_builder import backfill_loop
 from app.routers.iot import router as iot_router
 from app.routers.lite import router as lite_router
+from app.routers.model import router as model_router
 from app.routers.nasa import router as nasa_router
 from app.routers.weather import router as weather_router
 
@@ -52,6 +53,7 @@ app.add_middleware(GZipMiddleware, minimum_size=500)
 app.include_router(weather_router)
 app.include_router(lite_router)
 app.include_router(nasa_router)
+app.include_router(model_router)
 app.include_router(iot_router)
 app.include_router(fires_router)
 

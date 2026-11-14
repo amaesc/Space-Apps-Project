@@ -12,6 +12,8 @@ import {
   type Station,
   type WeatherCell,
 } from "../lib/fire-data";
+import type { ModelForecast } from "../lib/api";
+import { RISK_SCALE } from "../lib/fire-data";
 import { type ConditionDef, gibsTileUrl, probabilityColor, type SatelliteLayer } from "../lib/layers";
 
 export type Basemap = "satellite" | "dark";
@@ -33,6 +35,8 @@ interface Props {
   condition: ConditionDef | null;
   grid: { cells: WeatherCell[]; stepDeg: number } | null;
   showProbability: boolean;
+  /** Pronóstico del modelo (72 h); si existe, reemplaza al índice heurístico en la capa de probabilidad. */
+  forecast: ModelForecast | null;
   nasaFires: NasaFire[] | null;
   historyFires: NasaFire[] | null;
   showCause: boolean;
@@ -62,7 +66,7 @@ const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
 
 export default function ChihuahuaOsmMap(props: Props) {
   const { events, stations, showStations, basemap, selectedId, onSelect, onReady } = props;
-  const { condition, grid, showProbability, nasaFires, historyFires, showCause, satellite } = props;
+  const { condition, grid, showProbability, forecast, nasaFires, historyFires, showCause, satellite } = props;
 
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -128,6 +132,26 @@ export default function ChihuahuaOsmMap(props: Props) {
     const g = layers.current?.grid;
     if (!g) return;
     g.clearLayers();
+    if (showProbability && forecast) {
+      const h = forecast.stepDeg / 2;
+      for (const c of forecast.cells) {
+        const lvl = RISK_SCALE[c.level - 1];
+        const why = c.drivers.map((d) => `${d.effect === "raises" ? "▲" : "▼"} ${d.label}`).join("<br>");
+        const iot = c.iotReasons.length
+          ? `<br><i>IoT correction: ${(c.modelProbability * 100).toFixed(1)}% → ${(c.probability * 100).toFixed(1)}% (${esc(c.iotReasons.join("; "))})</i>`
+          : "";
+        L.rectangle(
+          [
+            [c.lat - h, c.lon - h],
+            [c.lat + h, c.lon + h],
+          ],
+          { renderer: rendererRef.current!, stroke: false, fillColor: lvl.bg, fillOpacity: c.level === 1 ? 0.25 : 0.55 }
+        )
+          .bindTooltip(`<b>${(c.probability * 100).toFixed(1)}% chance of fire in 72 h · ${lvl.level}</b><br>${why}${iot}`, { sticky: true })
+          .addTo(g);
+      }
+      return;
+    }
     if (!grid) return;
     const half = grid.stepDeg / 2;
     const colorOf = showProbability ? probabilityColor : condition?.grid ? condition.cellColor! : null;
@@ -146,7 +170,7 @@ export default function ChihuahuaOsmMap(props: Props) {
         .bindTooltip(textOf(c), { sticky: true })
         .addTo(g);
     }
-  }, [grid, condition, showProbability]);
+  }, [grid, condition, showProbability, forecast]);
 
   // Histórico NASA (puntos pequeños)
   useEffect(() => {

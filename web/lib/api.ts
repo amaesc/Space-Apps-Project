@@ -258,3 +258,53 @@ export function useWeatherGrid(enabled: boolean) {
   }));
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
+
+// --- Modelo predictivo (72 h) ----------------------------------------------------------
+
+export interface ForecastCell {
+  lat: number;
+  lon: number;
+  probability: number;
+  level: number;
+  modelProbability: number;
+  iotShift: number;
+  iotReasons: string[];
+  drivers: { label: string; effect: "raises" | "lowers" }[];
+}
+
+export interface ModelForecast {
+  issued: string;
+  stepDeg: number;
+  auc: number;
+  top10Recall: number;
+  baselinesAuc: Record<string, number>;
+  dataAsOf: { fires: string; weather: string; vegetation: string };
+  levels: { level: number; name: string; minProbability: number }[];
+  stationsUsed: { station_id: string }[];
+  cells: ForecastCell[];
+}
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+export function useModelForecast(enabled: boolean) {
+  return useOnDemand<ModelForecast>(enabled ? "/api/model/forecast" : null, (j: any) => ({
+    issued: j.issued,
+    stepDeg: j.step_deg,
+    auc: j.model.auc,
+    top10Recall: j.model.top10_recall,
+    baselinesAuc: j.model.baselines_auc,
+    dataAsOf: j.data_as_of,
+    levels: j.levels.map((l: any) => ({ level: l.level, name: l.name, minProbability: l.min_probability })),
+    stationsUsed: j.stations_used,
+    cells: j.cells.map((c: any) => ({
+      lat: c.lat,
+      lon: c.lon,
+      probability: c.probability,
+      level: c.level,
+      modelProbability: c.model_probability,
+      iotShift: c.iot_shift,
+      iotReasons: c.iot_reasons,
+      drivers: c.drivers.map((d: any) => ({ label: d.label, effect: d.effect })),
+    })),
+  }));
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */

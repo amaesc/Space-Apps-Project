@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import DataDownloads from "../../components/DataDownloads";
+import ModelCard from "../../components/ModelCard";
 import SiteHeader from "../../components/SiteHeader";
 import { IS_DEMO_DATA } from "../../lib/fire-data";
 
@@ -122,10 +123,19 @@ export default function DataPage() {
               industrial sources are excluded.
             </li>
             <li>
-              <strong className="text-white">Fire probability.</strong> Prototype index per 0.5° cell: Hot-Dry-Windy
-              weather score × a fuel factor from NASA NDVI (bare ground burns little; dry grass and shrubs burn most;
-              very green vegetation holds moisture) + a bonus for hot land surface temperature (NASA). Shown in 5
-              levels.
+              <strong className="text-white">Fire probability (72 h).</strong> A gradient-boosting model (LightGBM)
+              per 0.25° cell, trained on 2020–2025. Target: at least one VIIRS detection in the cell within 72 h.
+              Inputs use only what is available each morning: NASA FIRMS fire activity up to yesterday, NASA POWER
+              weather (temperature, humidity, wind, soil moisture, rain, dry days) from 3 days earlier, VIIRS NDVI
+              from at least 30 days earlier, the cell&apos;s historical fire frequency (previous years only),
+              elevation and season. Probabilities are calibrated (isotonic regression).
+            </li>
+            <li>
+              <strong className="text-white">IoT correction (experimental).</strong> Field stations report current
+              conditions that satellite reanalysis only sees with a 3-day delay. Within 30 km of a station the
+              probability is nudged up for hotter/drier/windier readings or lightning, and down after rain. The
+              adjustment is bounded and will be validated once stations have a history. Each station receives its
+              cell&apos;s level to drive its 5 LEDs.
             </li>
             <li>
               <strong className="text-white">Probable origin.</strong> Each detection is classified
@@ -142,6 +152,13 @@ export default function DataPage() {
         </section>
 
         <section className="mt-10">
+          <h2 className="border-b border-white/15 pb-1 text-xl font-bold text-white">Model validation</h2>
+          <div className="mt-3">
+            <ModelCard />
+          </div>
+        </section>
+
+        <section className="mt-10">
           <h2 className="border-b border-white/15 pb-1 text-xl font-bold text-white">Limitations</h2>
           <ul className="mt-3 list-disc space-y-2 pl-5">
             <li>Origin is a statistical probability to prioritize inspections, not legal evidence.</li>
@@ -151,6 +168,11 @@ export default function DataPage() {
               exact place or time a fire will start.
             </li>
             <li>Cloud cover and satellite overpass times can delay or miss detections.</li>
+            <li>
+              The model predicts satellite fire detections, which include agricultural and other human burns, not
+              only wildfires. It relies most on where fire has occurred recently and historically, so it is
+              strongest at anticipating continued or seasonal activity and weaker for brand-new ignitions.
+            </li>
             <li>
               Global NASA FIRMS data arrive within about 3 hours of the satellite pass; real-time FIRMS is only
               available for the US and Canada.

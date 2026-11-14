@@ -17,7 +17,7 @@ import {
 } from "../components/Icons";
 import LazyMap from "../components/LazyMap";
 import SiteHeader from "../components/SiteHeader";
-import { LITE_URL, useDashboardData, useHistoricalFires, useNasaFires, useNow, useSlowConnection, useWeatherGrid } from "../lib/api";
+import { LITE_URL, type ModelForecast, useDashboardData, useHistoricalFires, useModelForecast, useNasaFires, useNow, useSlowConnection, useWeatherGrid } from "../lib/api";
 import {
   type BurnCalendar,
   directionsUrl,
@@ -101,7 +101,9 @@ export default function FireMapPage() {
   const condition = conditionDef(conditionId);
   const nasa = useNasaFires(fire.nasa);
   const history = useHistoricalFires(fire.history ? historyMonth : null);
-  const grid = useWeatherGrid(fire.probability || Boolean(condition?.grid));
+  // El modelo se carga siempre (alimenta el panel de peligro); la cuadrícula de clima, solo si hace falta.
+  const model = useModelForecast(true);
+  const grid = useWeatherGrid((fire.probability && !model.data) || Boolean(condition?.grid));
   const toggleFire = (k: keyof FireLayers) => setFire((f) => ({ ...f, [k]: !f[k] }));
 
   const panelOpen = panelPref ?? isDesktop;
@@ -112,8 +114,10 @@ export default function FireMapPage() {
     (e) => (origin === "All" || e.origin === origin) && (now === null || minutesSince(e.detectedAt, now) <= maxMinutes)
   );
   const selected = events.find((e) => e.id === selectedId) ?? null;
-  const riskLevel = Math.max(1, ...data.stations.map((s) => s.riskLevel));
+  // Peligro: nivel más alto del modelo a 72 h; si no está disponible, el de las estacas.
+  const riskLevel = model.data ? Math.max(1, ...model.data.cells.map((c) => c.level)) : Math.max(1, ...data.stations.map((s) => s.riskLevel));
   const risk = riskFor(riskLevel);
+  const highCells = model.data ? model.data.cells.filter((c) => c.level >= 3).length : null;
 
   const closeDisclaimer = (remember: boolean) => {
     if (remember) {
@@ -143,13 +147,14 @@ export default function FireMapPage() {
           condition={condition}
           grid={grid.data}
           showProbability={fire.probability}
+          forecast={model.data}
           nasaFires={fire.nasa ? nasa.data?.fires ?? null : null}
           historyFires={fire.history ? history.data : null}
           showCause={fire.cause}
           satellite={satellite}
         />
 
-        <MapLegend condition={condition} fire={fire} historyMonth={historyMonth} satellite={satellite} />
+        <MapLegend condition={condition} fire={fire} historyMonth={historyMonth} satellite={satellite} forecast={model.data} />
 
         {/* Avisos de conexión */}
         {(slow || data.status === "offline") && (
@@ -207,7 +212,23 @@ export default function FireMapPage() {
                   </span>
                 )}
               </div>
-              {IS_DEMO_DATA && <p className="mx-3 mb-3 rounded bg-fd-gold/15 px-2 py-1 text-sm text-fd-gold">Demo data — not for operational use.</p>}
+              <p className="mx-3 mb-2 text-sm text-white/75">
+                {model.data ? (
+                  <>
+                    Highest 72-h fire risk in Chihuahua (model trained on NASA FIRMS, POWER and NDVI; AUC{" "}
+                    {model.data.auc.toFixed(2)}).{" "}
+                    <b className="text-white">{highCells}</b> cells at High or above.{" "}
+                    <button type="button" onClick={() => setFire((f) => ({ ...f, probability: true }))} className="cursor-pointer font-semibold text-fd-gold underline">
+                      Show on map
+                    </button>
+                  </>
+                ) : model.status === "loading" ? (
+                  "Loading 72-h fire risk model…"
+                ) : (
+                  "Model unavailable: showing field station danger."
+                )}
+              </p>
+              {IS_DEMO_DATA && <p className="mx-3 mb-3 rounded bg-fd-gold/15 px-2 py-1 text-sm text-fd-gold">Probable-cause hotspots are demo data; NASA layers and the model use real data.</p>}
             </Section>
 
             <Section title="Layers">
@@ -227,7 +248,7 @@ export default function FireMapPage() {
                       ))}
                     </select>
                   </LayerCheck>
-                  <LayerCheck checked={fire.probability} onChange={() => toggleFire("probability")} label="Fire probability (our model)" hint={layerHint(grid.status, "Weather (HDW) + NASA vegetation (NDVI) + land surface temperature")} swatch={<span className="h-3 w-3 bg-gradient-to-r from-[#16a34a] via-[#facc15] to-[#dc2626]" />} />
+                  <LayerCheck checked={fire.probability} onChange={() => toggleFire("probability")} label="Fire probability, next 72 h (our model)" hint={model.data ? `Trained on 6 years of NASA data · AUC ${model.data.auc.toFixed(2)} · corrected by IoT stations` : layerHint(grid.status, "Model unavailable: weather index shown instead")} swatch={<span className="h-3 w-3 bg-gradient-to-r from-[#16a34a] via-[#facc15] to-[#dc2626]" />} />
                   <LayerCheck checked={fire.cause} onChange={() => toggleFire("cause")} label="Probable cause of active fires" hint="Human · lightning · wildland, with probability" swatch={<span className="h-3 w-3 rounded-full bg-[#f97316] ring-2 ring-[#38bdf8]" />} />
                 </fieldset>
 
@@ -613,11 +634,13 @@ function MapLegend({
   fire,
   historyMonth,
   satellite,
+  forecast,
 }: {
   condition: ConditionDef | null;
   fire: FireLayers;
   historyMonth: string;
   satellite: SatelliteLayer | null;
+  forecast: ModelForecast | null;
 }) {
   const rows: ReactNode[] = [];
   const sat = SATELLITE_LAYERS.find((s) => s.id === satellite);
@@ -631,13 +654,29 @@ function MapLegend({
   if (fire.probability) {
     rows.push(
       <div key="prob">
-        <p className="font-semibold">Fire probability</p>
-        <div className="mt-0.5 flex gap-px">
-          {RISK_SCALE.map((r) => (
-            <span key={r.level} className="h-2.5 flex-1" style={{ backgroundColor: r.bg }} title={r.level} />
-          ))}
-        </div>
-        <p className="flex justify-between text-[11px] text-white/70"><span>Low</span><span>Extreme</span></p>
+        <p className="font-semibold">{forecast ? "Fire probability, next 72 h" : "Fire danger (weather index)"}</p>
+        {forecast ? (
+          <ul className="mt-0.5 space-y-0.5">
+            {forecast.levels.map((l) => (
+              <li key={l.level} className="flex items-center gap-1.5">
+                <span className="h-2.5 w-4" style={{ backgroundColor: RISK_SCALE[l.level - 1].bg }} />
+                {l.name}
+                <span className="ml-auto text-white/60">≥ {(l.minProbability * 100).toFixed(l.minProbability < 0.1 ? 1 : 0)}%</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="mt-0.5 flex gap-px">
+            {RISK_SCALE.map((r) => (
+              <span key={r.level} className="h-2.5 flex-1" style={{ backgroundColor: r.bg }} title={r.level} />
+            ))}
+          </div>
+        )}
+        {forecast && (
+          <p className="mt-1 text-[11px] leading-snug text-white/70">
+            Data as of: fires {forecast.dataAsOf.fires}, weather {forecast.dataAsOf.weather}. Hover a cell to see why.
+          </p>
+        )}
       </div>
     );
   }

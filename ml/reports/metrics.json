@@ -1,0 +1,288 @@
+{
+  "overall": {
+    "model": {
+      "auc": 0.8938,
+      "ap": 0.4716,
+      "top10_recall": 0.5653,
+      "brier_calibrated": 0.03117,
+      "brier_climatology_rate": 0.04299
+    },
+    "climatology": {
+      "auc": 0.7768,
+      "ap": 0.2309,
+      "top10_recall": 0.4289
+    },
+    "persistence_7d": {
+      "auc": 0.8293,
+      "ap": 0.3266,
+      "top10_recall": 0.4717
+    },
+    "hdw_index": {
+      "auc": 0.5246,
+      "ap": 0.0435,
+      "top10_recall": 0.0572
+    }
+  },
+  "per_year": [
+    {
+      "year": 2020,
+      "fire_rate": 0.0372,
+      "model": {
+        "auc": 0.8624,
+        "ap": 0.3632,
+        "top10_recall": 0.5683
+      },
+      "climatology": {
+        "auc": 0.5066,
+        "ap": 0.0403,
+        "top10_recall": 0.2965
+      },
+      "persistence_7d": {
+        "auc": 0.805,
+        "ap": 0.2748,
+        "top10_recall": 0.5122
+      },
+      "hdw_index": {
+        "auc": 0.4552,
+        "ap": 0.0311,
+        "top10_recall": 0.0544
+      }
+    },
+    {
+      "year": 2021,
+      "fire_rate": 0.0484,
+      "model": {
+        "auc": 0.9055,
+        "ap": 0.5422,
+        "top10_recall": 0.5693
+      },
+      "climatology": {
+        "auc": 0.7584,
+        "ap": 0.2237,
+        "top10_recall": 0.4156
+      },
+      "persistence_7d": {
+        "auc": 0.8467,
+        "ap": 0.4087,
+        "top10_recall": 0.4968
+      },
+      "hdw_index": {
+        "auc": 0.5519,
+        "ap": 0.0495,
+        "top10_recall": 0.0503
+      }
+    },
+    {
+      "year": 2022,
+      "fire_rate": 0.0503,
+      "model": {
+        "auc": 0.9068,
+        "ap": 0.4972,
+        "top10_recall": 0.5605
+      },
+      "climatology": {
+        "auc": 0.8318,
+        "ap": 0.2784,
+        "top10_recall": 0.4593
+      },
+      "persistence_7d": {
+        "auc": 0.8458,
+        "ap": 0.3513,
+        "top10_recall": 0.4599
+      },
+      "hdw_index": {
+        "auc": 0.569,
+        "ap": 0.0533,
+        "top10_recall": 0.0548
+      }
+    },
+    {
+      "year": 2023,
+      "fire_rate": 0.0502,
+      "model": {
+        "auc": 0.8798,
+        "ap": 0.4588,
+        "top10_recall": 0.5316
+      },
+      "climatology": {
+        "auc": 0.8259,
+        "ap": 0.2806,
+        "top10_recall": 0.4357
+      },
+      "persistence_7d": {
+        "auc": 0.8158,
+        "ap": 0.3079,
+        "top10_recall": 0.444
+      },
+      "hdw_index": {
+        "auc": 0.5079,
+        "ap": 0.0474,
+        "top10_recall": 0.0616
+      }
+    },
+    {
+      "year": 2024,
+      "fire_rate": 0.0403,
+      "model": {
+        "auc": 0.8969,
+        "ap": 0.4637,
+        "top10_recall": 0.5776
+      },
+      "climatology": {
+        "auc": 0.853,
+        "ap": 0.2584,
+        "top10_recall": 0.4714
+      },
+      "persistence_7d": {
+        "auc": 0.8121,
+        "ap": 0.3065,
+        "top10_recall": 0.4571
+      },
+      "hdw_index": {
+        "auc": 0.5214,
+        "ap": 0.0393,
+        "top10_recall": 0.068
+      }
+    },
+    {
+      "year": 2025,
+      "fire_rate": 0.0431,
+      "model": {
+        "auc": 0.9104,
+        "ap": 0.4897,
+        "top10_recall": 0.5916
+      },
+      "climatology": {
+        "auc": 0.8674,
+        "ap": 0.2586,
+        "top10_recall": 0.4651
+      },
+      "persistence_7d": {
+        "auc": 0.8379,
+        "ap": 0.3102,
+        "top10_recall": 0.4715
+      },
+      "hdw_index": {
+        "auc": 0.5434,
+        "ap": 0.0432,
+        "top10_recall": 0.055
+      }
+    }
+  ],
+  "levels": [
+    {
+      "level": 1,
+      "name": "Low",
+      "min_probability": 0.0,
+      "share_of_cells": 0.5986,
+      "observed_fire_rate": 0.0059,
+      "share_of_fires": 0.0785
+    },
+    {
+      "level": 2,
+      "name": "Moderate",
+      "min_probability": 0.016,
+      "share_of_cells": 0.2469,
+      "observed_fire_rate": 0.0308,
+      "share_of_fires": 0.1687
+    },
+    {
+      "level": 3,
+      "name": "High",
+      "min_probability": 0.0686,
+      "share_of_cells": 0.1036,
+      "observed_fire_rate": 0.1137,
+      "share_of_fires": 0.2616
+    },
+    {
+      "level": 4,
+      "name": "Very high",
+      "min_probability": 0.2145,
+      "share_of_cells": 0.0406,
+      "observed_fire_rate": 0.338,
+      "share_of_fires": 0.3045
+    },
+    {
+      "level": 5,
+      "name": "Extreme",
+      "min_probability": 0.6108,
+      "share_of_cells": 0.0104,
+      "observed_fire_rate": 0.8101,
+      "share_of_fires": 0.1867
+    }
+  ],
+  "importance": [
+    {
+      "feature": "fire_30d",
+      "gain_share": 0.3709
+    },
+    {
+      "feature": "fire_7d",
+      "gain_share": 0.2114
+    },
+    {
+      "feature": "clim",
+      "gain_share": 0.1139
+    },
+    {
+      "feature": "fire_1d",
+      "gain_share": 0.0524
+    },
+    {
+      "feature": "fire_nb_7d",
+      "gain_share": 0.0476
+    },
+    {
+      "feature": "elevation",
+      "gain_share": 0.0383
+    },
+    {
+      "feature": "ndvi",
+      "gain_share": 0.0308
+    },
+    {
+      "feature": "doy_cos",
+      "gain_share": 0.0267
+    },
+    {
+      "feature": "doy_sin",
+      "gain_share": 0.0255
+    },
+    {
+      "feature": "precip_30d",
+      "gain_share": 0.0163
+    },
+    {
+      "feature": "soil_wet_7d",
+      "gain_share": 0.0128
+    },
+    {
+      "feature": "dry_days",
+      "gain_share": 0.0108
+    },
+    {
+      "feature": "precip_7d",
+      "gain_share": 0.0088
+    },
+    {
+      "feature": "rh",
+      "gain_share": 0.0083
+    },
+    {
+      "feature": "tmax",
+      "gain_share": 0.0082
+    },
+    {
+      "feature": "wind",
+      "gain_share": 0.0066
+    },
+    {
+      "feature": "hdw",
+      "gain_share": 0.0061
+    },
+    {
+      "feature": "soil_wet",
+      "gain_share": 0.0045
+    }
+  ]
+}

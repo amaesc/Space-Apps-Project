@@ -189,7 +189,16 @@ async def ingest_telemetry(
 
     _save_reading(record)
 
-    return {"ok": True, "station": record}
+    # Nivel del modelo predictivo (72 h) en la celda de la estaca, para encender sus 5 LEDs.
+    model_risk = None
+    try:
+        from app.services import fire_model
+
+        model_risk = await fire_model.station_risk({**record, "fallback_active": False})
+    except Exception as exc:  # noqa: BLE001 - la lectura ya se guardó; el modelo es opcional
+        print(f"[iot] modelo no disponible: {exc}")
+
+    return {"ok": True, "station": record, "model_risk": model_risk}
 
 
 @router.get("/stations")
