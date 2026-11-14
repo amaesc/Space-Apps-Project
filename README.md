@@ -47,7 +47,12 @@ bun install
 cp .env.example .env.local
 # Configura GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET y AUTH_SECRET en web/.env.local
 bun run dev
+```
 
+Abre `http://localhost:3000` en tu navegador.
+*(En Google Cloud Console configura como Redirect URI autorizado: `http://localhost:3000/api/auth/google/callback`.)*
+
+---
 
 ## 5. Mejoras propuestas sobre `web/` (alineadas al documento de proyecto)
 
@@ -89,4 +94,3 @@ Para cubrir al 100 % la propuesta técnica de **UNDEFINED** y los objetivos del 
 - La atribución de origen es una **probabilidad estadística** para priorizar inspecciones preventivas; en ningún caso señala predios ni personas ni constituye prueba legal.
 - Fuera del radio de cobertura de la estación IoT en campo, el sistema utiliza respaldo modelado de **Open-Meteo** y **GOES-GLM**.
 - El modelo de riesgo estima peligro según condiciones meteorológicas y estacionales; no predice el punto ni la hora exacta de inicio de un incendio.
-```
