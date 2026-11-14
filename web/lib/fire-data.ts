@@ -1,4 +1,7 @@
-export type FireOrigin = "Humano" | "Rayo" | "Forestal" | "Indeterminado";
+/** Los datos actuales son ilustrativos; cambiar a false al conectar NASA FIRMS. */
+export const IS_DEMO_DATA = true;
+
+export type FireOrigin = "Human" | "Lightning" | "Wildland" | "Undetermined";
 
 export interface HotspotEvent {
   id: string;
@@ -13,7 +16,7 @@ export interface HotspotEvent {
   lon: string;
   latNum: number;
   lngNum: number;
-  /** Coordenadas normalizadas (0-100) dentro del mapa de Sierra de Chihuahua */
+  /** Normalized coordinates (0-100) within the Sierra de Chihuahua map */
   x: number;
   y: number;
 }
@@ -27,36 +30,70 @@ export const ORIGIN_COLORS: Record<
   FireOrigin,
   { hex: string; badge: string; dot: string }
 > = {
-  Humano: {
+  Human: {
     hex: "#f97316",
     badge: "border-orange-400/35 bg-orange-500/15 text-orange-300",
     dot: "bg-[#f97316]",
   },
-  Rayo: {
+  Lightning: {
     hex: "#38bdf8",
     badge: "border-sky-400/35 bg-sky-500/15 text-sky-300",
     dot: "bg-sky-400",
   },
-  Forestal: {
+  Wildland: {
     hex: "#34d399",
     badge: "border-emerald-400/35 bg-emerald-500/15 text-emerald-300",
     dot: "bg-emerald-400",
   },
-  Indeterminado: {
+  Undetermined: {
     hex: "#a855f7",
     badge: "border-violet-400/35 bg-violet-500/15 text-violet-300",
     dot: "bg-violet-400",
   },
 };
 
+/** Escala de peligro de 5 niveles (colores estándar de peligro de incendio). */
+export const RISK_SCALE = [
+  { level: "Low", bg: "#16a34a", fg: "#ffffff" },
+  { level: "Moderate", bg: "#2563eb", fg: "#ffffff" },
+  { level: "High", bg: "#facc15", fg: "#1a1400" },
+  { level: "Very high", bg: "#f97316", fg: "#1a0d00" },
+  { level: "Extreme", bg: "#dc2626", fg: "#ffffff" },
+] as const;
+
+export type RiskLevel = (typeof RISK_SCALE)[number]["level"];
+
+/** Datos de demostración: la "hora actual" es fija para que los tiempos relativos tengan sentido. */
+const DEMO_NOW_MINUTES = 14 * 60 + 40; // hoy, 14:40
+
+/** Minutos transcurridos desde la detección ("Today, 14:28" / "Yesterday, 18:14"). */
+export function minutesAgo(ev: HotspotEvent): number {
+  const match = /^(Today|Yesterday), (\d{1,2}):(\d{2})$/.exec(ev.timestamp);
+  if (!match) return Number.POSITIVE_INFINITY;
+  const minutes = Number(match[2]) * 60 + Number(match[3]);
+  return DEMO_NOW_MINUTES - minutes + (match[1] === "Yesterday" ? 24 * 60 : 0);
+}
+
+export function formatAgo(ev: HotspotEvent): string {
+  const m = minutesAgo(ev);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m} min ago`;
+  if (m < 24 * 60) return `${Math.floor(m / 60)} h ${m % 60} min ago`;
+  return ev.timestamp;
+}
+
+export function directionsUrl(ev: HotspotEvent): string {
+  return `https://www.google.com/maps/dir/?api=1&destination=${ev.latNum},${ev.lngNum}`;
+}
+
 export const HOTSPOT_EVENTS: HotspotEvent[] = [
   {
     id: "CHIH-2841",
     zone: "Ejido San Juanito · Km 14",
     municipality: "Bocoyna",
-    timestamp: "Hoy, 14:28",
+    timestamp: "Today, 14:28",
     sensor: "VIIRS 375m",
-    origin: "Humano",
+    origin: "Human",
     probability: 86,
     frpMw: 24.6,
     lat: "27.97°N",
@@ -68,11 +105,11 @@ export const HOTSPOT_EVENTS: HotspotEvent[] = [
   },
   {
     id: "CHIH-2840",
-    zone: "Mesa de Arturo · Borde agrícola",
+    zone: "Mesa de Arturo · Farmland edge",
     municipality: "Madera",
-    timestamp: "Hoy, 13:45",
+    timestamp: "Today, 13:45",
     sensor: "VIIRS 375m",
-    origin: "Humano",
+    origin: "Human",
     probability: 81,
     frpMw: 19.2,
     lat: "29.19°N",
@@ -84,11 +121,11 @@ export const HOTSPOT_EVENTS: HotspotEvent[] = [
   },
   {
     id: "CHIH-2839",
-    zone: "Barranca Sinforosa Norte",
+    zone: "Sinforosa Canyon · North",
     municipality: "Guachochi",
-    timestamp: "Hoy, 13:10",
+    timestamp: "Today, 13:10",
     sensor: "MODIS 1km",
-    origin: "Rayo",
+    origin: "Lightning",
     probability: 74,
     frpMw: 31.4,
     lat: "26.82°N",
@@ -100,11 +137,11 @@ export const HOTSPOT_EVENTS: HotspotEvent[] = [
   },
   {
     id: "CHIH-2838",
-    zone: "Sierra El Nido · Ladera oeste",
+    zone: "Sierra El Nido · West slope",
     municipality: "Temósachic",
-    timestamp: "Hoy, 12:32",
+    timestamp: "Today, 12:32",
     sensor: "VIIRS 375m",
-    origin: "Forestal",
+    origin: "Wildland",
     probability: 68,
     frpMw: 14.8,
     lat: "28.95°N",
@@ -116,11 +153,11 @@ export const HOTSPOT_EVENTS: HotspotEvent[] = [
   },
   {
     id: "CHIH-2837",
-    zone: "Corredor Basaseachi",
+    zone: "Basaseachi Corridor",
     municipality: "Ocampo",
-    timestamp: "Hoy, 12:16",
+    timestamp: "Today, 12:16",
     sensor: "VIIRS 375m",
-    origin: "Humano",
+    origin: "Human",
     probability: 79,
     frpMw: 22.1,
     lat: "28.18°N",
@@ -132,11 +169,11 @@ export const HOTSPOT_EVENTS: HotspotEvent[] = [
   },
   {
     id: "CHIH-2836",
-    zone: "Cerro Mohinora · Alta montaña",
+    zone: "Cerro Mohinora · High mountain",
     municipality: "Guadalupe y Calvo",
-    timestamp: "Hoy, 11:42",
+    timestamp: "Today, 11:42",
     sensor: "MODIS 1km",
-    origin: "Rayo",
+    origin: "Lightning",
     probability: 83,
     frpMw: 37.5,
     lat: "25.96°N",
@@ -148,11 +185,11 @@ export const HOTSPOT_EVENTS: HotspotEvent[] = [
   },
   {
     id: "CHIH-2835",
-    zone: "Valle de Carichí · Parcela sur",
+    zone: "Carichí Valley · South plot",
     municipality: "Carichí",
-    timestamp: "Hoy, 11:25",
+    timestamp: "Today, 11:25",
     sensor: "VIIRS 375m",
-    origin: "Humano",
+    origin: "Human",
     probability: 88,
     frpMw: 16.4,
     lat: "27.91°N",
@@ -164,11 +201,11 @@ export const HOTSPOT_EVENTS: HotspotEvent[] = [
   },
   {
     id: "CHIH-2834",
-    zone: "Cañón de Uruachi",
+    zone: "Uruachi Canyon",
     municipality: "Uruachi",
-    timestamp: "Hoy, 10:57",
+    timestamp: "Today, 10:57",
     sensor: "VIIRS 375m",
-    origin: "Indeterminado",
+    origin: "Undetermined",
     probability: 54,
     frpMw: 11.9,
     lat: "27.86°N",
@@ -182,9 +219,9 @@ export const HOTSPOT_EVENTS: HotspotEvent[] = [
     id: "CHIH-2833",
     zone: "Arroyo El Vergel",
     municipality: "Balleza",
-    timestamp: "Ayer, 18:14",
+    timestamp: "Yesterday, 18:14",
     sensor: "VIIRS 375m",
-    origin: "Forestal",
+    origin: "Wildland",
     probability: 72,
     frpMw: 28.0,
     lat: "26.95°N",
@@ -196,11 +233,11 @@ export const HOTSPOT_EVENTS: HotspotEvent[] = [
   },
   {
     id: "CHIH-2832",
-    zone: "Brecha Maguarichi",
+    zone: "Maguarichi Dirt Road",
     municipality: "Maguarichi",
-    timestamp: "Ayer, 16:40",
+    timestamp: "Yesterday, 16:40",
     sensor: "MODIS 1km",
-    origin: "Humano",
+    origin: "Human",
     probability: 76,
     frpMw: 18.7,
     lat: "27.86°N",
@@ -213,10 +250,10 @@ export const HOTSPOT_EVENTS: HotspotEvent[] = [
 ];
 
 export const ORIGIN_28D_TOTALS: Record<FireOrigin, number> = {
-  Humano: 842,
-  Rayo: 314,
-  Forestal: 218,
-  Indeterminado: 108,
+  Human: 842,
+  Lightning: 314,
+  Wildland: 218,
+  Undetermined: 108,
 };
 
 export const DAILY_HARMONIZED_28D: DailyCountPoint[] = [
@@ -239,12 +276,12 @@ export const DAILY_HARMONIZED_28D: DailyCountPoint[] = [
 export function downloadHotspotsCsv(events: HotspotEvent[]): void {
   const header = [
     "id",
-    "municipio",
-    "zona",
-    "fecha_hora",
+    "municipality",
+    "zone",
+    "date_time",
     "sensor",
-    "origen_probable",
-    "probabilidad_pct",
+    "probable_origin",
+    "probability_pct",
     "frp_mw",
     "lat",
     "lon",
@@ -265,14 +302,45 @@ export function downloadHotspotsCsv(events: HotspotEvent[]): void {
     ].join(",")
   );
 
-  const csvContent = [header, ...rows].join("\n");
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
+  saveFile(
+    [header, ...rows].join("\n"),
+    "text/csv;charset=utf-8",
+    "fuegodata-sierra-chihuahua-28d.csv"
+  );
+}
+
+export function downloadHotspotsGeoJson(events: HotspotEvent[]): void {
+  const geojson = {
+    type: "FeatureCollection",
+    features: events.map((ev) => ({
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [ev.lngNum, ev.latNum] },
+      properties: {
+        id: ev.id,
+        municipality: ev.municipality,
+        zone: ev.zone,
+        date_time: ev.timestamp,
+        sensor: ev.sensor,
+        probable_origin: ev.origin,
+        probability_pct: ev.probability,
+        frp_mw: ev.frpMw,
+      },
+    })),
+  };
+  saveFile(
+    JSON.stringify(geojson, null, 2),
+    "application/geo+json",
+    "fuegodata-sierra-chihuahua-28d.geojson"
+  );
+}
+
+function saveFile(content: string, type: string, filename: string): void {
+  const url = URL.createObjectURL(new Blob([content], { type }));
   const link = document.createElement("a");
   link.href = url;
-  link.setAttribute("download", "undefined-sierra-chihuahua-28d.csv");
+  link.download = filename;
   document.body.appendChild(link);
   link.click();
-  document.body.removeChild(link);
+  link.remove();
   URL.revokeObjectURL(url);
 }

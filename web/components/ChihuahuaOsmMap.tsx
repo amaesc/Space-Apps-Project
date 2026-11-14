@@ -2,144 +2,93 @@
 
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { type HotspotEvent, ORIGIN_COLORS } from "../lib/fire-data";
 
-interface ChihuahuaOsmMapProps {
+interface Props {
   events: HotspotEvent[];
   selectedId: string | null;
   onSelect: (id: string) => void;
 }
 
-const DEFAULT_CENTER: [number, number] = [27.85, -107.45];
-const DEFAULT_ZOOM = 7;
+const CENTER: [number, number] = [27.85, -107.45];
+const ZOOM = 7;
 
-export default function ChihuahuaOsmMap({
-  events,
-  selectedId,
-  onSelect,
-}: ChihuahuaOsmMapProps) {
+// Mapas de Esri, sin clave de API. El oscuro pesa poco; el satélite solo se descarga si se elige.
+const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services";
+const BASEMAPS = {
+  map: {
+    url: `${ESRI}/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}`,
+    labels: `${ESRI}/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}`,
+    attribution: "&copy; Esri, HERE, Garmin, OpenStreetMap",
+  },
+  satellite: {
+    url: `${ESRI}/World_Imagery/MapServer/tile/{z}/{y}/{x}`,
+    labels: `${ESRI}/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}`,
+    attribution: "&copy; Esri, Maxar, Earthstar Geographics",
+  },
+};
+type Basemap = keyof typeof BASEMAPS;
+
+export default function ChihuahuaOsmMap({ events, selectedId, onSelect }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
-  const layerRef = useRef<L.LayerGroup | null>(null);
+  const baseRef = useRef<L.LayerGroup | null>(null);
+  const markersRef = useRef<L.LayerGroup | null>(null);
+  const [basemap, setBasemap] = useState<Basemap>("map");
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
-
-    const map = L.map(containerRef.current, {
-      center: DEFAULT_CENTER,
-      zoom: DEFAULT_ZOOM,
-      zoomControl: false,
-      attributionControl: true,
-    });
-
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "&copy; OpenStreetMap",
-      maxZoom: 18,
-    }).addTo(map);
-
-    const layerGroup = L.layerGroup().addTo(map);
+    const map = L.map(containerRef.current, { center: CENTER, zoom: ZOOM, zoomControl: false });
+    L.control.zoom({ position: "bottomright" }).addTo(map);
+    baseRef.current = L.layerGroup().addTo(map);
+    markersRef.current = L.layerGroup().addTo(map);
     mapRef.current = map;
-    layerRef.current = layerGroup;
-
     return () => {
       map.remove();
       mapRef.current = null;
-      layerRef.current = null;
     };
   }, []);
 
   useEffect(() => {
-    const map = mapRef.current;
-    const layerGroup = layerRef.current;
-    if (!map || !layerGroup) return;
-
-    layerGroup.clearLayers();
-
-    events.forEach((ev) => {
-      const isSelected = ev.id === selectedId;
-      const colorHex = ORIGIN_COLORS[ev.origin].hex;
-
-      if (isSelected) {
-        L.circleMarker([ev.latNum, ev.lngNum], {
-          radius: 16,
-          color: colorHex,
-          weight: 1.5,
-          opacity: 0.55,
-          fillColor: colorHex,
-          fillOpacity: 0.18,
-          interactive: false,
-        }).addTo(layerGroup);
-      }
-
-      const marker = L.circleMarker([ev.latNum, ev.lngNum], {
-        radius: isSelected ? 8 : 6,
-        color: isSelected ? "#ffffff" : "#0d0818",
-        weight: isSelected ? 2.5 : 1.5,
-        fillColor: colorHex,
-        fillOpacity: 0.95,
-      });
-
-      marker.bindTooltip(
-        `${ev.municipality} · ${ev.origin} (${ev.probability}%)`,
-        { direction: "top", offset: [0, -6] }
-      );
-
-      marker.on("click", () => {
-        onSelect(ev.id);
-      });
-
-      marker.addTo(layerGroup);
-    });
-  }, [events, selectedId, onSelect]);
+    const base = baseRef.current;
+    if (!base) return;
+    base.clearLayers();
+    const cfg = BASEMAPS[basemap];
+    L.tileLayer(cfg.url, { attribution: cfg.attribution, maxZoom: 16 }).addTo(base);
+    L.tileLayer(cfg.labels, { maxZoom: 16 }).addTo(base);
+  }, [basemap]);
 
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !selectedId) return;
-    const selected = events.find((ev) => ev.id === selectedId);
-    if (selected) {
-      map.panTo([selected.latNum, selected.lngNum], { animate: true });
+    const layer = markersRef.current;
+    if (!layer) return;
+    layer.clearLayers();
+    for (const ev of events) {
+      const selected = ev.id === selectedId;
+      L.circleMarker([ev.latNum, ev.lngNum], {
+        radius: selected ? 10 : 8,
+        color: selected ? "#ffffff" : "#000000",
+        weight: selected ? 3 : 1.5,
+        fillColor: ORIGIN_COLORS[ev.origin].hex,
+        fillOpacity: 1,
+      })
+        .on("click", () => onSelect(ev.id))
+        .addTo(layer);
     }
-  }, [selectedId, events]);
+    const sel = events.find((e) => e.id === selectedId);
+    if (sel) mapRef.current?.panTo([sel.latNum, sel.lngNum]);
+  }, [events, selectedId, onSelect]);
 
   return (
-    <div className="relative h-full min-h-96 w-full lg:min-h-105">
-      <div
-        ref={containerRef}
-        className="osm-dark-map h-full min-h-96 w-full lg:min-h-105"
-      />
-
-      {/* Controles de zoom arriba derecha */}
-      <div className="absolute right-3 top-3 z-400 flex flex-col gap-1.5">
-        <button
-          type="button"
-          onClick={() => mapRef.current?.zoomIn()}
-          aria-label="Acercar mapa"
-          className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-white/15 bg-[#140d24]/90 font-mono text-sm font-bold text-white backdrop-blur-md transition-colors hover:bg-white/10"
-        >
-          +
-        </button>
-        <button
-          type="button"
-          onClick={() => mapRef.current?.zoomOut()}
-          aria-label="Alejar mapa"
-          className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-white/15 bg-[#140d24]/90 font-mono text-sm font-bold text-white backdrop-blur-md transition-colors hover:bg-white/10"
-        >
-          −
-        </button>
-        <button
-          type="button"
-          onClick={() =>
-            mapRef.current?.setView(DEFAULT_CENTER, DEFAULT_ZOOM, {
-              animate: true,
-            })
-          }
-          aria-label="Restablecer vista del mapa"
-          className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-white/15 bg-[#140d24]/90 font-mono text-[10px] text-slate-300 backdrop-blur-md transition-colors hover:bg-white/10 hover:text-white"
-        >
-          1:1
-        </button>
-      </div>
+    <div className="relative h-full w-full">
+      <div ref={containerRef} className="fuego-map absolute inset-0" />
+      <button
+        type="button"
+        onClick={() => setBasemap((b) => (b === "map" ? "satellite" : "map"))}
+        className="absolute right-2 top-2 z-400 min-h-10 cursor-pointer rounded-md border border-white/30 bg-black/80 px-3 text-sm font-semibold text-white"
+      >
+        {basemap === "map" ? "Satellite" : "Map"}
+      </button>
     </div>
   );
 }

@@ -5,23 +5,23 @@ import { useState } from "react";
 type Mode = "harmonized" | "raw";
 
 const YEARS = [2019, 2020, 2021, 2022, 2023, 2024, 2025];
-const MONTHS_SHORT = ["E", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
+const MONTHS_SHORT = ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
 const MONTHS_FULL = [
-  "Enero",
-  "Febrero",
-  "Marzo",
-  "Abril",
-  "Mayo",
-  "Junio",
-  "Julio",
-  "Agosto",
-  "Septiembre",
-  "Octubre",
-  "Noviembre",
-  "Diciembre",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
-// Muestra ilustrativa de estacionalidad en Sierra de Chihuahua (pico abr-jun)
+// Illustrative seasonality sample for Sierra de Chihuahua (peak Apr–Jun)
 const HEATMAP_HARMONIZED: number[][] = [
   [12, 18, 36, 74, 88, 62, 20, 9, 6, 8, 11, 10],
   [14, 22, 45, 82, 95, 70, 24, 11, 7, 9, 14, 12],
@@ -55,7 +55,7 @@ export default function HeroHarmonizationPreview() {
   const [mode, setMode] = useState<Mode>("harmonized");
   const [selectedCell, setSelectedCell] = useState<{ y: number; m: number }>({
     y: 5, // 2024
-    m: 4, // Mayo
+    m: 4, // May
   });
 
   const activeValue = HEATMAP_HARMONIZED[selectedCell.y][selectedCell.m];
@@ -63,7 +63,7 @@ export default function HeroHarmonizationPreview() {
     mode === "raw" ? Math.round(activeValue * 0.42) : activeValue;
 
   return (
-    /* Double-Bezel Outer Shell (paleta violeta cósmico + flama) */
+    /* Double-Bezel Outer Shell (cosmic violet + flame palette) */
     <div className="relative rounded-[1.75rem] border border-violet-400/20 bg-white/[0.03] p-1.5 shadow-[0_24px_70px_-15px_rgba(0,0,0,0.85)]">
       <div
         aria-hidden="true"
@@ -80,19 +80,19 @@ export default function HeroHarmonizationPreview() {
                 className="h-2 w-2 rounded-full bg-[#f59e0b]"
               />
               <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-slate-400">
-                Muestra ilustrativa · Sierra de Chihuahua
+                Illustrative sample · Sierra de Chihuahua
               </span>
             </div>
             <p className="mt-1 text-sm font-medium text-slate-100">
-              Calendario de actividad de quema (MODIS → VIIRS)
+              Burn activity calendar (MODIS → VIIRS)
             </p>
           </div>
 
-          {/* Toggle Crudo vs Armonizado */}
+          {/* Raw vs harmonized toggle */}
           <div
             className="inline-flex rounded-full border border-white/10 bg-[#0d0818] p-1"
             role="group"
-            aria-label="Modo de visualización de serie"
+            aria-label="Series display mode"
           >
             <button
               type="button"
@@ -103,7 +103,7 @@ export default function HeroHarmonizationPreview() {
                   : "text-slate-400 hover:text-slate-200"
               }`}
             >
-              Sin armonizar
+              Raw
             </button>
             <button
               type="button"
@@ -114,18 +114,18 @@ export default function HeroHarmonizationPreview() {
                   : "text-slate-400 hover:text-slate-200"
               }`}
             >
-              Armonizado
+              Harmonized
             </button>
           </div>
         </div>
 
-        {/* Comparativa de barras 2004–2024 */}
+        {/* 2004–2024 bar comparison */}
         <div className="mt-4">
           <div className="mb-2 flex items-center justify-between font-mono text-[11px] text-slate-400">
             <span>
               {mode === "harmonized"
-                ? "Serie unificada (factor mensual kₘ)"
-                : "Discrepancia cruda: MODIS (azul) vs VIIRS (naranja)"}
+                ? "Unified series (monthly kₘ factor)"
+                : "Raw mismatch: MODIS (blue) vs VIIRS (orange)"}
             </span>
             <span className="tabular-nums text-slate-500">2004–2024</span>
           </div>
@@ -152,7 +152,7 @@ export default function HeroHarmonizationPreview() {
                     <div
                       className="w-4 rounded-t bg-gradient-to-t from-[#d9532f] to-[#f59e0b] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]"
                       style={{ height: `${item.harmonized}%` }}
-                      title={`Armonizado ${item.year}: ${item.harmonized}`}
+                      title={`Harmonized ${item.year}: ${item.harmonized}`}
                     />
                   )}
                 </div>
@@ -164,13 +164,13 @@ export default function HeroHarmonizationPreview() {
           </div>
         </div>
 
-        {/* Matriz interactiva Años x Meses */}
+        {/* Interactive years × months matrix */}
         <div className="mt-4">
           <div className="mb-2 flex items-center justify-between font-mono text-[11px] text-slate-400">
-            <span>Matriz mensual interactiva</span>
+            <span>Interactive monthly matrix</span>
             <span className="tabular-nums text-[#f59e0b]">
               {MONTHS_FULL[selectedCell.m]} {YEARS[selectedCell.y]} ·{" "}
-              {displayValue} pts rel.
+              {displayValue} rel. pts
             </span>
           </div>
 
@@ -197,7 +197,7 @@ export default function HeroHarmonizationPreview() {
                       key={mIdx}
                       type="button"
                       onClick={() => setSelectedCell({ y: yIdx, m: mIdx })}
-                      aria-label={`${MONTHS_FULL[mIdx]} ${year}: índice ${
+                      aria-label={`${MONTHS_FULL[mIdx]} ${year}: index ${
                         mode === "raw" ? Math.round(val * 0.42) : val
                       }`}
                       className={`h-4 w-full cursor-pointer rounded-[3px] transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${getHeatClass(
@@ -215,9 +215,9 @@ export default function HeroHarmonizationPreview() {
             ))}
           </div>
 
-          {/* Leyenda de escala accesible */}
+          {/* Accessible scale legend */}
           <div className="mt-3 flex items-center justify-between font-mono text-[10px] text-slate-500">
-            <span>Menor actividad</span>
+            <span>Lower activity</span>
             <div className="flex items-center gap-1" aria-hidden="true">
               <span className="h-2.5 w-4 rounded-sm bg-[#151e28]" />
               <span className="h-2.5 w-4 rounded-sm bg-[#1d3c4d]" />
@@ -226,26 +226,26 @@ export default function HeroHarmonizationPreview() {
               <span className="h-2.5 w-4 rounded-sm bg-[#d9532f]" />
               <span className="h-2.5 w-4 rounded-sm bg-[#ef4444]" />
             </div>
-            <span>Temporada crítica</span>
+            <span>Critical season</span>
           </div>
         </div>
 
-        {/* Pie de telemetría IoT + Origen */}
+        {/* IoT telemetry + origin footer */}
         <div className="mt-4 grid grid-cols-1 gap-2 border-t border-white/[0.07] pt-3 font-mono text-[11px] sm:grid-cols-2">
           <div className="rounded-xl bg-[#0d0818] px-3.5 py-2.5">
             <span className="block text-[10px] uppercase tracking-wider text-slate-500">
-              Estación IoT (ejemplo)
+              IoT station (example)
             </span>
             <span className="mt-0.5 block text-sky-400">
-              HDW Alto · 0 rayos / 5d
+              HDW High · 0 strikes / 5d
             </span>
           </div>
           <div className="rounded-xl bg-[#0d0818] px-3.5 py-2.5">
             <span className="block text-[10px] uppercase tracking-wider text-slate-500">
-              Origen probable
+              Probable origin
             </span>
             <span className="mt-0.5 block text-amber-400">
-              82% actividad humana
+              82% human activity
             </span>
           </div>
         </div>

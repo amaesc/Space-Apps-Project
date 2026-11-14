@@ -4,23 +4,23 @@ import Link from "next/link";
 export default function NotFound() {
   return (
     <div className="relative flex min-h-[100dvh] items-end justify-center overflow-hidden bg-[#0d0818] px-4 py-8 text-[#f4f6f8] sm:px-8 sm:py-12 md:justify-start">
-      {/* Imagen de fondo vívida y sin obstrucción al centro */}
+      {/* Vivid background image, unobstructed in the center */}
       <Image
         src="/images/error-frozen.jpg"
-        alt="Fondo Error 404: Mascota UNDEFINED congelada"
+        alt="404 error background: the frozen UNDEFINED mascot"
         fill
         sizes="100vw"
         className="object-cover object-center opacity-95"
         priority
       />
 
-      {/* Viñeta sutil solo en los bordes para mantener contraste sin apagar al personaje */}
+      {/* Subtle edge vignette to keep contrast without dimming the character */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0d0818]/85 via-transparent to-[#0d0818]/25 md:bg-gradient-to-tr md:from-[#0d0818]/90 md:via-[#0d0818]/20 md:to-transparent"
       />
 
-      {/* Tarjeta compacta en esquina inferior izquierda para dejar libre a la mascota */}
+      {/* Compact card in the bottom-left corner to keep the mascot clear */}
       <div className="relative z-10 w-full max-w-md rounded-[1.5rem] border border-sky-300/25 bg-[#0d0818]/55 p-1.5 shadow-[0_24px_60px_-15px_rgba(0,0,0,0.85)] backdrop-blur-lg">
         <div className="rounded-[calc(1.5rem-0.375rem)] bg-[#140d24]/70 p-6 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] sm:p-7">
           <div className="flex items-center justify-between gap-3">
@@ -33,12 +33,12 @@ export default function NotFound() {
           </div>
 
           <h1 className="mt-4 text-xl font-bold uppercase tracking-tight text-white sm:text-2xl">
-            Ruta no encontrada
+            Page not found
           </h1>
 
           <p className="mt-2 text-sm leading-relaxed text-slate-200">
-            Esta coordenada se congeló o no existe. Regresa al panel principal
-            de <strong className="text-white">UNDEFINED</strong>.
+            This coordinate froze or does not exist. Head back to the{" "}
+            <strong className="text-white">FuegoData</strong> map.
           </p>
 
           <div className="mt-6">
@@ -46,7 +46,7 @@ export default function NotFound() {
               href="/"
               className="group inline-flex items-center gap-3 rounded-full bg-gradient-to-r from-[#f97316] to-[#ea580c] py-2 pl-5 pr-2 text-sm font-semibold text-white shadow-[0_0_28px_-4px_rgba(249,115,22,0.7)] transition-all duration-300 hover:brightness-110 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
-              <span>Volver al inicio</span>
+              <span>Go to the map</span>
               <span
                 aria-hidden="true"
                 className="flex h-7 w-7 items-center justify-center rounded-full bg-black/25 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"

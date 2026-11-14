@@ -1,59 +1,57 @@
 import Link from "next/link";
-import FluidNav from "../../components/FluidNav";
-import Reveal from "../../components/Reveal";
+import AboutTabs from "../../../components/AboutTabs";
+import SiteHeader from "../../../components/SiteHeader";
+import Reveal from "../../../components/Reveal";
 
 const MODULES = [
   {
-    step: "Módulo 01",
-    title: "Armonización Satelital (MODIS + VIIRS)",
+    step: "Module 01",
+    title: "Satellite Harmonization (MODIS + VIIRS)",
     summary:
-      "Unifica 25 años de focos de calor eliminando el sesgo entre sensores para construir un calendario histórico continuo.",
+      "Unifies 25 years of hotspots by removing the bias between sensors to build a continuous historical calendar.",
     points: [
-      "Calibración mensual con factor kₘ e intervalos de confianza.",
-      "Integración con el índice meteorológico de incendios (FWI).",
-      "Validación cruzada leave-year-out para medir estabilidad temporal.",
+      "Monthly calibration with the kₘ factor and confidence intervals.",
+      "Integration with the Fire Weather Index (FWI).",
+      "Leave-year-out cross-validation to measure temporal stability.",
     ],
   },
   {
-    step: "Módulo 02",
-    title: "Estaciones IoT en Campo",
+    step: "Module 02",
+    title: "Field IoT Stations",
     summary:
-      "Nodos autónomos instalados en zonas forestales que miden microclima y descargas eléctricas en tiempo real.",
+      "Autonomous nodes installed in forested areas that measure microclimate and lightning strikes in real time.",
     points: [
-      "Microcontrolador ESP32 con enlace dual WiFi / LoRa de largo alcance.",
-      "Sensores BME280 (temperatura y humedad relativa), viento, lluvia y detector de rayos AS3935.",
-      "Pantalla local + semáforo de 5 LEDs alimentados por panel solar.",
+      "ESP32 microcontroller with a dual WiFi / long-range LoRa link.",
+      "BME280 sensors (temperature and relative humidity), wind, rain and an AS3935 lightning detector.",
+      "Local display + 5-LED alert light, powered by a solar panel.",
     ],
   },
   {
-    step: "Módulo 03",
-    title: "Estimación de Origen y Calendario",
+    step: "Module 03",
+    title: "Origin Estimation and Calendar",
     summary:
-      "Cruza actividad satelital, rayos detectados y contexto territorial para priorizar inspecciones preventivas.",
+      "Combines satellite activity, detected lightning and land context to prioritize preventive inspections.",
     points: [
-      "Clasificación probabilística de origen probable (natural vs. humano).",
-      "Matriz Años × Meses con filtros por origen, anomalía y mediana histórica.",
-      "Exportación de series armonizadas en CSV con incertidumbre por sensor.",
+      "Probabilistic classification of the probable origin (natural vs. human).",
+      "Years × months matrix with filters by origin, anomaly and historical median.",
+      "Export of harmonized series to CSV with per-sensor uncertainty.",
     ],
   },
 ];
 
 const PIPELINE = [
-  { label: "1. Captura", detail: "NASA FIRMS (MODIS/VIIRS) + Nodos ESP32" },
-  { label: "2. Calibración", detail: "Ajuste kₘ + FWI + filtrado de anomalías" },
-  { label: "3. Inferencia", detail: "Probabilidad de origen y nivel de riesgo" },
-  { label: "4. Alerta", detail: "Calendario web + 5 LEDs locales en campo" },
+  { label: "1. Capture", detail: "NASA FIRMS (MODIS/VIIRS) + ESP32 nodes" },
+  { label: "2. Calibration", detail: "kₘ adjustment + FWI + anomaly filtering" },
+  { label: "3. Inference", detail: "Origin probability and risk level" },
+  { label: "4. Alert", detail: "Web calendar + 5 local LEDs in the field" },
 ];
 
-export default function FuncionamientoPage() {
+export default function HowItWorksPage() {
   return (
     <div className="relative min-h-[100dvh] bg-[#0d0818] text-[#f4f6f8]">
-      <div
-        aria-hidden="true"
-        className="noise-overlay pointer-events-none fixed inset-0 z-50 opacity-[0.025]"
-      />
 
-      <FluidNav />
+      <SiteHeader />
+      <AboutTabs />
 
       <main className="relative overflow-hidden">
         <div
@@ -65,27 +63,28 @@ export default function FuncionamientoPage() {
           className="pointer-events-none absolute right-10 top-40 h-[20rem] w-[20rem] rounded-full bg-[#f97316]/10 blur-3xl"
         />
 
-        {/* Encabezado */}
+        {/* Header */}
         <section className="relative border-b border-white/[0.06] bg-gradient-to-b from-[#130b24] via-[#0e091b] to-[#0d0818]">
           <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-20">
             <Reveal>
               <span className="inline-block rounded-full border border-orange-400/30 bg-[#f97316]/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-[#fb923c]">
-                Arquitectura del sistema
+                System architecture
               </span>
               <h1 className="mt-4 max-w-3xl text-balance text-3xl font-bold uppercase leading-[1.06] tracking-[-0.02em] text-white sm:text-5xl">
-                CÓMO FUNCIONA{" "}
+                HOW{" "}
                 <span className="bg-gradient-to-r from-[#fb923c] to-violet-400 bg-clip-text text-transparent">
-                  UNDEFINED
-                </span>
+                  FUEGODATA
+                </span>{" "}
+                WORKS
               </h1>
               <p className="mt-5 max-w-2xl text-base leading-relaxed text-slate-300">
-                Tres módulos acoplados conectan observaciones orbitales de la
-                NASA con telemetría física en la sierra para pasar del monitoreo
-                pasivo a la anticipación operativa.
+                Three coupled modules connect NASA orbital observations with
+                physical telemetry in the mountains, moving from passive
+                monitoring to operational anticipation.
               </p>
             </Reveal>
 
-            {/* Flujo en 4 pasos */}
+            {/* 4-step flow */}
             <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {PIPELINE.map((item, idx) => (
                 <Reveal key={item.label} delayMs={idx * 60}>
@@ -103,7 +102,7 @@ export default function FuncionamientoPage() {
           </div>
         </section>
 
-        {/* Módulos detallados */}
+        {/* Detailed modules */}
         <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-20">
           <div className="grid gap-6 lg:grid-cols-3">
             {MODULES.map((mod, idx) => (
@@ -138,25 +137,25 @@ export default function FuncionamientoPage() {
             <div className="mt-12 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-violet-400/20 bg-[#161028] p-6">
               <div>
                 <p className="text-sm font-semibold text-white">
-                  Conoce al equipo detrás de la plataforma
+                  Meet the team behind the platform
                 </p>
                 <p className="mt-1 text-xs text-slate-400">
-                  Descubre el enfoque multidisciplinario y el caso piloto en
+                  Discover our multidisciplinary approach and the pilot case in
                   Chihuahua.
                 </p>
               </div>
               <div className="flex flex-wrap gap-3">
                 <Link
-                  href="/equipo"
+                  href="/team"
                   className="rounded-xl bg-gradient-to-r from-[#f97316] to-[#ea580c] px-5 py-2.5 text-xs font-semibold text-white shadow-[0_0_24px_-6px_rgba(249,115,22,0.65)] transition-all hover:brightness-110"
                 >
-                  Ver equipo
+                  Meet the team
                 </Link>
                 <Link
-                  href="/login"
+                  href="/"
                   className="rounded-xl border border-white/15 bg-white/[0.04] px-5 py-2.5 text-xs font-medium text-slate-200 transition-colors hover:border-white/30 hover:text-white"
                 >
-                  Iniciar sesión
+                  Open the map
                 </Link>
               </div>
             </div>

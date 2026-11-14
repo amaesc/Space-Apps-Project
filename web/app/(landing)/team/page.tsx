@@ -1,39 +1,37 @@
 import Image from "next/image";
 import Link from "next/link";
-import FluidNav from "../../components/FluidNav";
-import Reveal from "../../components/Reveal";
+import AboutTabs from "../../../components/AboutTabs";
+import SiteHeader from "../../../components/SiteHeader";
+import Reveal from "../../../components/Reveal";
 
 const TEAM_AREAS = [
   {
-    area: "Ciencia de Datos y Satélite",
-    desc: "Armonización estadística de series históricas MODIS y VIIRS, cálculo de factor kₘ, validación leave-year-out y calibración FWI.",
+    area: "Data Science & Satellite",
+    desc: "Statistical harmonization of MODIS and VIIRS historical series, kₘ factor computation, leave-year-out validation and FWI calibration.",
   },
   {
-    area: "Hardware e IoT en Campo",
-    desc: "Diseño de estaciones autónomas con ESP32 (WiFi/LoRa), sensores BME280, viento/lluvia, detector de rayos AS3935 y alimentación solar.",
+    area: "Hardware & Field IoT",
+    desc: "Design of autonomous stations with ESP32 (WiFi/LoRa), BME280 sensors, wind/rain, an AS3935 lightning detector and solar power.",
   },
   {
-    area: "Plataforma Web y Visualización",
-    desc: "Interfaz interactiva para explorar el calendario de quema, anomalías por área, mapas de riesgo y exportación abierta en CSV.",
+    area: "Web Platform & Visualization",
+    desc: "Interactive interface to explore the burn calendar, anomalies by area, risk maps and open CSV export.",
   },
 ];
 
 const DATA_SOURCES = [
-  { name: "NASA FIRMS (MODIS C6.1)", detail: "Puntos calientes históricos 2000–presente" },
-  { name: "NASA / NOAA VIIRS (375 m)", detail: "Detección térmica de alta resolución espacial" },
-  { name: "Índice Meteorológico FWI", detail: "Peligro de incendio calibrado con clima local" },
-  { name: "Red IoT UNDEFINED", detail: "Microclima y rayos en la Sierra de Chihuahua" },
+  { name: "NASA FIRMS (MODIS C6.1)", detail: "Historical hotspots, 2000–present" },
+  { name: "NASA / NOAA VIIRS (375 m)", detail: "High spatial resolution thermal detection" },
+  { name: "Fire Weather Index (FWI)", detail: "Fire danger calibrated with local weather" },
+  { name: "UNDEFINED IoT network", detail: "Microclimate and lightning in the Sierra de Chihuahua" },
 ];
 
-export default function EquipoPage() {
+export default function TeamPage() {
   return (
     <div className="relative min-h-[100dvh] bg-[#0d0818] text-[#f4f6f8]">
-      <div
-        aria-hidden="true"
-        className="noise-overlay pointer-events-none fixed inset-0 z-50 opacity-[0.025]"
-      />
 
-      <FluidNav />
+      <SiteHeader />
+      <AboutTabs />
 
       <main className="relative overflow-hidden">
         <div
@@ -41,24 +39,23 @@ export default function EquipoPage() {
           className="pointer-events-none absolute -top-24 right-1/3 h-[26rem] w-[26rem] rounded-full bg-violet-600/15 blur-3xl"
         />
 
-        {/* Encabezado */}
+        {/* Header */}
         <section className="relative border-b border-white/[0.06] bg-gradient-to-b from-[#130b24] via-[#0e091b] to-[#0d0818]">
           <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-16 sm:px-6 lg:grid-cols-12 lg:py-20">
             <Reveal className="lg:col-span-8">
               <span className="inline-block rounded-full border border-orange-400/30 bg-[#f97316]/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-[#fb923c]">
-                NASA Space Apps Challenge 2026 · Chihuahua, Chih.
+                NASA Space Apps Challenge 2026 · Chihuahua, Mexico
               </span>
               <h1 className="mt-4 text-balance text-3xl font-bold uppercase leading-[1.06] tracking-[-0.02em] text-white sm:text-5xl">
-                EQUIPO{" "}
+                TEAM{" "}
                 <span className="bg-gradient-to-r from-[#fb923c] via-[#f97316] to-amber-300 bg-clip-text text-transparent">
                   UNDEFINED
                 </span>
               </h1>
               <p className="mt-5 max-w-2xl text-base leading-relaxed text-slate-300">
-                Somos un equipo multidisciplinario enfocado en unir observación
-                espacial abierta de la NASA con ingeniería IoT de bajo costo para
-                proteger ecosistemas forestales y comunidades de la Sierra de
-                Chihuahua.
+                We are a multidisciplinary team focused on combining NASA open
+                space observation with low-cost IoT engineering to protect forest
+                ecosystems and communities in the Sierra de Chihuahua.
               </p>
             </Reveal>
 
@@ -67,7 +64,7 @@ export default function EquipoPage() {
                 <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-orange-400/40 bg-[#1a122e]">
                   <Image
                     src="/images/mascot-pod.jpg"
-                    alt="Mascota del equipo UNDEFINED"
+                    alt="Team UNDEFINED mascot"
                     fill
                     sizes="64px"
                     className="object-cover"
@@ -78,7 +75,7 @@ export default function EquipoPage() {
                     UNDEFINED
                   </p>
                   <p className="mt-1 text-xs text-slate-400">
-                    Caso piloto: Sierra de Chihuahua
+                    Pilot case: Sierra de Chihuahua
                   </p>
                 </div>
               </div>
@@ -86,12 +83,12 @@ export default function EquipoPage() {
           </div>
         </section>
 
-        {/* Áreas del equipo y fuentes */}
+        {/* Team areas and sources */}
         <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-20">
           <Reveal>
             <h2 className="text-2xl font-bold uppercase tracking-[-0.02em] text-white sm:text-3xl">
-              Células de{" "}
-              <span className="text-[#fb923c]">trabajo</span>
+              Work{" "}
+              <span className="text-[#fb923c]">cells</span>
             </h2>
           </Reveal>
 
@@ -113,7 +110,7 @@ export default function EquipoPage() {
           <Reveal delayMs={140}>
             <div className="mt-14">
               <h2 className="text-xl font-bold uppercase tracking-[-0.02em] text-white sm:text-2xl">
-                Fuentes de datos y transparencia
+                Data sources and transparency
               </h2>
               <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {DATA_SOURCES.map((src) => (
@@ -134,15 +131,15 @@ export default function EquipoPage() {
           <Reveal delayMs={180}>
             <div className="mt-12 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/10 bg-[#140d24] p-6">
               <p className="max-w-xl text-xs leading-relaxed text-slate-400">
-                Nota metodológica: las estimaciones probabilísticas por zona
-                tienen fines preventivos para priorizar inspecciones; no
-                constituyen prueba legal ni señalan predios o personas.
+                Methodological note: probabilistic estimates by zone are meant
+                for prevention, to prioritize inspections; they are not legal
+                evidence and do not point to specific properties or people.
               </p>
               <Link
                 href="/"
                 className="rounded-xl bg-gradient-to-r from-[#f97316] to-[#ea580c] px-5 py-2.5 text-xs font-semibold text-white shadow-[0_0_24px_-6px_rgba(249,115,22,0.65)] transition-all hover:brightness-110"
               >
-                Volver al inicio
+                Open the map
               </Link>
             </div>
           </Reveal>

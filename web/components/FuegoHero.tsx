@@ -1,9 +1,10 @@
 import Image from "next/image";
+import Link from "next/link";
 import Reveal from "./Reveal";
 
 const FEATURE_CARDS = [
   {
-    title: "Memoria satelital",
+    title: "Satellite memory",
     lines: ["MODIS + VIIRS (2000 – 2026)"],
     href: "#preview",
     accent: "from-[#ff8a1f] to-[#f05a0a]",
@@ -11,17 +12,17 @@ const FEATURE_CARDS = [
     icon: <SatelliteIcon />,
   },
   {
-    title: "Monitoreo ambiental",
-    lines: ["Estaciones IoT", "Datos y respaldo meteorológico"],
-    href: "#arquitectura",
+    title: "Environmental monitoring",
+    lines: ["IoT stations", "Weather data and backup"],
+    href: "#architecture",
     accent: "from-[#a855f7] to-[#7c3aed]",
     glow: "shadow-[-10px_0_30px_-12px_rgba(168,85,247,0.75)]",
     icon: <TowerIcon />,
   },
   {
-    title: "Análisis del origen",
-    lines: ["Evidencia integrada", "Hipótesis y nivel de confianza"],
-    href: "#vistas",
+    title: "Origin analysis",
+    lines: ["Integrated evidence", "Hypotheses and confidence level"],
+    href: "#views",
     accent: "from-[#ff8a1f] to-[#f05a0a]",
     glow: "shadow-[-10px_0_30px_-12px_rgba(249,115,22,0.75)]",
     icon: <SearchFlameIcon />,
@@ -31,7 +32,7 @@ const FEATURE_CARDS = [
 export default function FuegoHero() {
   return (
     <section className="font-display relative overflow-hidden bg-linear-to-b from-[#0a0d2c] via-[#1b1640] to-[#1d1430]">
-      {/* Resplandor violeta del cielo y atardecer naranja en el horizonte */}
+      {/* Violet sky glow and orange sunset on the horizon */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0"
@@ -41,7 +42,7 @@ export default function FuegoHero() {
         }}
       />
 
-      {/* Montañas y pinos */}
+      {/* Mountains and pines */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 bottom-40 h-56 opacity-70"
@@ -69,16 +70,16 @@ export default function FuegoHero() {
         <div className="grid items-center gap-8 lg:grid-cols-[1fr_1.1fr]">
           <Reveal className="relative z-10">
             <p className="text-sm font-semibold tracking-[0.02em] text-slate-100 sm:text-base lg:text-lg">
-              INTELIGENCIA SATELITAL <span className="font-extrabold text-[#ff8a1f]">+</span> IoT{" "}
-              <span className="font-extrabold text-[#ff8a1f]">+</span> ANÁLISIS AMBIENTAL
+              SATELLITE INTELLIGENCE <span className="font-extrabold text-[#ff8a1f]">+</span> IoT{" "}
+              <span className="font-extrabold text-[#ff8a1f]">+</span> ENVIRONMENTAL ANALYSIS
             </p>
 
             <h1 className="mt-5 text-[2.4rem] font-extrabold leading-[1.12] tracking-[-0.025em] sm:text-5xl lg:text-[3.2rem] xl:whitespace-nowrap xl:text-[3.9rem]">
               <span className="block bg-linear-to-r from-white via-white to-slate-300 bg-clip-text text-transparent">
-                El fuego deja huellas.
+                Fire leaves traces.
               </span>
               <span className="block bg-linear-to-r from-[#ff9a2e] via-[#ff7a18] to-[#f05a0a] bg-clip-text text-transparent">
-                La tecnología las conecta.
+                Technology connects them.
               </span>
             </h1>
 
@@ -88,25 +89,27 @@ export default function FuegoHero() {
             </div>
 
             <p className="mt-6 max-w-[46ch] text-base leading-relaxed text-slate-200 sm:text-lg">
-              25 años de registros satelitales MODIS y VIIRS, integrados con
-              sensores IoT y datos meteorológicos para identificar patrones de
-              actividad térmica y estimar su origen probable.
+              25 years of MODIS and VIIRS satellite records, combined with IoT
+              sensors and weather data to identify thermal activity patterns
+              and estimate their probable origin.
             </p>
 
             <div className="mt-9 flex flex-wrap items-center gap-5">
+              <Link
+                href="/"
+                className="group inline-flex items-center gap-3 rounded-xl bg-linear-to-r from-[#ff8a1f] to-[#ea580c] px-8 py-4 text-lg font-extrabold text-white shadow-[0_12px_36px_-8px_rgba(249,115,22,0.95)] ring-1 ring-orange-300/40 transition-all duration-300 hover:-translate-y-0.5 hover:brightness-110 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                Open the map
+                <svg width="20" height="20" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="transition-transform duration-300 group-hover:translate-x-1">
+                  <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </Link>
               <a
                 href="#preview"
-                className="inline-flex items-center gap-3 rounded-xl bg-linear-to-r from-[#ff8a1f] to-[#ea580c] px-7 py-3.5 text-base font-bold text-white shadow-[0_10px_30px_-8px_rgba(249,115,22,0.8)] transition-all duration-300 hover:brightness-110 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                className="inline-flex items-center gap-3 rounded-xl border border-white/40 bg-white/3 px-7 py-4 text-base font-semibold text-white transition-all duration-300 hover:border-white/70 hover:bg-white/8 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
                 <CalendarIcon />
-                Explorar calendario
-              </a>
-              <a
-                href="#arquitectura"
-                className="inline-flex items-center gap-3 rounded-xl border border-white/40 bg-white/3 px-7 py-3.5 text-base font-semibold text-white transition-all duration-300 hover:border-white/70 hover:bg-white/8 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-              >
-                <PlayIcon />
-                Conocer la tecnología
+                Explore calendar
               </a>
             </div>
           </Reveal>
@@ -115,7 +118,7 @@ export default function FuegoHero() {
             <div className="hero-art-mask relative mx-auto aspect-3/2 w-full max-w-2xl lg:-mr-12 lg:-mt-6 lg:w-[calc(100%+3rem)] lg:max-w-none">
               <Image
                 src="/images/hero-fuegodata.jpg"
-                alt="Laptop con mapa de actividad térmica en México, satélite, estación meteorológica IoT y la mascota de FuegoData"
+                alt="Laptop showing a thermal activity map of Mexico, a satellite, an IoT weather station and the FuegoData mascot"
                 fill
                 priority
                 sizes="(max-width: 1024px) 100vw, 50vw"
@@ -154,7 +157,7 @@ export default function FuegoHero() {
         </Reveal>
       </div>
 
-      {/* Onda de fuego inferior */}
+      {/* Bottom fire wave */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-24">
         <svg viewBox="0 0 1440 100" preserveAspectRatio="none" className="h-full w-full">
           <defs>
@@ -264,11 +267,3 @@ function CalendarIcon() {
   );
 }
 
-function PlayIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M10 8.5 L16 12 L10 15.5 Z" fill="currentColor" />
-    </svg>
-  );
-}
