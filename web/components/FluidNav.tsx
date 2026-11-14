@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   type AuthUser,
@@ -11,13 +12,14 @@ import {
 } from "../lib/auth";
 
 const NAV_LINKS = [
-  { href: "#", label: "Inicio" },
-  { href: "#preview", label: "Reto" },
-  { href: "#arquitectura", label: "Funcionamiento" },
-  { href: "#vistas", label: "Equipo" },
+  { href: "/", label: "Inicio" },
+  { href: "/reto", label: "Reto" },
+  { href: "/funcionamiento", label: "Funcionamiento" },
+  { href: "/equipo", label: "Equipo" },
 ];
 
 export default function FluidNav() {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [user, setUser] = useState<AuthUser | null>(null);
 
@@ -60,15 +62,22 @@ export default function FluidNav() {
 
           {/* Enlaces centrados */}
           <div className="hidden items-center gap-7 md:flex">
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="text-sm font-medium text-slate-300 transition-colors duration-200 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-              >
-                {link.label}
-              </Link>
-            ))}
+            {NAV_LINKS.map((link) => {
+              const active = pathname === link.href;
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  aria-current={active ? "page" : undefined}
+                  className={`text-sm font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${active
+                      ? "text-[#fb923c]"
+                      : "text-slate-300 hover:text-white"
+                    }`}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
           </div>
 
           {/* Auth / Usuario en desktop + hamburguesa móvil */}
