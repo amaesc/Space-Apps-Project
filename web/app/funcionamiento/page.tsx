@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import FluidNav from "../../components/FluidNav";
 import Reveal from "../../components/Reveal";
@@ -65,31 +66,57 @@ export default function FuncionamientoPage() {
           className="pointer-events-none absolute right-10 top-40 h-[20rem] w-[20rem] rounded-full bg-[#f97316]/10 blur-3xl"
         />
 
-        {/* Encabezado */}
+        {/* Encabezado + Diagrama principal */}
         <section className="relative border-b border-white/[0.06] bg-gradient-to-b from-[#130b24] via-[#0e091b] to-[#0d0818]">
-          <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-20">
+          <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:py-20">
             <Reveal>
-              <span className="inline-block rounded-full border border-orange-400/30 bg-[#f97316]/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-[#fb923c]">
-                Arquitectura del sistema
-              </span>
-              <h1 className="mt-4 max-w-3xl text-balance text-3xl font-bold uppercase leading-[1.06] tracking-[-0.02em] text-white sm:text-5xl">
-                CÓMO FUNCIONA{" "}
-                <span className="bg-gradient-to-r from-[#fb923c] to-violet-400 bg-clip-text text-transparent">
-                  UNDEFINED
-                </span>
-              </h1>
-              <p className="mt-5 max-w-2xl text-base leading-relaxed text-slate-300">
-                Tres módulos acoplados conectan observaciones orbitales de la
-                NASA con telemetría física en la sierra para pasar del monitoreo
-                pasivo a la anticipación operativa.
-              </p>
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                  <span className="inline-block rounded-full border border-orange-400/30 bg-[#f97316]/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-[#fb923c]">
+                    Arquitectura del sistema
+                  </span>
+                  <h1 className="mt-4 max-w-3xl text-balance text-3xl font-bold uppercase leading-[1.06] tracking-[-0.02em] text-white sm:text-5xl">
+                    CÓMO FUNCIONA{" "}
+                    <span className="bg-gradient-to-r from-[#fb923c] to-violet-400 bg-clip-text text-transparent">
+                      UNDEFINED
+                    </span>
+                  </h1>
+                </div>
+                <p className="max-w-md text-sm leading-relaxed text-slate-300 sm:text-base">
+                  Tres módulos acoplados conectan observaciones orbitales de la
+                  NASA con telemetría física en la sierra para pasar del
+                  monitoreo pasivo a la anticipación operativa.
+                </p>
+              </div>
+            </Reveal>
+
+            {/* Diagrama panorámico del sistema */}
+            <Reveal delayMs={80}>
+              <div className="relative mt-10">
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -inset-3 rounded-[2rem] bg-gradient-to-r from-sky-500/20 via-violet-500/20 to-[#f97316]/20 blur-2xl"
+                />
+                <div className="relative overflow-hidden rounded-3xl border border-sky-400/25 bg-[#140d24] p-2 shadow-[0_0_50px_-14px_rgba(56,189,248,0.35)]">
+                  <div className="relative aspect-video w-full overflow-hidden rounded-2xl">
+                    <Image
+                      src="/images/funcionamiento-1.jpeg"
+                      alt="Diagrama de los 4 pasos del sistema UNDEFINED: Captura, Calibración, Inferencia y Alerta"
+                      fill
+                      priority
+                      sizes="(max-width: 1200px) 95vw, 1152px"
+                      className="object-cover"
+                    />
+                  </div>
+                </div>
+              </div>
             </Reveal>
 
             {/* Flujo en 4 pasos */}
-            <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {PIPELINE.map((item, idx) => (
                 <Reveal key={item.label} delayMs={idx * 60}>
-                  <div className="rounded-2xl border border-violet-400/20 bg-[#140d24]/90 p-4">
+                  <div className="h-full rounded-2xl border border-violet-400/20 bg-[#140d24]/90 p-4 transition-colors hover:border-sky-400/40">
                     <span className="block font-mono text-xs font-semibold text-[#fb923c]">
                       {item.label}
                     </span>
@@ -134,8 +161,39 @@ export default function FuncionamientoPage() {
             ))}
           </div>
 
+          <Reveal delayMs={140}>
+            <div className="mt-10 grid items-center gap-8 overflow-hidden rounded-3xl border border-violet-400/25 bg-[#140d24] p-6 lg:grid-cols-12 lg:p-8">
+              <div className="lg:col-span-6">
+                <span className="inline-block rounded-full border border-sky-400/30 bg-sky-500/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-sky-300">
+                  Motor de armonización
+                </span>
+                <h2 className="mt-3 text-2xl font-bold uppercase tracking-[-0.02em] text-white">
+                  De datos crudos a{" "}
+                  <span className="text-[#fb923c]">alertas accionables</span>
+                </h2>
+                <p className="mt-3 text-sm leading-relaxed text-slate-300">
+                  Cada observación satelital y lectura de los nodos ESP32 pasa
+                  por un pipeline unificado que corrige diferencias de
+                  resolución entre MODIS y VIIRS, evalúa el índice FWI y
+                  calcula la probabilidad de origen en segundos.
+                </p>
+              </div>
+              <div className="lg:col-span-6">
+                <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-white/10">
+                  <Image
+                    src="/images/processing-data.jpg"
+                    alt="Mascota UNDEFINED procesando flujos de datos de sensores y satélites"
+                    fill
+                    sizes="(max-width: 1024px) 90vw, 520px"
+                    className="object-cover"
+                  />
+                </div>
+              </div>
+            </div>
+          </Reveal>
+
           <Reveal delayMs={180}>
-            <div className="mt-12 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-violet-400/20 bg-[#161028] p-6">
+            <div className="mt-8 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-violet-400/20 bg-[#161028] p-6">
               <div>
                 <p className="text-sm font-semibold text-white">
                   Conoce al equipo detrás de la plataforma
