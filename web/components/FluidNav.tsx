@@ -5,8 +5,9 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   type AuthUser,
-  clearStoredUser,
+  fetchServerSession,
   getStoredUser,
+  logoutAll,
   subscribeAuthChange,
 } from "../lib/auth";
 
@@ -22,13 +23,29 @@ export default function FluidNav() {
   const [user, setUser] = useState<AuthUser | null>(null);
 
   useEffect(() => {
-    const syncUser = () => setUser(getStoredUser());
-    syncUser();
-    return subscribeAuthChange(syncUser);
+    let active = true;
+    const syncUser = async () => {
+      const localUser = getStoredUser();
+      if (localUser) {
+        if (active) setUser(localUser);
+        return;
+      }
+      const serverUser = await fetchServerSession();
+      if (active) setUser(serverUser);
+    };
+    void syncUser();
+    const unsubscribe = subscribeAuthChange(() => {
+      void syncUser();
+    });
+    return () => {
+      active = false;
+      unsubscribe();
+    };
   }, []);
 
-  const handleLogout = () => {
-    clearStoredUser();
+  const handleLogout = async () => {
+    await logoutAll();
+    setUser(null);
     setOpen(false);
   };
 

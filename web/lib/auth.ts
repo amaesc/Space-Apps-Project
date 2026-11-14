@@ -2,6 +2,8 @@ export interface AuthUser {
   name: string;
   email: string;
   organization?: string;
+  picture?: string;
+  provider?: "local" | "google";
 }
 
 const STORAGE_KEY = "undefined_auth_user";
@@ -18,6 +20,8 @@ export function getStoredUser(): AuthUser | null {
       name: parsed.name,
       email: parsed.email,
       organization: parsed.organization,
+      picture: parsed.picture,
+      provider: parsed.provider,
     };
   } catch {
     return null;
@@ -34,6 +38,29 @@ export function clearStoredUser(): void {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(STORAGE_KEY);
   window.dispatchEvent(new Event(AUTH_EVENT));
+}
+
+export async function fetchServerSession(): Promise<AuthUser | null> {
+  try {
+    const res = await fetch("/api/auth/session", { cache: "no-store" });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { user?: AuthUser | null };
+    return data.user ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function logoutAll(): Promise<void> {
+  clearStoredUser();
+  try {
+    await fetch("/api/auth/logout", { method: "POST" });
+  } catch {
+    // Ignore network error during client logout
+  }
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(AUTH_EVENT));
+  }
 }
 
 export function subscribeAuthChange(callback: () => void): () => void {
