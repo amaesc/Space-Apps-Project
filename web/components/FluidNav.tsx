@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -14,9 +13,10 @@ import {
 
 const NAV_LINKS = [
   { href: "/", label: "Inicio" },
-  { href: "/reto", label: "Reto" },
-  { href: "/funcionamiento", label: "Funcionamiento" },
-  { href: "/equipo", label: "Equipo" },
+  { href: "/dashboard", label: "Plataforma" },
+  { href: "/funcionamiento", label: "Tecnología" },
+  { href: "/reto", label: "Impacto" },
+  { href: "/equipo", label: "Acerca de" },
 ];
 
 export default function FluidNav() {
@@ -53,32 +53,28 @@ export default function FluidNav() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-white/6 bg-[#0d0818]/80 backdrop-blur-xl">
+      <header className="font-display sticky top-0 z-40 border-b border-white/10 bg-[#13122e]/85 backdrop-blur-xl">
         <nav
           aria-label="Navegación principal"
-          className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3.5 sm:px-6"
+          className="mx-auto flex max-w-[88rem] items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-12 lg:py-5"
         >
           {/* Marca */}
           <Link
             href="/"
-            className="flex items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            className="flex items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
-            <div className="relative h-8 w-8 overflow-hidden rounded-xl border border-orange-400/40 bg-[#1a122e] shadow-[0_0_16px_rgba(249,115,22,0.35)]">
-              <Image
-                src="/images/mascot-pod.jpg"
-                alt="Mascota UNDEFINED"
-                fill
-                sizes="32px"
-                className="object-cover"
-              />
-            </div>
-            <span className="font-mono text-sm font-bold tracking-[0.16em] text-white">
-              UNDEFINED
+            <FlameLogo />
+            <span className="text-2xl font-extrabold italic tracking-tight text-white sm:text-[1.7rem]">
+              Fuego<span className="text-[#ff8a1f]">Data</span>
+            </span>
+            <span aria-hidden="true" className="hidden h-8 w-px bg-white/30 lg:block" />
+            <span className="hidden text-base font-medium text-slate-200 lg:block">
+              Inteligencia Ambiental
             </span>
           </Link>
 
           {/* Enlaces centrados */}
-          <div className="hidden items-center gap-7 md:flex">
+          <div className="hidden items-center gap-6 md:flex lg:gap-12">
             {NAV_LINKS.map((link) => {
               const active = pathname === link.href;
               return (
@@ -86,12 +82,18 @@ export default function FluidNav() {
                   key={link.href}
                   href={link.href}
                   aria-current={active ? "page" : undefined}
-                  className={`text-sm font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${active
-                      ? "text-[#fb923c]"
-                      : "text-slate-300 hover:text-white"
+                  className={`relative py-2 text-base transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${active
+                      ? "font-bold text-white"
+                      : "font-medium text-slate-200 hover:text-white"
                     }`}
                 >
                   {link.label}
+                  {active && (
+                    <span
+                      aria-hidden="true"
+                      className="absolute -bottom-3 left-1/2 h-[3px] w-[130%] -translate-x-1/2 rounded-full bg-linear-to-r from-[#ff8a1f] to-[#f05a0a] shadow-[0_0_10px_rgba(249,115,22,0.7)]"
+                    />
+                  )}
                 </Link>
               );
             })}
@@ -227,5 +229,31 @@ export default function FluidNav() {
         </div>
       </div>
     </>
+  );
+}
+
+function FlameLogo() {
+  return (
+    <svg width="44" height="52" viewBox="0 0 44 52" aria-hidden="true">
+      <defs>
+        <linearGradient id="logo-flame-outer" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0" stopColor="#f05a0a" />
+          <stop offset="0.6" stopColor="#ff7a18" />
+          <stop offset="1" stopColor="#ffb347" />
+        </linearGradient>
+        <linearGradient id="logo-flame-inner" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0" stopColor="#ffd27a" />
+          <stop offset="1" stopColor="#ff9a2e" />
+        </linearGradient>
+      </defs>
+      <path
+        d="M22 2 C26 10 33 14 33 22 C36 19 37 15 36 11 C41 17 43 24 43 31 C43 43 34 51 22 51 C10 51 1 43 1 31 C1 23 5 17 10 13 C10 18 12 21 15 23 C14 14 17 7 22 2 Z"
+        fill="url(#logo-flame-outer)"
+      />
+      <path
+        d="M22 22 C24 28 31 31 31 39 C31 45 27 49 22 49 C17 49 13 45 13 39 C13 35 15 32 17 30 C17 33 18 35 20 36 C19 31 20 26 22 22 Z"
+        fill="url(#logo-flame-inner)"
+      />
+    </svg>
   );
 }
