@@ -28,6 +28,7 @@ class TelemetryIn(BaseModel):
     lon: float = Field(default=-107.58, ge=-180, le=180)
     temperature_c: float = Field(..., ge=-40, le=70)
     humidity_pct: float = Field(..., ge=0, le=100)
+    luminosity_pct: float = Field(default=0.0, ge=0, le=100)
     wind_kmh: float = Field(default=0.0, ge=0, le=200)
     rain_mm: float = Field(default=0.0, ge=0, le=500)
     lightning_strikes: int = Field(default=0, ge=0, le=10000)
@@ -89,27 +90,30 @@ def _seed_stations() -> dict[str, dict[str, Any]]:
 
 def _load_stations() -> dict[str, dict[str, Any]]:
     if is_db_configured():
-        with get_conn() as conn, conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT DISTINCT ON (station_id)
-                    station_id, name, lat, lon, temperature_c, humidity_pct,
-                    wind_kmh, rain_mm, lightning_strikes, battery_v,
-                    pressure_hpa, noise_db, rssi_dbm, link_type,
-                    hdw_score, risk_level, risk_label, source,
-                    recorded_at AS timestamp
-                FROM iot_readings
-                ORDER BY station_id, recorded_at DESC
-                """
-            )
-            rows = cur.fetchall()
-            out: dict[str, dict[str, Any]] = {}
-            for row in rows:
-                item = dict(row)
-                if hasattr(item.get("timestamp"), "isoformat"):
-                    item["timestamp"] = item["timestamp"].isoformat()
-                out[item["station_id"]] = item
-            return out
+        try:
+            with get_conn() as conn, conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT DISTINCT ON (station_id)
+                        station_id, name, lat, lon, temperature_c, humidity_pct,
+                        wind_kmh, rain_mm, lightning_strikes, battery_v,
+                        pressure_hpa, noise_db, rssi_dbm, link_type,
+                        hdw_score, risk_level, risk_label, source,
+                        recorded_at AS timestamp
+                    FROM iot_readings
+                    ORDER BY station_id, recorded_at DESC
+                    """
+                )
+                rows = cur.fetchall()
+                out: dict[str, dict[str, Any]] = {}
+                for row in rows:
+                    item = dict(row)
+                    if hasattr(item.get("timestamp"), "isoformat"):
+                        item["timestamp"] = item["timestamp"].isoformat()
+                    out[item["station_id"]] = item
+                return out
+        except Exception as exc:
+            print(f"[iot] PostgreSQL no disponible ({exc}); usando fallback JSON.")
 
     if not DATA_FILE.exists():
         DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -124,27 +128,29 @@ def _load_stations() -> dict[str, dict[str, Any]]:
 
 def _save_reading(record: dict[str, Any]) -> None:
     if is_db_configured():
-        with get_conn() as conn, conn.cursor() as cur:
-            cur.execute(
-                """
-                INSERT INTO iot_readings (
-                    station_id, name, lat, lon, temperature_c, humidity_pct,
-                    wind_kmh, rain_mm, lightning_strikes, battery_v,
-                    pressure_hpa, noise_db, rssi_dbm, link_type,
-                    hdw_score, risk_level, risk_label, source
-                ) VALUES (
-                    %(station_id)s, %(name)s, %(lat)s, %(lon)s, %(temperature_c)s,
-                    %(humidity_pct)s, %(wind_kmh)s, %(rain_mm)s,
-                    %(lightning_strikes)s, %(battery_v)s,
-                    %(pressure_hpa)s, %(noise_db)s, %(rssi_dbm)s, %(link_type)s,
-                    %(hdw_score)s,
-                    %(risk_level)s, %(risk_label)s, %(source)s
+        try:
+            with get_conn() as conn, conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO iot_readings (
+                        station_id, name, lat, lon, temperature_c, humidity_pct,
+                        wind_kmh, rain_mm, lightning_strikes, battery_v,
+                        pressure_hpa, noise_db, rssi_dbm, link_type,
+                        hdw_score, risk_level, risk_label, source
+                    ) VALUES (
+                        %(station_id)s, %(name)s, %(lat)s, %(lon)s, %(temperature_c)s,
+                        %(humidity_pct)s, %(wind_kmh)s, %(rain_mm)s,
+                        %(lightning_strikes)s, %(battery_v)s,
+                        %(pressure_hpa)s, %(noise_db)s, %(rssi_dbm)s, %(link_type)s,
+                        %(hdw_score)s, %(risk_level)s, %(risk_label)s, %(source)s
+                    )
+                    """,
+                    record,
                 )
-                """,
-                record,
-            )
-            conn.commit()
-        return
+                conn.commit()
+            return
+        except Exception as exc:
+            print(f"[iot] PostgreSQL no disponible ({exc}); guardando en JSON.")
 
     stations = _load_stations()
     stations[record["station_id"]] = record
