@@ -66,7 +66,7 @@ export default function LoginPage() {
       organization: organization.trim() || undefined,
     });
 
-    router.push("/");
+    router.push("/dashboard");
   };
 
   const handleGoogleAuth = () => {
@@ -80,11 +80,11 @@ export default function LoginPage() {
       organization: "Google OAuth",
     });
 
-    router.push("/");
+    router.push("/dashboard");
   };
 
   return (
-    <div className="relative min-h-[100dvh] bg-[#0d0818] text-[#f4f6f8]">
+    <div className="relative min-h-dvh bg-[#0d0818] text-[#f4f6f8]">
       <div
         aria-hidden="true"
         className="noise-overlay pointer-events-none fixed inset-0 z-50 opacity-[0.025]"
@@ -95,11 +95,11 @@ export default function LoginPage() {
       <main className="relative overflow-hidden">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -top-24 left-1/4 h-[26rem] w-[26rem] rounded-full bg-violet-600/20 blur-3xl"
+          className="pointer-events-none absolute -top-24 left-1/4 h-104 w-104 rounded-full bg-violet-600/20 blur-3xl"
         />
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute bottom-0 right-1/6 h-[22rem] w-[22rem] rounded-full bg-[#f97316]/15 blur-3xl"
+          className="pointer-events-none absolute bottom-0 right-1/6 h-88 w-88 rounded-full bg-[#f97316]/15 blur-3xl"
         />
 
         <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 py-12 sm:px-6 lg:grid-cols-12 lg:py-16">
@@ -116,7 +116,7 @@ export default function LoginPage() {
 
               <h1 className="mt-4 text-balance text-3xl font-bold uppercase leading-[1.06] tracking-[-0.02em] text-white sm:text-4xl">
                 Control{" "}
-                <span className="bg-gradient-to-r from-[#fb923c] via-[#f97316] to-amber-300 bg-clip-text text-transparent">
+                <span className="bg-linear-to-r from-[#fb923c] via-[#f97316] to-amber-300 bg-clip-text text-transparent">
                   operativo
                 </span>{" "}
                 del fuego
@@ -135,12 +135,12 @@ export default function LoginPage() {
               {/* Resplandor trasero para que la imagen sobresalga */}
               <div
                 aria-hidden="true"
-                className="pointer-events-none absolute -inset-3 rounded-[2rem] bg-gradient-to-tr from-[#f97316]/35 via-violet-500/25 to-amber-400/25 blur-2xl"
+                className="pointer-events-none absolute -inset-3 rounded-4xl bg-linear-to-tr from-[#f97316]/35 via-violet-500/25 to-amber-400/25 blur-2xl"
               />
 
-              <div className="relative rounded-[1.75rem] bg-gradient-to-br from-[#fb923c]/70 via-violet-400/40 to-[#ea580c]/70 p-[2px] shadow-[0_28px_70px_-12px_rgba(249,115,22,0.35)]">
+              <div className="relative rounded-[1.75rem] bg-linear-to-br from-[#fb923c]/70 via-violet-400/40 to-[#ea580c]/70 p-0.5 shadow-[0_28px_70px_-12px_rgba(249,115,22,0.35)]">
                 <div className="relative overflow-hidden rounded-[calc(1.75rem-2px)] bg-[#0f091c]">
-                  <div className="relative aspect-[4/3] w-full">
+                  <div className="relative aspect-4/3 w-full">
                     <Image
                       src="/images/mascot-pod.jpg"
                       alt="Mascota UNDEFINED en estación de monitoreo"
@@ -149,7 +149,7 @@ export default function LoginPage() {
                       className="object-cover object-center transition-transform duration-700 hover:scale-[1.03]"
                       priority
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#0d0818]/90 via-transparent to-[#0d0818]/20" />
+                    <div className="absolute inset-0 bg-linear-to-t from-[#0d0818]/90 via-transparent to-[#0d0818]/20" />
 
                   </div>
                 </div>
@@ -159,13 +159,13 @@ export default function LoginPage() {
 
           {/* Columna derecha: tarjeta Double-Bezel de Login / Registro */}
           <div className="lg:col-span-7 lg:pl-6">
-            <div className="relative rounded-[1.75rem] border border-violet-400/20 bg-white/[0.03] p-1.5 shadow-[0_24px_70px_-15px_rgba(0,0,0,0.85)]">
+            <div className="relative rounded-[1.75rem] border border-violet-400/20 bg-white/3 p-1.5 shadow-[0_24px_70px_-15px_rgba(0,0,0,0.85)]">
               <div
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-x-10 top-0 h-[2px] bg-gradient-to-r from-transparent via-[#f97316] to-transparent opacity-75"
+                className="pointer-events-none absolute inset-x-10 top-0 h-0.5 bg-linear-to-r from-transparent via-[#f97316] to-transparent opacity-75"
               />
 
-              <div className="rounded-[calc(1.75rem-0.375rem)] bg-[#140d24] p-6 shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)] sm:p-8">
+              <div className="rounded-[1.375rem] bg-[#140d24] p-6 shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)] sm:p-8">
                 {/* Selector de pestañas */}
                 <div
                   role="tablist"
@@ -179,7 +179,7 @@ export default function LoginPage() {
                     onClick={() => switchMode("login")}
                     className={`cursor-pointer rounded-full px-4 py-2 text-xs font-semibold transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:text-sm ${
                       mode === "login"
-                        ? "bg-gradient-to-r from-[#f97316] to-[#ea580c] text-white shadow-[0_0_20px_-4px_rgba(249,115,22,0.6)]"
+                        ? "bg-linear-to-r from-[#f97316] to-[#ea580c] text-white shadow-[0_0_20px_-4px_rgba(249,115,22,0.6)]"
                         : "text-slate-400 hover:text-slate-200"
                     }`}
                   >
@@ -192,7 +192,7 @@ export default function LoginPage() {
                     onClick={() => switchMode("register")}
                     className={`cursor-pointer rounded-full px-4 py-2 text-xs font-semibold transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:text-sm ${
                       mode === "register"
-                        ? "bg-gradient-to-r from-[#f97316] to-[#ea580c] text-white shadow-[0_0_20px_-4px_rgba(249,115,22,0.6)]"
+                        ? "bg-linear-to-r from-[#f97316] to-[#ea580c] text-white shadow-[0_0_20px_-4px_rgba(249,115,22,0.6)]"
                         : "text-slate-400 hover:text-slate-200"
                     }`}
                   >
@@ -350,7 +350,7 @@ export default function LoginPage() {
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="mt-2 inline-flex w-full cursor-pointer items-center justify-center rounded-xl bg-gradient-to-r from-[#f97316] to-[#ea580c] px-6 py-3 text-sm font-semibold text-white shadow-[0_0_28px_-4px_rgba(249,115,22,0.7)] transition-all duration-300 hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                    className="mt-2 inline-flex w-full cursor-pointer items-center justify-center rounded-xl bg-linear-to-r from-[#f97316] to-[#ea580c] px-6 py-3 text-sm font-semibold text-white shadow-[0_0_28px_-4px_rgba(249,115,22,0.7)] transition-all duration-300 hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                   >
                     {submitting
                       ? "Procesando..."
@@ -362,18 +362,18 @@ export default function LoginPage() {
 
                 {/* Separador y botón Google OAuth */}
                 <div className="my-5 flex items-center gap-3">
-                  <div className="h-px flex-1 bg-white/[0.08]" />
+                  <div className="h-px flex-1 bg-white/8" />
                   <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-slate-400">
                     o continúa con
                   </span>
-                  <div className="h-px flex-1 bg-white/[0.08]" />
+                  <div className="h-px flex-1 bg-white/8" />
                 </div>
 
                 <button
                   type="button"
                   onClick={handleGoogleAuth}
                   disabled={submitting}
-                  className="inline-flex w-full cursor-pointer items-center justify-center gap-3 rounded-xl border border-white/15 bg-white/[0.04] px-5 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:border-white/30 hover:bg-white/[0.08] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  className="inline-flex w-full cursor-pointer items-center justify-center gap-3 rounded-xl border border-white/15 bg-white/4 px-5 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:border-white/30 hover:bg-white/8 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                 >
                   <svg
                     aria-hidden="true"

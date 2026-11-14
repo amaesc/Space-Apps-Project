@@ -21,9 +21,40 @@ const PLATFORM_VIEWS = [
   { name: "Metodología", status: "Fase 2", desc: "Validación leave-year-out y calibración FWI." },
 ];
 
+const TEAM_ROLES = [
+  {
+    code: "01",
+    role: "Ciencia de Datos & FIRMS",
+    name: "Integrante 1",
+    focus: "Armonización MODIS / VIIRS, factor kₘ y validación bootstrap.",
+    accent: "text-[#fb923c]",
+  },
+  {
+    code: "02",
+    role: "Hardware IoT & ESP32",
+    name: "Integrante 2",
+    focus: "Estación en campo (BME280, AS3935), LoRa/WiFi y telemetría.",
+    accent: "text-sky-300",
+  },
+  {
+    code: "03",
+    role: "Frontend & Visualización",
+    name: "Integrante 3",
+    focus: "Calendario interactivo, mapas de riesgo y experiencia de usuario.",
+    accent: "text-violet-300",
+  },
+  {
+    code: "04",
+    role: "Backend & Geoespacial",
+    name: "Integrante 4",
+    focus: "Integración CONAFOR, GOES-GLM, Open-Meteo y API de datos.",
+    accent: "text-amber-300",
+  },
+];
+
 export default function Home() {
   return (
-    <div className="relative min-h-[100dvh] bg-[#0d0818] text-[#f4f6f8]">
+    <div className="relative min-h-dvh bg-[#0d0818] text-[#f4f6f8]">
       <a
         href="#contenido-principal"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-white focus:px-4 focus:py-2 focus:text-xs focus:font-semibold focus:text-black"
@@ -40,14 +71,14 @@ export default function Home() {
 
       <main id="contenido-principal">
         {/* 1. HERO */}
-        <section className="relative overflow-hidden border-b border-white/[0.06] bg-gradient-to-b from-[#130b24] via-[#0e091b] to-[#0d0818]">
+        <section className="relative overflow-hidden border-b border-white/6 bg-linear-to-b from-[#130b24] via-[#0e091b] to-[#0d0818]">
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute -top-24 right-1/4 h-[28rem] w-[28rem] rounded-full bg-violet-600/20 blur-3xl"
+            className="pointer-events-none absolute -top-24 right-1/4 h-112 w-md rounded-full bg-violet-600/20 blur-3xl"
           />
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute right-10 top-16 h-[22rem] w-[22rem] rounded-full bg-[#f97316]/15 blur-3xl"
+            className="pointer-events-none absolute right-10 top-16 h-88 w-88 rounded-full bg-[#f97316]/15 blur-3xl"
           />
 
           <div className="relative mx-auto max-w-6xl px-4 pb-16 pt-12 sm:px-6 lg:pb-20 lg:pt-16">
@@ -55,12 +86,12 @@ export default function Home() {
               <Reveal className="lg:col-span-6">
                 <div>
                   <h1 className="text-balance text-4xl font-bold uppercase leading-[1.03] tracking-[-0.02em] text-white sm:text-5xl lg:text-[3.5rem]">
-                    <span className="bg-gradient-to-r from-[#fb923c] via-[#f97316] to-amber-300 bg-clip-text text-transparent">
+                    <span className="bg-linear-to-r from-[#fb923c] via-[#f97316] to-amber-300 bg-clip-text text-transparent">
                       ARMONIZA EL FUEGO
                     </span>{" "}
                     <span className="block text-white">
                       EN UN SOLO{" "}
-                      <span className="bg-gradient-to-r from-[#fb923c] to-[#ea580c] bg-clip-text text-transparent">
+                      <span className="bg-linear-to-r from-[#fb923c] to-[#ea580c] bg-clip-text text-transparent">
                         CALENDARIO
                       </span>
                     </span>
@@ -80,7 +111,7 @@ export default function Home() {
                   <div className="mt-8 flex flex-wrap items-center gap-6">
                     <a
                       href="#preview"
-                      className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-[#f97316] to-[#ea580c] px-6 py-3 text-sm font-semibold text-white shadow-[0_0_28px_-4px_rgba(249,115,22,0.7)] transition-all duration-300 hover:brightness-110 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                      className="inline-flex items-center justify-center rounded-xl bg-linear-to-r from-[#f97316] to-[#ea580c] px-6 py-3 text-sm font-semibold text-white shadow-[0_0_28px_-4px_rgba(249,115,22,0.7)] transition-all duration-300 hover:brightness-110 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                     >
                       Probar calendario
                     </a>
@@ -97,10 +128,10 @@ export default function Home() {
 
               {/* Mascota sobre anillos holográficos giratorios */}
               <Reveal delayMs={120} className="lg:col-span-6">
-                <div className="relative mx-auto flex h-[340px] max-w-md items-center justify-center sm:h-[380px]">
+                <div className="relative mx-auto flex h-85 max-w-md items-center justify-center sm:h-95">
                   <div
                     aria-hidden="true"
-                    className="pointer-events-none absolute -bottom-24 flex h-[320px] w-[320px] items-center justify-center sm:-bottom-28 sm:h-[360px] sm:w-[360px]"
+                    className="pointer-events-none absolute -bottom-24 flex h-80 w-[320px] items-center justify-center sm:-bottom-28 sm:h-90 sm:w-90"
                     style={{ transform: "perspective(700px) rotateX(74deg)" }}
                   >
                     <div className="absolute inset-4 rounded-full bg-[radial-gradient(circle,rgba(168,85,247,0.45)_0%,rgba(249,115,22,0.22)_45%,transparent_72%)] blur-md" />
@@ -202,7 +233,7 @@ export default function Home() {
             {/* Franja de 3 pasos conectados */}
             <Reveal delayMs={180}>
               <div className="mt-12 rounded-2xl border border-white/10 bg-[#140d24]/80 p-1.5 backdrop-blur-md">
-                <div className="grid divide-y divide-white/[0.07] rounded-[calc(1rem-0.25rem)] bg-[#0f091c]/90 md:grid-cols-3 md:divide-x md:divide-y-0">
+                <div className="grid divide-y divide-white/[0.07] rounded-xl bg-[#0f091c]/90 md:grid-cols-3 md:divide-x md:divide-y-0">
                   {[
                     {
                       step: "01",
@@ -229,7 +260,7 @@ export default function Home() {
                     <a
                       key={node.step}
                       href={node.href}
-                      className="group flex items-center justify-between gap-3 px-5 py-4 transition-colors duration-300 hover:bg-white/[0.03]"
+                      className="group flex items-center justify-between gap-3 px-5 py-4 transition-colors duration-300 hover:bg-white/3"
                     >
                       <div>
                         <span className="font-mono text-[10px] tracking-widest text-slate-500">
@@ -259,7 +290,7 @@ export default function Home() {
         {/* 2. DEMO INTERACTIVA */}
         <section
           id="preview"
-          className="relative overflow-hidden border-b border-white/[0.06] bg-[#110a20]"
+          className="relative overflow-hidden border-b border-white/6 bg-[#110a20]"
         >
           <div
             aria-hidden="true"
@@ -269,11 +300,11 @@ export default function Home() {
           <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 py-16 sm:px-6 lg:grid-cols-12 lg:py-20">
             <Reveal className="lg:col-span-5">
               <span className="inline-block rounded-full border border-orange-400/30 bg-[#f97316]/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-[#fb923c]">
-                Demostración interactiva
+                El reto · Demostración interactiva
               </span>
               <h2 className="mt-4 text-balance text-3xl font-bold uppercase leading-[1.08] tracking-[-0.02em] text-white sm:text-4xl">
                 POR QUÉ{" "}
-                <span className="bg-gradient-to-r from-[#fb923c] to-amber-300 bg-clip-text text-transparent">
+                <span className="bg-linear-to-r from-[#fb923c] to-amber-300 bg-clip-text text-transparent">
                   ARMONIZAR
                 </span>{" "}
                 MODIS Y VIIRS
@@ -324,7 +355,7 @@ export default function Home() {
                 </span>
                 <h2 className="mt-3 text-balance text-3xl font-bold uppercase leading-[1.08] tracking-[-0.02em] text-white sm:text-4xl">
                   Tres módulos{" "}
-                  <span className="bg-gradient-to-r from-[#fb923c] to-violet-400 bg-clip-text text-transparent">
+                  <span className="bg-linear-to-r from-[#fb923c] to-violet-400 bg-clip-text text-transparent">
                     acoplados
                   </span>
                 </h2>
@@ -339,12 +370,12 @@ export default function Home() {
           <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-12">
             {/* Armonización */}
             <Reveal className="lg:col-span-7">
-              <div className="relative h-full rounded-[1.75rem] border border-violet-400/20 bg-white/[0.03] p-1.5">
+              <div className="relative h-full rounded-[1.75rem] border border-violet-400/20 bg-white/3 p-1.5">
                 <div
                   aria-hidden="true"
-                  className="pointer-events-none absolute inset-x-10 top-0 h-[2px] bg-gradient-to-r from-transparent via-[#f97316] to-transparent opacity-75"
+                  className="pointer-events-none absolute inset-x-10 top-0 h-0.5 bg-linear-to-r from-transparent via-[#f97316] to-transparent opacity-75"
                 />
-                <div className="flex h-full flex-col justify-between overflow-hidden rounded-[calc(1.75rem-0.375rem)] bg-[#140d24] p-6 shadow-[inset_0_1px_1px_rgba(255,255,255,0.07)]">
+                <div className="flex h-full flex-col justify-between overflow-hidden rounded-[1.375rem] bg-[#140d24] p-6 shadow-[inset_0_1px_1px_rgba(255,255,255,0.07)]">
                   <div className="relative mb-5 h-40 w-full overflow-hidden rounded-2xl border border-white/10">
                     <Image
                       src="/images/processing-data.jpg"
@@ -353,7 +384,7 @@ export default function Home() {
                       sizes="(max-width: 1024px) 100vw, 600px"
                       className="object-cover"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#140d24] via-transparent to-transparent" />
+                    <div className="absolute inset-0 bg-linear-to-t from-[#140d24] via-transparent to-transparent" />
                   </div>
 
                   <div>
@@ -373,12 +404,12 @@ export default function Home() {
 
             {/* Origen probable */}
             <Reveal delayMs={80} className="lg:col-span-5">
-              <div className="relative h-full rounded-[1.75rem] border border-violet-400/20 bg-white/[0.03] p-1.5">
+              <div className="relative h-full rounded-[1.75rem] border border-violet-400/20 bg-white/3 p-1.5">
                 <div
                   aria-hidden="true"
-                  className="pointer-events-none absolute inset-x-10 top-0 h-[2px] bg-gradient-to-r from-transparent via-violet-400 to-transparent opacity-75"
+                  className="pointer-events-none absolute inset-x-10 top-0 h-0.5 bg-linear-to-r from-transparent via-violet-400 to-transparent opacity-75"
                 />
-                <div className="flex h-full flex-col justify-between rounded-[calc(1.75rem-0.375rem)] bg-[#140d24] p-6 shadow-[inset_0_1px_1px_rgba(255,255,255,0.07)]">
+                <div className="flex h-full flex-col justify-between rounded-[1.375rem] bg-[#140d24] p-6 shadow-[inset_0_1px_1px_rgba(255,255,255,0.07)]">
                   <div>
                     <div className="relative mb-5 h-40 w-full overflow-hidden rounded-2xl border border-white/10">
                       <Image
@@ -388,7 +419,7 @@ export default function Home() {
                         sizes="(max-width: 1024px) 100vw, 420px"
                         className="object-cover"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#140d24] via-transparent to-transparent" />
+                      <div className="absolute inset-0 bg-linear-to-t from-[#140d24] via-transparent to-transparent" />
                     </div>
                     <h3 className="text-xl font-semibold text-white">
                       Origen probable y alertas
@@ -408,12 +439,12 @@ export default function Home() {
 
             {/* Estación IoT + Resiliencia en una sola fila limpia */}
             <Reveal delayMs={140} className="lg:col-span-12">
-              <div className="relative rounded-[1.75rem] border border-violet-400/20 bg-white/[0.03] p-1.5">
+              <div className="relative rounded-[1.75rem] border border-violet-400/20 bg-white/3 p-1.5">
                 <div
                   aria-hidden="true"
-                  className="pointer-events-none absolute inset-x-10 top-0 h-[2px] bg-gradient-to-r from-transparent via-sky-400 to-transparent opacity-75"
+                  className="pointer-events-none absolute inset-x-10 top-0 h-0.5 bg-linear-to-r from-transparent via-sky-400 to-transparent opacity-75"
                 />
-                <div className="grid items-center gap-6 rounded-[calc(1.75rem-0.375rem)] bg-[#140d24] p-6 shadow-[inset_0_1px_1px_rgba(255,255,255,0.07)] lg:grid-cols-12">
+                <div className="grid items-center gap-6 rounded-[1.375rem] bg-[#140d24] p-6 shadow-[inset_0_1px_1px_rgba(255,255,255,0.07)] lg:grid-cols-12">
                   <div className="lg:col-span-5">
                     <h3 className="text-xl font-semibold text-white">
                       Estación IoT en campo + Resiliencia
@@ -437,7 +468,7 @@ export default function Home() {
 
                   <div className="grid grid-cols-2 gap-3 lg:col-span-7">
                     <div className="rounded-2xl border border-white/10 bg-[#0d0818] p-2">
-                      <div className="relative aspect-[16/9] overflow-hidden rounded-xl">
+                      <div className="relative aspect-video overflow-hidden rounded-xl">
                         <Image
                           src="/images/mascot-pod.jpg"
                           alt="Estación IoT activa"
@@ -451,7 +482,7 @@ export default function Home() {
                       </p>
                     </div>
                     <div className="rounded-2xl border border-white/10 bg-[#0d0818] p-2">
-                      <div className="relative aspect-[16/9] overflow-hidden rounded-xl">
+                      <div className="relative aspect-video overflow-hidden rounded-xl">
                         <Image
                           src="/images/error-frozen.jpg"
                           alt="Respaldo automático sin señal"
@@ -474,7 +505,7 @@ export default function Home() {
         {/* 4. VISTAS MVP */}
         <section
           id="vistas"
-          className="border-t border-white/[0.06] bg-[#110a20]"
+          className="border-t border-white/6 bg-[#110a20]"
         >
           <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-20">
             <Reveal>
@@ -485,7 +516,7 @@ export default function Home() {
                   </span>
                   <h2 className="mt-3 text-balance text-3xl font-bold uppercase leading-[1.08] tracking-[-0.02em] text-white sm:text-4xl">
                     Las{" "}
-                    <span className="bg-gradient-to-r from-[#fb923c] to-violet-400 bg-clip-text text-transparent">
+                    <span className="bg-linear-to-r from-[#fb923c] to-violet-400 bg-clip-text text-transparent">
                       6 vistas
                     </span>{" "}
                     del sistema
@@ -509,7 +540,7 @@ export default function Home() {
                         className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] ${
                           view.status === "MVP"
                             ? "bg-[#f97316]/15 text-[#fb923c]"
-                            : "bg-white/[0.06] text-slate-300"
+                            : "bg-white/6 text-slate-300"
                         }`}
                       >
                         {view.status}
@@ -524,9 +555,62 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        {/* 5. EQUIPO */}
+        <section
+          id="equipo"
+          className="border-t border-white/6 bg-[#0d0818]"
+        >
+          <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-20">
+            <Reveal>
+              <div className="flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <span className="inline-block rounded-full border border-orange-400/30 bg-[#f97316]/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-[#fb923c]">
+                    Equipo UNDEFINED · NASA Space Apps 2026
+                  </span>
+                  <h2 className="mt-3 text-balance text-3xl font-bold uppercase leading-[1.08] tracking-[-0.02em] text-white sm:text-4xl">
+                    Construyendo desde{" "}
+                    <span className="bg-linear-to-r from-[#fb923c] to-violet-400 bg-clip-text text-transparent">
+                      Chihuahua
+                    </span>
+                  </h2>
+                </div>
+                <span className="rounded-full border border-violet-400/20 bg-[#140d24] px-4 py-1.5 font-mono text-xs text-slate-300">
+                  Sede: Chihuahua, Chih.
+                </span>
+              </div>
+            </Reveal>
+
+            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {TEAM_ROLES.map((member, idx) => (
+                <Reveal key={member.code} delayMs={idx * 60}>
+                  <div className="relative h-full overflow-hidden rounded-2xl border border-violet-400/20 bg-[#140d24] p-5 transition-colors hover:border-orange-400/40">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={`font-mono text-xs font-bold ${member.accent}`}>
+                        {member.code}
+                      </span>
+                      <span className="rounded-full border border-white/10 bg-[#0d0818] px-2.5 py-0.5 font-mono text-[10px] text-slate-400">
+                        UNDEFINED
+                      </span>
+                    </div>
+                    <h3 className="mt-3 text-sm font-semibold text-white">
+                      {member.name}
+                    </h3>
+                    <p className={`mt-0.5 font-mono text-[11px] ${member.accent}`}>
+                      {member.role}
+                    </p>
+                    <p className="mt-2.5 text-xs leading-relaxed text-slate-400">
+                      {member.focus}
+                    </p>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </section>
       </main>
 
-      <footer className="border-t border-white/[0.06] bg-[#0d0818]">
+      <footer className="border-t border-white/6 bg-[#0d0818]">
         <div className="mx-auto flex max-w-6xl flex-col justify-between gap-4 px-4 py-8 text-xs text-slate-500 sm:flex-row sm:items-center sm:px-6">
           <div>
             <span className="font-mono font-semibold text-slate-300">
