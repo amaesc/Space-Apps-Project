@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import FluidNav from "../../components/FluidNav";
 import Reveal from "../../components/Reveal";
@@ -49,39 +50,65 @@ export default function RetoPage() {
 
         {/* Encabezado */}
         <section className="relative border-b border-white/[0.06] bg-gradient-to-b from-[#130b24] via-[#0e091b] to-[#0d0818]">
-          <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-20">
-            <Reveal>
-              <span className="inline-block rounded-full border border-orange-400/30 bg-[#f97316]/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-[#fb923c]">
-                NASA Space Apps Challenge · El Reto
-              </span>
-              <h1 className="mt-4 max-w-3xl text-balance text-3xl font-bold uppercase leading-[1.06] tracking-[-0.02em] text-white sm:text-5xl">
-                POR QUÉ{" "}
-                <span className="bg-gradient-to-r from-[#fb923c] via-[#f97316] to-amber-300 bg-clip-text text-transparent">
-                  ARMONIZAR EL FUEGO
-                </span>{" "}
-                EN UN SOLO CALENDARIO
-              </h1>
-              <p className="mt-5 max-w-2xl text-base leading-relaxed text-slate-300">
-                Para anticipar temporadas críticas de incendios forestales en la
-                Sierra de Chihuahua y otras regiones vulnerables, no basta con
-                ver puntos calientes aislados: necesitamos una línea base
-                histórica continua, comparable y conectada con sensores en tierra.
-              </p>
-            </Reveal>
-
-            <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {METRICS.map((item, idx) => (
-                <Reveal key={item.label} delayMs={idx * 60}>
-                  <div className="rounded-2xl border border-violet-400/20 bg-[#140d24]/90 p-4">
-                    <span className="block font-mono text-[10px] uppercase tracking-wider text-slate-400">
-                      {item.label}
-                    </span>
-                    <span className="mt-1.5 block font-mono text-sm font-semibold text-white">
-                      {item.value}
-                    </span>
-                  </div>
+          <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:py-20">
+            <div className="grid items-center gap-10 lg:grid-cols-12">
+              <div className="lg:col-span-7">
+                <Reveal>
+                  <span className="inline-block rounded-full border border-orange-400/30 bg-[#f97316]/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-[#fb923c]">
+                    NASA Space Apps Challenge · El Reto
+                  </span>
+                  <h1 className="mt-4 max-w-2xl text-balance text-3xl font-bold uppercase leading-[1.06] tracking-[-0.02em] text-white sm:text-5xl">
+                    POR QUÉ{" "}
+                    <span className="bg-gradient-to-r from-[#fb923c] via-[#f97316] to-amber-300 bg-clip-text text-transparent">
+                      ARMONIZAR EL FUEGO
+                    </span>{" "}
+                    EN UN SOLO CALENDARIO
+                  </h1>
+                  <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-300">
+                    Para anticipar temporadas críticas de incendios forestales en
+                    la Sierra de Chihuahua y otras regiones vulnerables, no
+                    basta con ver puntos calientes aislados: necesitamos una
+                    línea base histórica continua, comparable y conectada con
+                    sensores en tierra.
+                  </p>
                 </Reveal>
-              ))}
+
+                <div className="mt-8 grid gap-3 sm:grid-cols-2">
+                  {METRICS.map((item, idx) => (
+                    <Reveal key={item.label} delayMs={idx * 60}>
+                      <div className="rounded-2xl border border-violet-400/20 bg-[#140d24]/90 p-4">
+                        <span className="block font-mono text-[10px] uppercase tracking-wider text-slate-400">
+                          {item.label}
+                        </span>
+                        <span className="mt-1.5 block font-mono text-sm font-semibold text-white">
+                          {item.value}
+                        </span>
+                      </div>
+                    </Reveal>
+                  ))}
+                </div>
+              </div>
+
+              <Reveal delayMs={120} className="lg:col-span-5">
+                <div className="relative mx-auto max-w-md lg:max-w-none">
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute -inset-3 rounded-[2rem] bg-gradient-to-tr from-[#f97316]/25 via-violet-500/20 to-sky-400/20 blur-2xl"
+                  />
+                  <div className="relative overflow-hidden rounded-3xl border border-orange-400/30 bg-[#140d24] p-2 shadow-[0_0_50px_-12px_rgba(249,115,22,0.45)]">
+                    <div className="relative aspect-square w-full overflow-hidden rounded-2xl">
+                      <Image
+                        src="/images/reto-tabs.jpeg"
+                        alt="Satélites MODIS y VIIRS proyectando sobre un calendario de fuego en la sierra junto a estaciones IoT en tierra"
+                        fill
+                        priority
+                        sizes="(max-width: 1024px) 90vw, 440px"
+                        className="object-cover"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </Reveal>
             </div>
           </div>
         </section>
@@ -95,7 +122,21 @@ export default function RetoPage() {
             </h2>
           </Reveal>
 
-          <div className="mt-8 grid gap-5 md:grid-cols-3">
+          <Reveal delayMs={60}>
+            <div className="relative mt-8 overflow-hidden rounded-3xl border border-violet-400/25 bg-[#140d24] p-2 shadow-[0_0_48px_-16px_rgba(139,92,246,0.4)]">
+              <div className="relative aspect-video w-full overflow-hidden rounded-2xl">
+                <Image
+                  src="/images/reto-tabs-2.jpeg"
+                  alt="Tríptico de las tres brechas: discontinuidad MODIS y VIIRS, fuego natural vs. actividad humana y alertas en zonas rurales con estación IoT solar"
+                  fill
+                  sizes="(max-width: 1200px) 95vw, 1152px"
+                  className="object-cover"
+                />
+              </div>
+            </div>
+          </Reveal>
+
+          <div className="mt-6 grid gap-5 md:grid-cols-3">
             {CHALLENGES.map((item, idx) => (
               <Reveal key={item.title} delayMs={idx * 70}>
                 <article className="h-full rounded-2xl border border-violet-400/20 bg-[#140d24] p-6 transition-colors hover:border-orange-400/40">
