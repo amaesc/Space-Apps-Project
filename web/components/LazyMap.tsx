@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
-import type { HotspotEvent } from "../lib/fire-data";
+import type { HotspotEvent, Station } from "../lib/fire-data";
 
 // Leaflet y las imágenes del mapa solo se descargan cuando el mapa entra en pantalla.
 const ChihuahuaOsmMap = dynamic(() => import("./ChihuahuaOsmMap"), {
@@ -12,6 +12,7 @@ const ChihuahuaOsmMap = dynamic(() => import("./ChihuahuaOsmMap"), {
 
 interface Props {
   events: HotspotEvent[];
+  stations: Station[];
   selectedId: string | null;
   onSelect: (id: string) => void;
 }

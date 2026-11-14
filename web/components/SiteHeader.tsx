@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LITE_URL } from "../lib/api";
 import FlameLogo from "./FlameLogo";
 
 // Navegación mínima y compartida: tres destinos, visibles siempre (sin menú oculto en móvil).
@@ -54,6 +55,16 @@ export default function SiteHeader() {
               </li>
             );
           })}
+          <li>
+            {/* Modo ligero servido por la Raspberry Pi: ~3 KB, sin JavaScript */}
+            <a
+              href={LITE_URL}
+              title="Lite mode for poor connections (~3 KB, no JavaScript)"
+              className="ml-1 block rounded-lg border border-white/25 px-3 py-2 text-base font-semibold text-slate-200 hover:bg-white/10 hover:text-white"
+            >
+              Lite
+            </a>
+          </li>
         </ul>
       </nav>
     </header>

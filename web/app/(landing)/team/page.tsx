@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { asset } from "../../../lib/asset";
 import Link from "next/link";
 import AboutTabs from "../../../components/AboutTabs";
 import SiteHeader from "../../../components/SiteHeader";
@@ -63,7 +64,7 @@ export default function TeamPage() {
               <div className="mx-auto flex max-w-xs items-center gap-4 rounded-2xl border border-orange-400/30 bg-[#140d24] p-5 shadow-[0_0_32px_-10px_rgba(249,115,22,0.45)]">
                 <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-orange-400/40 bg-[#1a122e]">
                   <Image
-                    src="/images/mascot-pod.jpg"
+                    src={asset("/images/mascot-pod.jpg")}
                     alt="Team UNDEFINED mascot"
                     fill
                     sizes="64px"

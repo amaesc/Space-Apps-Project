@@ -67,3 +67,47 @@ body {
 .fuego-map .leaflet-control-attribution a {
   color: #e2e8f0 !important;
 }
+
+/* Foco de calor: color = origen, tamaño = intensidad (se fijan en línea). */
+.hotspot {
+  position: relative;
+  display: block;
+  border-radius: 9999px;
+  background: var(--c);
+  border: 2px solid #0d0818;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+}
+
+.hotspot--selected {
+  border-color: #ffffff;
+  box-shadow: 0 0 0 3px #0d0818, 0 0 0 5px #ffffff;
+}
+
+/* Detectado en la última hora: anillo que se expande. */
+.hotspot--recent::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 9999px;
+  border: 2px solid var(--c);
+  animation: hotspot-pulse 1.8s ease-out infinite;
+}
+
+@keyframes hotspot-pulse {
+  from { transform: scale(1); opacity: 0.9; }
+  to { transform: scale(2.4); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hotspot--recent::after { animation: none; transform: scale(1.6); opacity: 0.6; }
+}
+
+/* Estación IoT en campo */
+.station-marker {
+  display: block;
+  width: 12px;
+  height: 12px;
+  background: #ffffff;
+  border: 2px solid #0d0818;
+}

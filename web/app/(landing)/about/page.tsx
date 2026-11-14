@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import { asset } from "../../../lib/asset";
 import AboutTabs from "../../../components/AboutTabs";
 import SiteHeader from "../../../components/SiteHeader";
 import FuegoHero from "../../../components/FuegoHero";
@@ -170,7 +171,7 @@ export default function AboutPage() {
                 <div className="flex h-full flex-col justify-between overflow-hidden rounded-[1.375rem] bg-[#140d24] p-6 shadow-[inset_0_1px_1px_rgba(255,255,255,0.07)]">
                   <div className="relative mb-5 h-40 w-full overflow-hidden rounded-2xl border border-white/10">
                     <Image
-                      src="/images/processing-data.jpg"
+                      src={asset("/images/processing-data.jpg")}
                       alt="MODIS and VIIRS harmonization"
                       fill
                       sizes="(max-width: 1024px) 100vw, 600px"
@@ -205,7 +206,7 @@ export default function AboutPage() {
                   <div>
                     <div className="relative mb-5 h-40 w-full overflow-hidden rounded-2xl border border-white/10">
                       <Image
-                        src="/images/fire-active.jpg"
+                        src={asset("/images/fire-active.jpg")}
                         alt="Assessing the probable origin of a fire"
                         fill
                         sizes="(max-width: 1024px) 100vw, 420px"
@@ -262,7 +263,7 @@ export default function AboutPage() {
                     <div className="rounded-2xl border border-white/10 bg-[#0d0818] p-2">
                       <div className="relative aspect-video overflow-hidden rounded-xl">
                         <Image
-                          src="/images/mascot-pod.jpg"
+                          src={asset("/images/mascot-pod.jpg")}
                           alt="Active IoT station"
                           fill
                           sizes="(max-width: 1024px) 50vw, 280px"
@@ -276,7 +277,7 @@ export default function AboutPage() {
                     <div className="rounded-2xl border border-white/10 bg-[#0d0818] p-2">
                       <div className="relative aspect-video overflow-hidden rounded-xl">
                         <Image
-                          src="/images/error-frozen.jpg"
+                          src={asset("/images/error-frozen.jpg")}
                           alt="Automatic fallback with no signal"
                           fill
                           sizes="(max-width: 1024px) 50vw, 280px"

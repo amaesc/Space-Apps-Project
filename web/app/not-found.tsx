@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { asset } from "../lib/asset";
 import Link from "next/link";
 
 export default function NotFound() {
@@ -6,7 +7,7 @@ export default function NotFound() {
     <div className="relative flex min-h-[100dvh] items-end justify-center overflow-hidden bg-[#0d0818] px-4 py-8 text-[#f4f6f8] sm:px-8 sm:py-12 md:justify-start">
       {/* Vivid background image, unobstructed in the center */}
       <Image
-        src="/images/error-frozen.jpg"
+        src={asset("/images/error-frozen.jpg")}
         alt="404 error background: the frozen UNDEFINED mascot"
         fill
         sizes="100vw"

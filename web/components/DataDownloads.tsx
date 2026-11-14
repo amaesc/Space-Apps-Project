@@ -1,14 +1,13 @@
 "use client";
 
-import {
-  downloadHotspotsCsv,
-  downloadHotspotsGeoJson,
-  HOTSPOT_EVENTS,
-} from "../lib/fire-data";
+import { useDashboardData } from "../lib/api";
+import { downloadHotspotsCsv, downloadHotspotsGeoJson } from "../lib/fire-data";
 
 export default function DataDownloads() {
+  // Descarga los datos en vivo de la API (o el respaldo de demostración si no responde).
+  const { hotspots: HOTSPOT_EVENTS, status } = useDashboardData();
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <button
         type="button"
         onClick={() => downloadHotspotsCsv(HOTSPOT_EVENTS)}
@@ -23,6 +22,9 @@ export default function DataDownloads() {
       >
         Download GeoJSON
       </button>
+      <span className="text-sm text-slate-400">
+        {status === "live" ? "Live data" : status === "loading" ? "Loading…" : "API offline — demo data"}
+      </span>
     </div>
   );
 }

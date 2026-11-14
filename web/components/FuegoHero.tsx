@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { asset } from "../lib/asset";
 import Link from "next/link";
 import Reveal from "./Reveal";
 
@@ -117,7 +118,7 @@ export default function FuegoHero() {
           <Reveal delayMs={120}>
             <div className="hero-art-mask relative mx-auto aspect-3/2 w-full max-w-2xl lg:-mr-12 lg:-mt-6 lg:w-[calc(100%+3rem)] lg:max-w-none">
               <Image
-                src="/images/hero-fuegodata.jpg"
+                src={asset("/images/hero-fuegodata.jpg")}
                 alt="Laptop showing a thermal activity map of Mexico, a satellite, an IoT weather station and the FuegoData mascot"
                 fill
                 priority

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { asset } from "../../../lib/asset";
 import Link from "next/link";
 import AboutTabs from "../../../components/AboutTabs";
 import SiteHeader from "../../../components/SiteHeader";
@@ -99,7 +100,7 @@ export default function HowItWorksPage() {
                 <div className="relative overflow-hidden rounded-3xl border border-sky-400/25 bg-[#140d24] p-2 shadow-[0_0_50px_-14px_rgba(56,189,248,0.35)]">
                   <div className="relative aspect-video w-full overflow-hidden rounded-2xl">
                     <Image
-                      src="/images/funcionamiento-1.jpeg"
+                      src={asset("/images/funcionamiento-1.jpeg")}
                       alt="Diagram of the 4 system steps: Capture, Calibration, Inference and Alert"
                       fill
                       priority
@@ -180,7 +181,7 @@ export default function HowItWorksPage() {
               <div className="lg:col-span-6">
                 <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-white/10">
                   <Image
-                    src="/images/processing-data.jpg"
+                    src={asset("/images/processing-data.jpg")}
                     alt="The FuegoData mascot processing sensor and satellite data streams"
                     fill
                     sizes="(max-width: 1024px) 90vw, 520px"

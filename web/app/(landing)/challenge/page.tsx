@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { asset } from "../../../lib/asset";
 import Link from "next/link";
 import AboutTabs from "../../../components/AboutTabs";
 import SiteHeader from "../../../components/SiteHeader";
@@ -95,7 +96,7 @@ export default function ChallengePage() {
                   <div className="relative overflow-hidden rounded-3xl border border-orange-400/30 bg-[#140d24] p-2 shadow-[0_0_50px_-12px_rgba(249,115,22,0.45)]">
                     <div className="relative aspect-square w-full overflow-hidden rounded-2xl">
                       <Image
-                        src="/images/reto-tabs.jpeg"
+                        src={asset("/images/reto-tabs.jpeg")}
                         alt="MODIS and VIIRS satellites projecting onto a fire calendar over the mountains, next to ground IoT stations"
                         fill
                         priority
@@ -123,7 +124,7 @@ export default function ChallengePage() {
             <div className="relative mt-8 overflow-hidden rounded-3xl border border-violet-400/25 bg-[#140d24] p-2 shadow-[0_0_48px_-16px_rgba(139,92,246,0.4)]">
               <div className="relative aspect-video w-full overflow-hidden rounded-2xl">
                 <Image
-                  src="/images/reto-tabs-2.jpeg"
+                  src={asset("/images/reto-tabs-2.jpeg")}
                   alt="Triptych of the three gaps: MODIS–VIIRS discontinuity, natural fire vs. human activity, and rural alerts with a solar IoT station"
                   fill
                   sizes="(max-width: 1200px) 95vw, 1152px"
