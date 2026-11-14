@@ -57,6 +57,47 @@ body {
   animation: holo-spin 14s linear infinite reverse;
 }
 
+@keyframes portal-flame-rise {
+  0% {
+    transform: translate3d(0, 0, 0) scale(0.75);
+    opacity: 0;
+  }
+  18% {
+    opacity: 0.9;
+  }
+  55% {
+    transform: translate3d(var(--flame-drift, 8px), -95px, 0) scale(1.05);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate3d(calc(var(--flame-drift, 8px) * -0.6), -210px, 0) scale(0.25);
+    opacity: 0;
+  }
+}
+
+@keyframes portal-plume-flicker {
+  0%,
+  100% {
+    transform: scaleY(0.96) scaleX(0.98);
+    opacity: 0.65;
+  }
+  50% {
+    transform: scaleY(1.06) scaleX(1.03);
+    opacity: 0.9;
+  }
+}
+
+.portal-flame-particle {
+  animation: portal-flame-rise var(--flame-duration, 2.8s) ease-out infinite;
+  will-change: transform, opacity;
+}
+
+.portal-plume {
+  transform-origin: bottom center;
+  animation: portal-plume-flicker 2.4s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto !important;
@@ -68,7 +109,9 @@ body {
     transition: none !important;
   }
   .animate-holo-slow,
-  .animate-holo-reverse {
+  .animate-holo-reverse,
+  .portal-flame-particle,
+  .portal-plume {
     animation: none !important;
   }
 }

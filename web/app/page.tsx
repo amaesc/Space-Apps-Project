@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import Image from "next/image";
 import FluidNav from "../components/FluidNav";
 import HeroHarmonizationPreview from "../components/HeroHarmonizationPreview";
@@ -10,6 +11,19 @@ const IOT_SPECS = [
   "Rayos AS3935",
   "Pantalla + 5 LEDs",
   "Panel solar",
+];
+
+const PORTAL_FLAMES = [
+  { left: "22%", size: "h-7 w-3", delay: "0s", duration: "2.4s", drift: "-10px", tone: "from-amber-300 via-[#f97316] to-transparent" },
+  { left: "30%", size: "h-10 w-4", delay: "0.45s", duration: "2.8s", drift: "12px", tone: "from-yellow-200 via-[#fb923c] to-transparent" },
+  { left: "38%", size: "h-8 w-3.5", delay: "1.1s", duration: "2.3s", drift: "-8px", tone: "from-amber-300 via-[#ea580c] to-transparent" },
+  { left: "46%", size: "h-12 w-5", delay: "0.2s", duration: "3.0s", drift: "9px", tone: "from-yellow-200 via-[#f97316] to-transparent" },
+  { left: "53%", size: "h-11 w-4", delay: "0.85s", duration: "2.6s", drift: "-12px", tone: "from-amber-200 via-[#fb923c] to-transparent" },
+  { left: "61%", size: "h-9 w-3.5", delay: "1.4s", duration: "2.5s", drift: "11px", tone: "from-amber-300 via-[#f97316] to-transparent" },
+  { left: "69%", size: "h-8 w-3", delay: "0.6s", duration: "2.7s", drift: "-9px", tone: "from-yellow-200 via-[#ea580c] to-transparent" },
+  { left: "77%", size: "h-6 w-2.5", delay: "1.7s", duration: "2.2s", drift: "8px", tone: "from-amber-300 via-[#f97316] to-transparent" },
+  { left: "35%", size: "h-2 w-2", delay: "0.3s", duration: "2.1s", drift: "16px", tone: "from-yellow-200 via-amber-400 to-transparent" },
+  { left: "58%", size: "h-2 w-2", delay: "1.25s", duration: "2.0s", drift: "-15px", tone: "from-amber-200 via-[#fb923c] to-transparent" },
 ];
 
 const PLATFORM_VIEWS = [
@@ -71,7 +85,20 @@ export default function Home() {
 
       <main id="contenido-principal">
         {/* 1. HERO */}
-        <section className="relative overflow-hidden border-b border-white/6 bg-linear-to-b from-[#130b24] via-[#0e091b] to-[#0d0818]">
+        <section className="relative overflow-hidden border-b border-white/6 bg-linear-to-b from-[#060919] via-[#0c0e22] to-[#0d0818]">
+          {/* Cielo nocturno: estrellas y resplandor lunar */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0"
+            style={{
+              backgroundImage:
+                "radial-gradient(1px 1px at 12% 18%, rgba(255,255,255,0.65) 50%, transparent 100%), radial-gradient(1.2px 1.2px at 26% 12%, rgba(196,181,253,0.7) 50%, transparent 100%), radial-gradient(1px 1px at 42% 24%, rgba(255,255,255,0.5) 50%, transparent 100%), radial-gradient(1.5px 1.5px at 58% 10%, rgba(254,240,138,0.75) 50%, transparent 100%), radial-gradient(1px 1px at 74% 20%, rgba(255,255,255,0.6) 50%, transparent 100%), radial-gradient(1.3px 1.3px at 88% 14%, rgba(186,230,253,0.7) 50%, transparent 100%), radial-gradient(1px 1px at 18% 38%, rgba(255,255,255,0.4) 50%, transparent 100%), radial-gradient(1px 1px at 66% 34%, rgba(255,255,255,0.45) 50%, transparent 100%), radial-gradient(1.2px 1.2px at 92% 36%, rgba(196,181,253,0.55) 50%, transparent 100%)",
+            }}
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -top-20 left-1/4 h-80 w-80 rounded-full bg-emerald-500/8 blur-3xl"
+          />
           <div
             aria-hidden="true"
             className="pointer-events-none absolute -top-24 right-1/4 h-112 w-md rounded-full bg-violet-600/20 blur-3xl"
@@ -80,6 +107,36 @@ export default function Home() {
             aria-hidden="true"
             className="pointer-events-none absolute right-10 top-16 h-88 w-88 rounded-full bg-[#f97316]/15 blur-3xl"
           />
+
+          {/* Silueta nocturna de sierra y bosque de pinos */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-56 sm:h-64"
+          >
+            <svg
+              viewBox="0 0 1440 320"
+              preserveAspectRatio="none"
+              className="h-full w-full"
+            >
+              {/* Cordillera lejana */}
+              <path
+                d="M0,220 L120,165 L250,205 L390,135 L540,195 L690,145 L840,190 L980,125 L1140,185 L1290,140 L1440,185 L1440,320 L0,320 Z"
+                fill="#0b1224"
+                fillOpacity="0.85"
+              />
+              {/* Lomas y bosque medio */}
+              <path
+                d="M0,245 L90,210 L180,235 L290,190 L420,235 L560,195 L710,240 L860,195 L1010,235 L1160,185 L1310,230 L1440,200 L1440,320 L0,320 Z"
+                fill="#08101c"
+                fillOpacity="0.92"
+              />
+              {/* Silueta de pinos en primer plano */}
+              <path
+                d="M0,320 L0,270 L18,242 L34,270 L46,270 L64,230 L82,270 L96,270 L114,244 L132,270 L156,270 L178,225 L200,270 L220,270 L240,248 L260,270 L295,270 L315,236 L335,270 L365,270 L385,250 L405,270 L460,270 L482,238 L504,270 L550,270 L570,248 L590,270 L660,270 L682,235 L704,270 L760,270 L780,246 L800,270 L865,270 L888,228 L911,270 L950,270 L972,245 L994,270 L1045,270 L1068,232 L1091,270 L1135,270 L1158,242 L1181,270 L1225,270 L1248,226 L1271,270 L1315,270 L1338,240 L1361,270 L1395,270 L1418,234 L1440,270 L1440,320 Z"
+                fill="#060913"
+              />
+            </svg>
+          </div>
 
           <div className="relative mx-auto max-w-6xl px-4 pb-16 pt-12 sm:px-6 lg:pb-20 lg:pt-16">
             <div className="grid items-center gap-12 lg:grid-cols-12">
@@ -214,6 +271,29 @@ export default function Home() {
                         375m
                       </span>
                     </div>
+                  </div>
+
+                  {/* Flamas y chispas ascendentes desde el portal */}
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-x-8 bottom-8 top-6 z-[5] overflow-hidden"
+                  >
+                    <div className="portal-plume absolute inset-x-10 bottom-0 h-56 rounded-full bg-gradient-to-t from-[#f97316]/35 via-amber-400/15 to-transparent blur-2xl" />
+                    <div className="portal-plume absolute inset-x-20 bottom-2 h-40 rounded-full bg-gradient-to-t from-violet-500/25 via-[#f97316]/20 to-transparent blur-xl" />
+                    {PORTAL_FLAMES.map((flame, idx) => (
+                      <span
+                        key={idx}
+                        style={
+                          {
+                            left: flame.left,
+                            animationDelay: flame.delay,
+                            "--flame-duration": flame.duration,
+                            "--flame-drift": flame.drift,
+                          } as CSSProperties
+                        }
+                        className={`portal-flame-particle absolute bottom-2 ${flame.size} rounded-full bg-gradient-to-t ${flame.tone} blur-[1px] drop-shadow-[0_0_8px_rgba(249,115,22,0.8)]`}
+                      />
+                    ))}
                   </div>
 
                   <div className="relative z-10 -mt-6 h-60 w-52 drop-shadow-[0_18px_38px_rgba(249,115,22,0.35)] sm:-mt-8 sm:h-68 sm:w-60">
