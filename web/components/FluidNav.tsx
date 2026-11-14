@@ -12,9 +12,9 @@ import {
 
 const NAV_LINKS = [
   { href: "#", label: "Inicio" },
-  { href: "#preview", label: "El reto" },
-  { href: "#arquitectura", label: "Cómo funciona" },
-  { href: "#vistas", label: "Roadmap" },
+  { href: "#preview", label: "Reto" },
+  { href: "#arquitectura", label: "Funcionamiento" },
+  { href: "#vistas", label: "Equipo" },
 ];
 
 export default function FluidNav() {
@@ -112,14 +112,12 @@ export default function FluidNav() {
               className="relative flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-slate-200 transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white md:hidden"
             >
               <span
-                className={`absolute h-[1.5px] w-4 bg-current transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${
-                  open ? "rotate-45 translate-y-0" : "-translate-y-1"
-                }`}
+                className={`absolute h-[1.5px] w-4 bg-current transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${open ? "rotate-45 translate-y-0" : "-translate-y-1"
+                  }`}
               />
               <span
-                className={`absolute h-[1.5px] w-4 bg-current transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${
-                  open ? "-rotate-45 translate-y-0" : "translate-y-1"
-                }`}
+                className={`absolute h-[1.5px] w-4 bg-current transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${open ? "-rotate-45 translate-y-0" : "translate-y-1"
+                  }`}
               />
             </button>
           </div>
@@ -129,11 +127,10 @@ export default function FluidNav() {
       {/* Overlay móvil */}
       <div
         aria-hidden={!open}
-        className={`fixed inset-0 z-30 flex flex-col justify-center bg-[#0d0818]/95 px-8 backdrop-blur-2xl transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] md:hidden ${
-          open
-            ? "pointer-events-auto opacity-100"
-            : "pointer-events-none opacity-0"
-        }`}
+        className={`fixed inset-0 z-30 flex flex-col justify-center bg-[#0d0818]/95 px-8 backdrop-blur-2xl transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] md:hidden ${open
+          ? "pointer-events-auto opacity-100"
+          : "pointer-events-none opacity-0"
+          }`}
       >
         <div className="space-y-6">
           {NAV_LINKS.map((link, idx) => (
@@ -142,9 +139,8 @@ export default function FluidNav() {
               href={link.href}
               onClick={() => setOpen(false)}
               style={{ transitionDelay: open ? `${idx * 60}ms` : "0ms" }}
-              className={`block text-3xl font-semibold tracking-tight text-white transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${
-                open ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"
-              }`}
+              className={`block text-3xl font-semibold tracking-tight text-white transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${open ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"
+                }`}
             >
               {link.label}
             </Link>
