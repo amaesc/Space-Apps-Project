@@ -17,7 +17,7 @@ import {
 } from "../components/Icons";
 import LazyMap from "../components/LazyMap";
 import SiteHeader from "../components/SiteHeader";
-import { LITE_URL, useDashboardData, useNow, useSlowConnection } from "../lib/api";
+import { LITE_URL, useDashboardData, useHistoricalFires, useNasaFires, useNow, useSlowConnection, useWeatherGrid } from "../lib/api";
 import {
   type BurnCalendar,
   directionsUrl,
@@ -32,6 +32,15 @@ import {
   RISK_SCALE,
   riskFor,
 } from "../lib/fire-data";
+import {
+  CONDITIONS,
+  type ConditionDef,
+  type ConditionLayer,
+  conditionDef,
+  type FireLayers,
+  historyMonths,
+  monthLabel,
+} from "../lib/layers";
 
 type Range = "24h" | "7d" | "all";
 const RANGES: { id: Range; label: string; minutes: number }[] = [
@@ -74,11 +83,22 @@ export default function FireMapPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [basemap, setBasemap] = useState<Basemap>("satellite");
   const [showStations, setShowStations] = useState(true);
+  const [conditionId, setConditionId] = useState<ConditionLayer | null>(null);
+  const [fire, setFire] = useState<FireLayers>({ nasa: true, history: false, probability: false, cause: true });
+  const months = historyMonths();
+  const [historyMonth, setHistoryMonth] = useState(months.find((m) => m.endsWith("-05")) ?? months[0]);
   const [panelPref, setPanelPref] = useState<boolean | null>(null);
   const [modal, setModal] = useState<"help" | "calendar" | null>(null);
   const [disclaimerDismissed, setDisclaimerDismissed] = useState(false);
   const mapApi = useRef<MapApi | null>(null);
   const onReady = useCallback((api: MapApi) => (mapApi.current = api), []);
+
+  // Capas bajo demanda: cada una se descarga solo al activarla.
+  const condition = conditionDef(conditionId);
+  const nasa = useNasaFires(fire.nasa);
+  const history = useHistoricalFires(fire.history ? historyMonth : null);
+  const grid = useWeatherGrid(fire.probability || Boolean(condition?.grid));
+  const toggleFire = (k: keyof FireLayers) => setFire((f) => ({ ...f, [k]: !f[k] }));
 
   const panelOpen = panelPref ?? isDesktop;
   const showDisclaimer = modal === "help" || (!disclaimerSeen && !disclaimerDismissed);
@@ -116,7 +136,15 @@ export default function FireMapPage() {
           selectedId={selected?.id ?? null}
           onSelect={setSelectedId}
           onReady={onReady}
+          condition={condition}
+          grid={grid.data}
+          showProbability={fire.probability}
+          nasaFires={fire.nasa ? nasa.data?.fires ?? null : null}
+          historyFires={fire.history ? history.data : null}
+          showCause={fire.cause}
         />
+
+        <MapLegend condition={condition} fire={fire} historyMonth={historyMonth} />
 
         {/* Avisos de conexión */}
         {(slow || data.status === "offline") && (
@@ -177,7 +205,64 @@ export default function FireMapPage() {
               {IS_DEMO_DATA && <p className="mx-3 mb-3 rounded bg-fd-gold/15 px-2 py-1 text-sm text-fd-gold">Demo data — not for operational use.</p>}
             </Section>
 
-            <Section title={`Hotspots (${events.length})`}>
+            <Section title="Layers">
+              <div className="space-y-3 px-3 py-2.5">
+                <fieldset>
+                  <legend className="mb-1 text-xs font-semibold uppercase tracking-wide text-fd-gold">Fire</legend>
+                  <LayerCheck checked={fire.nasa} onChange={() => toggleFire("nasa")} label="NASA active fires" hint={fire.nasa ? layerHint(nasa.status, `VIIRS · last 48 h · ${nasa.data?.fires.length ?? 0} in Chihuahua`) : "NASA FIRMS, VIIRS 375 m, last 48 h"} swatch={<span className="h-3 w-3 rounded-full border-2 border-[#ffe066] bg-[#ff2a00]" />} />
+                  <LayerCheck checked={fire.history} onChange={() => toggleFire("history")} label="Historical fires" hint={fire.history ? layerHint(history.status, `${history.data?.length ?? 0} detections in ${monthLabel(historyMonth)}`) : "NASA VIIRS archive, by month (2020–)"} swatch={<span className="h-2.5 w-2.5 rounded-full bg-[#ff9f1c]" />}>
+                    <select
+                      value={historyMonth}
+                      onChange={(e) => setHistoryMonth(e.target.value)}
+                      aria-label="Historical month"
+                      className="mt-1 w-full rounded border border-white/20 bg-[#141416] px-2 py-1 text-sm"
+                    >
+                      {months.map((m) => (
+                        <option key={m} value={m}>{monthLabel(m)}</option>
+                      ))}
+                    </select>
+                  </LayerCheck>
+                  <LayerCheck checked={fire.probability} onChange={() => toggleFire("probability")} label="Fire probability (our model)" hint={layerHint(grid.status, "Hot-Dry-Windy index on a 0.5° weather grid")} swatch={<span className="h-3 w-3 bg-gradient-to-r from-[#16a34a] via-[#facc15] to-[#dc2626]" />} />
+                  <LayerCheck checked={fire.cause} onChange={() => toggleFire("cause")} label="Probable cause of active fires" hint="Human · lightning · wildland, with probability" swatch={<span className="h-3 w-3 rounded-full bg-[#f97316] ring-2 ring-[#38bdf8]" />} />
+                </fieldset>
+
+                <fieldset className="border-t border-white/10 pt-2.5">
+                  <legend className="mb-1 text-xs font-semibold uppercase tracking-wide text-fd-gold">Field station conditions</legend>
+                  <label className="flex cursor-pointer items-center gap-2 py-0.5">
+                    <input type="radio" name="condition" checked={conditionId === null} onChange={() => setConditionId(null)} className="accent-[#f5c518]" />
+                    None
+                  </label>
+                  {CONDITIONS.map((c) => (
+                    <label key={c.id} className="flex cursor-pointer items-center gap-2 py-0.5">
+                      <input type="radio" name="condition" checked={conditionId === c.id} onChange={() => setConditionId(c.id)} className="accent-[#f5c518]" />
+                      {c.label}
+                      {c.grid && <span className="text-xs text-white/50">+ statewide</span>}
+                    </label>
+                  ))}
+                  <label className="mt-1 flex cursor-pointer items-center gap-2 py-0.5 text-sm text-white/80">
+                    <input type="checkbox" checked={showStations} onChange={(e) => setShowStations(e.target.checked)} className="accent-[#f5c518]" />
+                    Always show station markers
+                  </label>
+                </fieldset>
+
+                <fieldset className="border-t border-white/10 pt-2.5">
+                  <legend className="mb-1 text-xs font-semibold uppercase tracking-wide text-fd-gold">Basemap</legend>
+                  {(
+                    [
+                      ["satellite", "Satellite imagery"],
+                      ["dark", "Dark street map (lighter download)"],
+                    ] as const
+                  ).map(([id, label]) => (
+                    <label key={id} className="flex cursor-pointer items-center gap-2 py-0.5">
+                      <input type="radio" name="basemap" checked={basemap === id} onChange={() => setBasemap(id)} className="accent-[#f5c518]" />
+                      {label}
+                    </label>
+                  ))}
+                </fieldset>
+              </div>
+            </Section>
+
+            <Section title={`Probable cause · hotspots (${events.length})`}>
               <div className="flex items-center justify-center gap-3 px-3 pt-3">
                 {RANGES.map((r) => (
                   <button
@@ -291,26 +376,6 @@ export default function FireMapPage() {
               </ul>
             </Section>
 
-            <Section title="Layers">
-              <fieldset className="px-3 py-2.5">
-                <legend className="sr-only">Basemap</legend>
-                {(
-                  [
-                    ["satellite", "Satellite imagery"],
-                    ["dark", "Dark street map (lighter download)"],
-                  ] as const
-                ).map(([id, label]) => (
-                  <label key={id} className="flex cursor-pointer items-center gap-2 py-1">
-                    <input type="radio" name="basemap" checked={basemap === id} onChange={() => setBasemap(id)} className="accent-[#f5c518]" />
-                    {label}
-                  </label>
-                ))}
-                <label className="mt-1 flex cursor-pointer items-center gap-2 border-t border-white/10 pt-2">
-                  <input type="checkbox" checked={showStations} onChange={(e) => setShowStations(e.target.checked)} className="accent-[#f5c518]" />
-                  Field stations (IoT)
-                </label>
-              </fieldset>
-            </Section>
           </aside>
         )}
 
@@ -461,5 +526,115 @@ function CalendarHeatmap({ calendar }: { calendar: BurnCalendar }) {
         </table>
       </div>
     </>
+  );
+}
+
+function layerHint(status: string, ready: string) {
+  return status === "loading" ? "Loading…" : status === "error" ? "Unavailable right now" : ready;
+}
+
+function LayerCheck({
+  checked,
+  onChange,
+  label,
+  hint,
+  swatch,
+  children,
+}: {
+  checked: boolean;
+  onChange: () => void;
+  label: string;
+  hint: string;
+  swatch: ReactNode;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="py-1">
+      <label className="flex cursor-pointer items-start gap-2">
+        <input type="checkbox" checked={checked} onChange={onChange} className="mt-1 accent-[#f5c518]" />
+        <span className="mt-1 flex w-4 shrink-0 justify-center" aria-hidden="true">{swatch}</span>
+        <span className="leading-tight">
+          {label}
+          <span className="block text-xs text-white/55">{hint}</span>
+        </span>
+      </label>
+      {checked && children && <div className="pl-12">{children}</div>}
+    </div>
+  );
+}
+
+/** Leyenda de las capas activas, sobre el mapa (abajo a la izquierda). */
+function MapLegend({ condition, fire, historyMonth }: { condition: ConditionDef | null; fire: FireLayers; historyMonth: string }) {
+  const rows: ReactNode[] = [];
+  if (fire.probability) {
+    rows.push(
+      <div key="prob">
+        <p className="font-semibold">Fire probability</p>
+        <div className="mt-0.5 flex gap-px">
+          {RISK_SCALE.map((r) => (
+            <span key={r.level} className="h-2.5 flex-1" style={{ backgroundColor: r.bg }} title={r.level} />
+          ))}
+        </div>
+        <p className="flex justify-between text-[11px] text-white/70"><span>Low</span><span>Extreme</span></p>
+      </div>
+    );
+  }
+  if (condition) {
+    const lg = condition.legend;
+    rows.push(
+      <div key="cond">
+        <p className="font-semibold">{condition.label}</p>
+        {"stops" in lg ? (
+          <>
+            <span className="mt-0.5 block h-2.5" style={{ background: `linear-gradient(to right, ${lg.stops.join(",")})` }} />
+            <p className="flex justify-between text-[11px] text-white/70"><span>{lg.min}</span><span>{lg.max}</span></p>
+          </>
+        ) : (
+          <ul className="mt-0.5 flex flex-wrap gap-x-2 text-[11px]">
+            {lg.items.map((i) => (
+              <li key={i.label} className="flex items-center gap-1">
+                <span className="h-2.5 w-2.5" style={{ backgroundColor: i.color }} />
+                {i.label}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    );
+  }
+  const points: [boolean, string, string][] = [
+    [fire.nasa, "NASA active fire (48 h)", "h-2.5 w-2.5 rounded-full border-2 border-[#ffe066] bg-[#ff2a00]"],
+    [fire.history, `Historical · ${monthLabel(historyMonth)}`, "h-2 w-2 rounded-full bg-[#ff9f1c]"],
+  ];
+  const active = points.filter(([on]) => on);
+  if (active.length) {
+    rows.push(
+      <ul key="pts" className="space-y-0.5">
+        {active.map(([, label, cls]) => (
+          <li key={label} className="flex items-center gap-1.5">
+            <span className={cls} />
+            {label}
+          </li>
+        ))}
+      </ul>
+    );
+  }
+  if (fire.cause) {
+    rows.push(
+      <ul key="cause" className="flex flex-wrap gap-x-2">
+        {ORIGINS.map((o) => (
+          <li key={o} className="flex items-center gap-1">
+            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: ORIGIN_COLORS[o].hex }} />
+            {o}
+          </li>
+        ))}
+      </ul>
+    );
+  }
+  if (!rows.length) return null;
+  return (
+    <div className="pointer-events-none absolute bottom-[5.5rem] left-2 z-[999] w-56 space-y-2 rounded border border-black/50 bg-fd-panel/90 px-2.5 py-2 text-xs shadow-lg md:bottom-[5.75rem]">
+      {rows}
+    </div>
   );
 }

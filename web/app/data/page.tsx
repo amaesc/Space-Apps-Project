@@ -28,6 +28,11 @@ const SOURCES = [
     href: "https://firms.modaps.eosdis.nasa.gov/",
   },
   {
+    name: "NASA GIBS — VIIRS NOAA-20 thermal anomalies",
+    use: "Active and historical fire layers on the map",
+    href: "https://www.earthdata.nasa.gov/engage/open-data-services-software/earthdata-developer-portal/gibs-api",
+  },
+  {
     name: "GOES-R Geostationary Lightning Mapper (GLM)",
     use: "Lightning near each detection",
     href: "https://www.goes-r.gov/spacesegment/glm.html",

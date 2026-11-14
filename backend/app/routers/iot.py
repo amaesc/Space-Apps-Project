@@ -32,6 +32,11 @@ class TelemetryIn(BaseModel):
     rain_mm: float = Field(default=0.0, ge=0, le=500)
     lightning_strikes: int = Field(default=0, ge=0, le=10000)
     battery_v: float = Field(default=4.1, ge=0, le=24)
+    # Métricas opcionales (las estacas antiguas pueden no enviarlas).
+    pressure_hpa: float | None = Field(default=None, ge=300, le=1100)
+    noise_db: float | None = Field(default=None, ge=0, le=140)
+    rssi_dbm: int | None = Field(default=None, ge=-140, le=0, description="Intensidad de señal WiFi/LoRa")
+    link_type: str | None = Field(default=None, pattern="^(wifi|lora|cellular)$")
 
 
 def _seed_stations() -> dict[str, dict[str, Any]]:
@@ -48,6 +53,10 @@ def _seed_stations() -> dict[str, dict[str, Any]]:
             "rain_mm": 0.0,
             "lightning_strikes": 0,
             "battery_v": 4.12,
+            "pressure_hpa": 781.4,
+            "noise_db": 38.0,
+            "rssi_dbm": -67,
+            "link_type": "wifi",
             "hdw_score": 68.1,
             "risk_level": 4,
             "risk_label": "Muy Alto",
@@ -65,6 +74,10 @@ def _seed_stations() -> dict[str, dict[str, Any]]:
             "rain_mm": 0.0,
             "lightning_strikes": 3,
             "battery_v": 3.98,
+            "pressure_hpa": 802.9,
+            "noise_db": 44.0,
+            "rssi_dbm": -98,
+            "link_type": "lora",
             "hdw_score": 41.3,
             "risk_level": 2,
             "risk_label": "Moderado",
@@ -82,6 +95,7 @@ def _load_stations() -> dict[str, dict[str, Any]]:
                 SELECT DISTINCT ON (station_id)
                     station_id, name, lat, lon, temperature_c, humidity_pct,
                     wind_kmh, rain_mm, lightning_strikes, battery_v,
+                    pressure_hpa, noise_db, rssi_dbm, link_type,
                     hdw_score, risk_level, risk_label, source,
                     recorded_at AS timestamp
                 FROM iot_readings
@@ -116,11 +130,14 @@ def _save_reading(record: dict[str, Any]) -> None:
                 INSERT INTO iot_readings (
                     station_id, name, lat, lon, temperature_c, humidity_pct,
                     wind_kmh, rain_mm, lightning_strikes, battery_v,
+                    pressure_hpa, noise_db, rssi_dbm, link_type,
                     hdw_score, risk_level, risk_label, source
                 ) VALUES (
                     %(station_id)s, %(name)s, %(lat)s, %(lon)s, %(temperature_c)s,
                     %(humidity_pct)s, %(wind_kmh)s, %(rain_mm)s,
-                    %(lightning_strikes)s, %(battery_v)s, %(hdw_score)s,
+                    %(lightning_strikes)s, %(battery_v)s,
+                    %(pressure_hpa)s, %(noise_db)s, %(rssi_dbm)s, %(link_type)s,
+                    %(hdw_score)s,
                     %(risk_level)s, %(risk_label)s, %(source)s
                 )
                 """,

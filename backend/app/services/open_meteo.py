@@ -107,3 +107,94 @@ async def _fetch_open_meteo_risk(lat: float, lon: float) -> dict[str, Any]:
         "risk_level": level,
         "risk_label": label,
     }
+
+
+# --- Cuadrícula de clima del estado (capas de temperatura, humedad, presión y
+# probabilidad de incendio) ----------------------------------------------------
+
+GRID_STEP = 0.5  # grados (~50 km)
+_GRID_CACHE: tuple[float, dict[str, Any]] | None = None
+_GRID_TTL_S = 30 * 60
+
+
+def _grid_points() -> list[tuple[float, float]]:
+    from app.services.nasa_fires import BBOX, inside_chihuahua
+
+    pts = []
+    lat = BBOX[1] + GRID_STEP / 2
+    while lat < BBOX[3]:
+        lon = BBOX[0] + GRID_STEP / 2
+        while lon < BBOX[2]:
+            if inside_chihuahua(lon, lat):
+                pts.append((round(lat, 3), round(lon, 3)))
+            lon += GRID_STEP
+        lat += GRID_STEP
+    return pts
+
+
+async def fetch_weather_grid() -> dict[str, Any]:
+    """Clima actual en una cuadrícula de 0.5° sobre Chihuahua + riesgo HDW por celda."""
+    global _GRID_CACHE
+    now_ts = datetime.now(timezone.utc).timestamp()
+    if _GRID_CACHE and now_ts - _GRID_CACHE[0] < _GRID_TTL_S:
+        return _GRID_CACHE[1]
+
+    pts = _grid_points()
+    params = {
+        "latitude": ",".join(str(p[0]) for p in pts),
+        "longitude": ",".join(str(p[1]) for p in pts),
+        "current": "temperature_2m,relative_humidity_2m,surface_pressure,wind_speed_10m,precipitation",
+        "timezone": "auto",
+    }
+    source = "open-meteo-live"
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            res = await client.get("https://api.open-meteo.com/v1/forecast", params=params)
+            res.raise_for_status()
+            payload = res.json()
+        rows = payload if isinstance(payload, list) else [payload]
+        currents = [r.get("current", {}) for r in rows]
+    except Exception:
+        # Respaldo determinista: gradiente suave (más caliente y seco al este/norte).
+        source = "open-meteo-fallback"
+        currents = [
+            {
+                "temperature_2m": 18 + (lat - 25.5) * 0.6 + (lon + 109) * 0.9,
+                "relative_humidity_2m": max(8.0, 60 - (lon + 109) * 6),
+                "surface_pressure": 880 - (31.8 - lat) * 4 + (lon + 109) * 6,
+                "wind_speed_10m": 12 + (lat - 25.5) * 1.5,
+                "precipitation": 0.0,
+            }
+            for lat, lon in pts
+        ]
+
+    cells = []
+    for (lat, lon), cur in zip(pts, currents):
+        temp = float(cur.get("temperature_2m", 24.0))
+        rh = float(cur.get("relative_humidity_2m", 30.0))
+        wind = float(cur.get("wind_speed_10m", 15.0))
+        rain = float(cur.get("precipitation", 0.0))
+        level, label, hdw = compute_fire_risk_level(temp, rh, wind, rain)
+        cells.append(
+            {
+                "lat": lat,
+                "lon": lon,
+                "temperature_c": round(temp, 1),
+                "humidity_pct": round(rh),
+                "pressure_hpa": round(float(cur.get("surface_pressure", 0.0)), 1),
+                "wind_kmh": round(wind, 1),
+                "hdw_score": hdw,
+                "risk_level": level,
+                "risk_label": label,
+            }
+        )
+
+    result = {
+        "source": source,
+        "step_deg": GRID_STEP,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "cells": cells,
+    }
+    if source == "open-meteo-live":
+        _GRID_CACHE = (now_ts, result)
+    return result

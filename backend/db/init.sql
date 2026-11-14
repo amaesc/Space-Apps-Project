@@ -67,3 +67,15 @@ SELECT
 WHERE NOT EXISTS (
     SELECT 1 FROM iot_readings WHERE station_id = 'ESP32-CHIH-07'
 );
+
+-- Métricas adicionales de la estaca (idempotente: se puede aplicar varias veces).
+ALTER TABLE iot_readings ADD COLUMN IF NOT EXISTS pressure_hpa DOUBLE PRECISION;
+ALTER TABLE iot_readings ADD COLUMN IF NOT EXISTS noise_db DOUBLE PRECISION;
+ALTER TABLE iot_readings ADD COLUMN IF NOT EXISTS rssi_dbm INTEGER;
+ALTER TABLE iot_readings ADD COLUMN IF NOT EXISTS link_type VARCHAR(16);
+
+-- Valores de demostración para las estaciones de ejemplo que aún no los tienen.
+UPDATE iot_readings SET pressure_hpa = 781.4, noise_db = 38, rssi_dbm = -67, link_type = 'wifi'
+WHERE station_id = 'ESP32-CHIH-04' AND pressure_hpa IS NULL;
+UPDATE iot_readings SET pressure_hpa = 802.9, noise_db = 44, rssi_dbm = -98, link_type = 'lora'
+WHERE station_id = 'ESP32-CHIH-07' AND pressure_hpa IS NULL;

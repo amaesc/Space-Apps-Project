@@ -7,7 +7,9 @@ import {
   DEMO_STATIONS,
   type FireOrigin,
   type HotspotEvent,
+  type NasaFire,
   type Station,
+  type WeatherCell,
 } from "./fire-data";
 
 /** API pública de la Raspberry Pi (Tailscale Funnel). */
@@ -65,6 +67,11 @@ function toStation(s: any): Station {
     riskLevel: s.risk_level,
     recordedAt: s.timestamp,
     fallbackActive: Boolean(s.fallback_active),
+    batteryV: s.battery_v ?? null,
+    pressureHpa: s.pressure_hpa ?? null,
+    noiseDb: s.noise_db ?? null,
+    rssiDbm: s.rssi_dbm ?? null,
+    linkType: s.link_type ?? null,
   };
 }
 
@@ -173,3 +180,58 @@ export function useNow(): number | null {
     () => null
   );
 }
+
+// --- Capas bajo demanda: solo se descargan cuando el usuario las activa ----------
+
+type Remote<T> = { status: "idle" | "loading" | "ready" | "error"; data: T | null };
+
+/** Descarga `path` cuando `enabled` es true (y lo recuerda mientras no cambie la ruta). */
+function useOnDemand<T>(path: string | null, parse: (json: unknown) => T): Remote<T> {
+  const [state, setState] = useState<{ path: string | null } & Remote<T>>({ path: null, status: "idle", data: null });
+  useEffect(() => {
+    if (!path || state.path === path) return;
+    let alive = true;
+    getJson<unknown>(path, 30000)
+      .then((json) => alive && setState({ path, status: "ready", data: parse(json) }))
+      .catch(() => alive && setState({ path, status: "error", data: null }));
+    return () => {
+      alive = false;
+    };
+    // parse es estable por llamada; solo importa la ruta.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [path]);
+  if (!path) return { status: "idle", data: null };
+  if (state.path !== path) return { status: "loading", data: null };
+  return state;
+}
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+export function useNasaFires(enabled: boolean) {
+  return useOnDemand<{ fires: NasaFire[]; start: string; end: string }>(enabled ? "/api/nasa/fires?days=2" : null, (j: any) => ({
+    start: j.start,
+    end: j.end,
+    fires: j.fires.map((f: any) => ({ lat: f.lat, lon: f.lon, frpMw: f.frp_mw, confidence: f.confidence, date: f.date, time: f.time })),
+  }));
+}
+
+export function useHistoricalFires(month: string | null) {
+  return useOnDemand<NasaFire[]>(month ? `/api/nasa/fires/history?month=${month}` : null, (j: any) =>
+    j.fires.map((f: any[]) => ({ lat: f[0], lon: f[1], frpMw: f[2], date: f[3], time: "", confidence: "" }))
+  );
+}
+
+export function useWeatherGrid(enabled: boolean) {
+  return useOnDemand<{ cells: WeatherCell[]; stepDeg: number; source: string }>(enabled ? "/api/weather/grid" : null, (j: any) => ({
+    stepDeg: j.step_deg,
+    source: j.source,
+    cells: j.cells.map((c: any) => ({
+      lat: c.lat,
+      lon: c.lon,
+      temperatureC: c.temperature_c,
+      humidityPct: c.humidity_pct,
+      pressureHpa: c.pressure_hpa,
+      riskLevel: c.risk_level,
+    })),
+  }));
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */

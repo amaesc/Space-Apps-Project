@@ -33,6 +33,31 @@ export interface Station {
   riskLevel: number; // 1-5
   recordedAt: string; // ISO 8601
   fallbackActive: boolean;
+  batteryV: number | null;
+  pressureHpa: number | null;
+  noiseDb: number | null;
+  rssiDbm: number | null;
+  linkType: string | null;
+}
+
+/** Detección de incendio activo de NASA FIRMS (VIIRS). */
+export interface NasaFire {
+  lat: number;
+  lon: number;
+  frpMw: number;
+  confidence: string;
+  date: string;
+  time: string;
+}
+
+/** Celda de la cuadrícula de clima del estado (Open-Meteo + riesgo HDW). */
+export interface WeatherCell {
+  lat: number;
+  lon: number;
+  temperatureC: number;
+  humidityPct: number;
+  pressureHpa: number;
+  riskLevel: number;
 }
 
 export interface BurnCalendar {
@@ -107,8 +132,8 @@ export const DEMO_HOTSPOTS: HotspotEvent[] = [
 ];
 
 export const DEMO_STATIONS: Station[] = [
-  { id: "ESP32-CHIH-04", name: "Bocoyna · San Juanito", lat: 27.97, lon: -107.58, temperatureC: 27.4, humidityPct: 22, windKmh: 24.5, lightningStrikes: 0, riskLevel: 4, recordedAt: `${DEMO_DAY}T14:30:00-06:00`, fallbackActive: false },
-  { id: "ESP32-CHIH-07", name: "Guachochi · Sinforosa", lat: 26.82, lon: -107.07, temperatureC: 22.8, humidityPct: 41, windKmh: 14, lightningStrikes: 3, riskLevel: 2, recordedAt: `${DEMO_DAY}T14:30:00-06:00`, fallbackActive: false },
+  { id: "ESP32-CHIH-04", name: "Bocoyna · San Juanito", lat: 27.97, lon: -107.58, temperatureC: 27.4, humidityPct: 22, windKmh: 24.5, lightningStrikes: 0, riskLevel: 4, recordedAt: `${DEMO_DAY}T14:30:00-06:00`, fallbackActive: false, batteryV: 4.12, pressureHpa: 781.4, noiseDb: 38, rssiDbm: -67, linkType: "wifi" },
+  { id: "ESP32-CHIH-07", name: "Guachochi · Sinforosa", lat: 26.82, lon: -107.07, temperatureC: 22.8, humidityPct: 41, windKmh: 14, lightningStrikes: 3, riskLevel: 2, recordedAt: `${DEMO_DAY}T14:30:00-06:00`, fallbackActive: false, batteryV: 3.98, pressureHpa: 802.9, noiseDb: 44, rssiDbm: -98, linkType: "lora" },
 ];
 
 // --- Descargas ------------------------------------------------------------------

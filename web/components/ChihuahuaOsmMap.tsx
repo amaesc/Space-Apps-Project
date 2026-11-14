@@ -3,7 +3,16 @@
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useEffect, useRef } from "react";
-import { directionsUrl, type HotspotEvent, minutesSince, ORIGIN_COLORS, type Station } from "../lib/fire-data";
+import {
+  directionsUrl,
+  type HotspotEvent,
+  minutesSince,
+  type NasaFire,
+  ORIGIN_COLORS,
+  type Station,
+  type WeatherCell,
+} from "../lib/fire-data";
+import { type ConditionDef, probabilityColor } from "../lib/layers";
 
 export type Basemap = "satellite" | "dark";
 
@@ -20,13 +29,19 @@ interface Props {
   selectedId: string | null;
   onSelect: (id: string) => void;
   onReady?: (api: MapApi) => void;
+  /** Capa de condiciones activa (estacas + cuadrícula si aplica). */
+  condition: ConditionDef | null;
+  grid: { cells: WeatherCell[]; stepDeg: number } | null;
+  showProbability: boolean;
+  nasaFires: NasaFire[] | null;
+  historyFires: NasaFire[] | null;
+  showCause: boolean;
 }
 
-const CENTER: [number, number] = [27.85, -107.45];
+const CENTER: [number, number] = [28.4, -106.2];
 const ZOOM = 7;
 const RECENT_MINUTES = 60;
 
-// Mapas de Esri, sin clave de API.
 const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services";
 const BASEMAPS: Record<Basemap, { url: string; labels: string; attribution: string }> = {
   satellite: {
@@ -41,16 +56,17 @@ const BASEMAPS: Record<Basemap, { url: string; labels: string; attribution: stri
   },
 };
 
-/** Diámetro en px según la intensidad (FRP): más grande = fuego más intenso. */
 const sizeFor = (frpMw: number) => Math.round(12 + Math.sqrt(frpMw) * 3.2);
-
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
-export default function ChihuahuaOsmMap({ events, stations, showStations, basemap, selectedId, onSelect, onReady }: Props) {
+export default function ChihuahuaOsmMap(props: Props) {
+  const { events, stations, showStations, basemap, selectedId, onSelect, onReady } = props;
+  const { condition, grid, showProbability, nasaFires, historyFires, showCause } = props;
+
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
-  const baseRef = useRef<L.LayerGroup | null>(null);
-  const markersRef = useRef<L.LayerGroup | null>(null);
+  const rendererRef = useRef<L.Canvas | null>(null);
+  const layers = useRef<Record<"base" | "grid" | "history" | "nasa" | "stations" | "hotspots", L.LayerGroup> | null>(null);
   const meRef = useRef<L.CircleMarker | null>(null);
 
   useEffect(() => {
@@ -58,8 +74,15 @@ export default function ChihuahuaOsmMap({ events, stations, showStations, basema
     const map = L.map(containerRef.current, { center: CENTER, zoom: ZOOM, zoomControl: false });
     L.control.zoom({ position: "topleft" }).addTo(map);
     L.control.scale({ position: "bottomleft", imperial: false }).addTo(map);
-    baseRef.current = L.layerGroup().addTo(map);
-    markersRef.current = L.layerGroup().addTo(map);
+    rendererRef.current = L.canvas({ padding: 0.3 });
+    layers.current = {
+      base: L.layerGroup().addTo(map),
+      grid: L.layerGroup().addTo(map),
+      history: L.layerGroup().addTo(map),
+      nasa: L.layerGroup().addTo(map),
+      stations: L.layerGroup().addTo(map),
+      hotspots: L.layerGroup().addTo(map),
+    };
     mapRef.current = map;
 
     map.on("locationfound", (e: L.LocationEvent) => {
@@ -69,43 +92,116 @@ export default function ChihuahuaOsmMap({ events, stations, showStations, basema
         .addTo(map);
     });
 
-    onReady?.({
-      reset: () => map.setView(CENTER, ZOOM),
-      locate: () => map.locate({ setView: true, maxZoom: 11 }),
-    });
+    onReady?.({ reset: () => map.setView(CENTER, ZOOM), locate: () => map.locate({ setView: true, maxZoom: 11 }) });
     return () => {
       map.remove();
       mapRef.current = null;
     };
-    // onReady solo se usa al crear el mapa.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Mapa base
   useEffect(() => {
-    const base = baseRef.current;
-    if (!base) return;
-    base.clearLayers();
+    const g = layers.current?.base;
+    if (!g) return;
+    g.clearLayers();
     const cfg = BASEMAPS[basemap];
-    L.tileLayer(cfg.url, { attribution: cfg.attribution, maxZoom: 17 }).addTo(base);
-    L.tileLayer(cfg.labels, { maxZoom: 17 }).addTo(base);
+    L.tileLayer(cfg.url, { attribution: cfg.attribution, maxZoom: 17 }).addTo(g);
+    L.tileLayer(cfg.labels, { maxZoom: 17 }).addTo(g);
   }, [basemap]);
 
+  // Cuadrícula: probabilidad de incendio (prioridad) o condición del estado
+  useEffect(() => {
+    const g = layers.current?.grid;
+    if (!g) return;
+    g.clearLayers();
+    if (!grid) return;
+    const half = grid.stepDeg / 2;
+    const colorOf = showProbability ? probabilityColor : condition?.grid ? condition.cellColor! : null;
+    const textOf = showProbability
+      ? (c: WeatherCell) => `Fire probability: level ${c.riskLevel}/5`
+      : condition?.cellText;
+    if (!colorOf || !textOf) return;
+    for (const c of grid.cells) {
+      L.rectangle(
+        [
+          [c.lat - half, c.lon - half],
+          [c.lat + half, c.lon + half],
+        ],
+        { renderer: rendererRef.current!, stroke: false, fillColor: colorOf(c), fillOpacity: 0.5 }
+      )
+        .bindTooltip(textOf(c), { sticky: true })
+        .addTo(g);
+    }
+  }, [grid, condition, showProbability]);
+
+  // Histórico NASA (puntos pequeños)
+  useEffect(() => {
+    const g = layers.current?.history;
+    if (!g) return;
+    g.clearLayers();
+    for (const f of historyFires ?? []) {
+      L.circleMarker([f.lat, f.lon], {
+        renderer: rendererRef.current!,
+        radius: 2.5,
+        stroke: false,
+        fillColor: "#ff9f1c",
+        fillOpacity: 0.65,
+      })
+        .bindTooltip(`Historical detection · ${f.date} · FRP ${f.frpMw} MW`)
+        .addTo(g);
+    }
+  }, [historyFires]);
+
+  // Incendios activos NASA FIRMS
+  useEffect(() => {
+    const g = layers.current?.nasa;
+    if (!g) return;
+    g.clearLayers();
+    for (const f of nasaFires ?? []) {
+      L.circleMarker([f.lat, f.lon], {
+        renderer: rendererRef.current!,
+        radius: 5.5,
+        color: "#ffe066",
+        weight: 1.5,
+        fillColor: "#ff2a00",
+        fillOpacity: 1,
+      })
+        .bindTooltip(`NASA FIRMS (VIIRS) · ${f.date} ${f.time} UTC · FRP ${f.frpMw} MW · confidence ${f.confidence}`)
+        .addTo(g);
+    }
+  }, [nasaFires]);
+
+  // Estacas: marcador + valor de la condición activa
+  useEffect(() => {
+    const g = layers.current?.stations;
+    if (!g) return;
+    g.clearLayers();
+    if (!showStations && !condition) return;
+    for (const s of stations) {
+      const v = condition?.stationValue(s);
+      const html = v
+        ? `<span class="station-badge" style="--c:${v.color}"><span class="station-marker"></span>${esc(v.text)}</span>`
+        : '<span class="station-marker"></span>';
+      L.marker([s.lat, s.lon], {
+        icon: L.divIcon({ className: "", iconSize: [0, 0], iconAnchor: [-4, 16], html }),
+        title: `Field station ${s.name}`,
+        interactive: false,
+        zIndexOffset: 1500,
+      }).addTo(g);
+    }
+  }, [stations, showStations, condition]);
+
+  // Causa probable (focos del modelo de origen)
   useEffect(() => {
     const map = mapRef.current;
-    const layer = markersRef.current;
-    if (!map || !layer) return;
-    layer.clearLayers();
-
-    if (showStations) {
-      for (const s of stations) {
-        L.marker([s.lat, s.lon], {
-          icon: L.divIcon({ className: "", iconSize: [12, 12], iconAnchor: [-4, 16], html: '<span class="station-marker"></span>' }),
-          title: `Field station ${s.name}`,
-          interactive: false,
-        }).addTo(layer);
-      }
+    const g = layers.current?.hotspots;
+    if (!map || !g) return;
+    g.clearLayers();
+    if (!showCause) {
+      map.closePopup();
+      return;
     }
-
     for (const ev of events) {
       const size = sizeFor(ev.frpMw);
       const selected = ev.id === selectedId;
@@ -117,27 +213,26 @@ export default function ChihuahuaOsmMap({ events, stations, showStations, basema
           iconAnchor: [size / 2, size / 2],
           html: `<span class="hotspot${recent ? " hotspot--recent" : ""}${selected ? " hotspot--selected" : ""}" style="--c:${ORIGIN_COLORS[ev.origin].hex};width:${size}px;height:${size}px"></span>`,
         }),
-        title: `${ev.municipality} · ${ev.origin} ${ev.probability}%`,
+        title: `${ev.municipality} · probable cause ${ev.origin} ${ev.probability}%`,
         zIndexOffset: selected ? 1000 : recent ? 500 : 0,
       })
         .on("click", () => onSelect(ev.id))
-        .addTo(layer);
+        .addTo(g);
     }
-
     const sel = events.find((e) => e.id === selectedId);
     if (sel) {
-      L.popup({ className: "fd-popup", offset: [0, -sizeFor(sel.frpMw) / 2], autoPan: true, closeButton: true })
+      L.popup({ className: "fd-popup", offset: [0, -sizeFor(sel.frpMw) / 2], autoPan: true })
         .setLatLng([sel.lat, sel.lon])
         .setContent(
           `<strong>${esc(sel.municipality)}</strong><br>${esc(sel.zone)}<br>` +
-            `<span style="color:${ORIGIN_COLORS[sel.origin].hex};font-weight:700">${sel.origin} ${sel.probability}%</span> · FRP ${sel.frpMw} MW<br>` +
-            `<a href="${directionsUrl(sel)}" target="_blank" rel="noopener noreferrer">Directions ↗</a>`
+            `Probable cause: <span style="color:${ORIGIN_COLORS[sel.origin].hex};font-weight:700">${sel.origin} ${sel.probability}%</span><br>` +
+            `FRP ${sel.frpMw} MW · <a href="${directionsUrl(sel)}" target="_blank" rel="noopener noreferrer">Directions ↗</a>`
         )
         .openOn(map);
     } else {
       map.closePopup();
     }
-  }, [events, stations, showStations, selectedId, onSelect]);
+  }, [events, selectedId, onSelect, showCause]);
 
   return <div ref={containerRef} className="fuego-map absolute inset-0" />;
 }
