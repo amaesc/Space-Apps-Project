@@ -5,7 +5,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-undefined_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-undefined_pass}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-undefined_pass_2026}
       POSTGRES_DB: ${POSTGRES_DB:-undefined_db}
     ports:
       - "5432:5432"
@@ -17,36 +17,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: undefined-backend
-    restart: unless-stopped
-    environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-undefined_user}:${POSTGRES_PASSWORD:-undefined_pass}@db:5432/${POSTGRES_DB:-undefined_db}
-    ports:
-      - "8000:8000"
-    depends_on:
-      db:
-        condition: service_healthy
-
-  web:
-    build:
-      context: ./web
-      dockerfile: Dockerfile
-    container_name: undefined-web
-    restart: unless-stopped
-    env_file:
-      - path: ./web/.env.local
-        required: false
-    environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000
-    ports:
-      - "3000:3000"
-    depends_on:
-      - backend
 
 volumes:
   postgres_data:
