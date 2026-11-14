@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import { asset } from "../../../lib/asset";
 import Link from "next/link";
@@ -26,6 +27,11 @@ const DATA_SOURCES = [
   { name: "Fire Weather Index (FWI)", detail: "Fire danger calibrated with local weather" },
   { name: "UNDEFINED IoT network", detail: "Microclimate and lightning in the Sierra de Chihuahua" },
 ];
+
+export const metadata: Metadata = {
+  title: "Team — FuegoData",
+  description: "Team UNDEFINED, NASA Space Apps Challenge 2026, Chihuahua.",
+};
 
 export default function TeamPage() {
   return (

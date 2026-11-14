@@ -70,5 +70,6 @@ async def real_calendar():
     """Calendario armonizado construido con detecciones reales (se completa en segundo plano)."""
     cal = load_real_calendar()
     if cal is None:
-        raise HTTPException(503, "Real calendar is still being built")
+        # Aún sin datos: el sitio usa la serie ilustrativa y muestra el avance (0 %).
+        return {"data_source": None, "coverage": 0.0}
     return cal

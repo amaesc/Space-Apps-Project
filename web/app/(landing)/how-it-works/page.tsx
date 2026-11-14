@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import { asset } from "../../../lib/asset";
 import Link from "next/link";
@@ -47,6 +48,11 @@ const PIPELINE = [
   { label: "3. Inference", detail: "Origin probability and risk level" },
   { label: "4. Alert", detail: "Web calendar + 5 local LEDs in the field" },
 ];
+
+export const metadata: Metadata = {
+  title: "How it works — FuegoData",
+  description: "Satellite harmonization, field IoT stations and probable-origin estimation.",
+};
 
 export default function HowItWorksPage() {
   return (

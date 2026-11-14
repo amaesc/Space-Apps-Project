@@ -11,3 +11,4 @@ esp32/**/secrets.h
 # Datos y entornos del modelo (se regeneran con ml/build_dataset.py)
 ml/data/
 ml/.venv/
+.pytest_cache/

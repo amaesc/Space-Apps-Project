@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import { asset } from "../../../lib/asset";
 import Link from "next/link";
@@ -29,6 +30,11 @@ const METRICS = [
   { label: "Calibration", value: "kₘ factor + 95% CI" },
   { label: "Validation", value: "Leave-year-out" },
 ];
+
+export const metadata: Metadata = {
+  title: "The challenge — FuegoData",
+  description: "Why harmonize MODIS and VIIRS fire data into a single calendar for the Sierra de Chihuahua.",
+};
 
 export default function ChallengePage() {
   return (
