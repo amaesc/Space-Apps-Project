@@ -1,51 +1,17 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useRef, useState } from "react";
-import type { HotspotEvent, Station } from "../lib/fire-data";
+import type { ComponentProps } from "react";
+import type ChihuahuaOsmMapType from "./ChihuahuaOsmMap";
 
-// Leaflet y las imágenes del mapa solo se descargan cuando el mapa entra en pantalla.
+// Leaflet se descarga aparte, después del HTML: el panel y la lista aparecen primero.
 const ChihuahuaOsmMap = dynamic(() => import("./ChihuahuaOsmMap"), {
   ssr: false,
-  loading: () => <Placeholder text="Loading map…" />,
+  loading: () => (
+    <div className="absolute inset-0 flex items-center justify-center bg-[#1b1d22] text-sm text-white/70">Loading map…</div>
+  ),
 });
 
-interface Props {
-  events: HotspotEvent[];
-  stations: Station[];
-  selectedId: string | null;
-  onSelect: (id: string) => void;
-}
-
-export default function LazyMap(props: Props) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisible(true);
-          io.disconnect();
-        }
-      },
-      { rootMargin: "200px" }
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-
-  return (
-    <div ref={ref} className="h-full w-full">
-      {visible ? <ChihuahuaOsmMap {...props} /> : <Placeholder text="Map" />}
-    </div>
-  );
-}
-
-function Placeholder({ text }: { text: string }) {
-  return (
-    <div className="flex h-full w-full items-center justify-center text-sm text-slate-400">{text}</div>
-  );
+export default function LazyMap(props: ComponentProps<typeof ChihuahuaOsmMapType>) {
+  return <ChihuahuaOsmMap {...props} />;
 }

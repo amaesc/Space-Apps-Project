@@ -11,14 +11,14 @@ export default function DataDownloads() {
       <button
         type="button"
         onClick={() => downloadHotspotsCsv(HOTSPOT_EVENTS)}
-        className="min-h-11 cursor-pointer rounded-lg bg-[#ff8a1f] px-5 text-base font-bold text-[#1a0d00] transition hover:brightness-110"
+        className="min-h-11 cursor-pointer rounded bg-fd-gold px-5 text-base font-bold text-black transition hover:brightness-110"
       >
         Download CSV
       </button>
       <button
         type="button"
         onClick={() => downloadHotspotsGeoJson(HOTSPOT_EVENTS)}
-        className="min-h-11 cursor-pointer rounded-lg border border-white/30 bg-white/5 px-5 text-base font-semibold text-white transition hover:bg-white/10"
+        className="min-h-11 cursor-pointer rounded border border-white/30 bg-white/5 px-5 text-base font-semibold text-white transition hover:bg-white/10"
       >
         Download GeoJSON
       </button>

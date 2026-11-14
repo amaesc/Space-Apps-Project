@@ -56,35 +56,38 @@ const SOURCES = [
 
 export default function DataPage() {
   return (
-    <div className="min-h-dvh bg-[#0d0818] text-[#f4f6f8]">
+    <div className="min-h-dvh bg-fd-bg text-[#f1f1f1]">
       <SiteHeader />
 
-      <main className="mx-auto max-w-3xl px-4 py-8 text-base leading-relaxed text-slate-200">
-        <h1 className="text-3xl font-bold text-white">Data &amp; methodology</h1>
-        <p className="mt-2 text-lg text-slate-300">
-          Hotspots for the Sierra de Chihuahua, last 28 days, harmonized across MODIS and VIIRS.
+      <div className="border-y border-black/40 bg-fd-red-dark px-4 py-2.5 text-center">
+        <h1 className="text-2xl font-semibold text-fd-gold sm:text-3xl">Data &amp; methodology</h1>
+      </div>
+
+      <main className="mx-auto max-w-3xl px-4 py-8 text-[17px] leading-relaxed text-white/90">
+        <p className="text-xl font-semibold text-white">
+          Hotspots for the Sierra de Chihuahua, harmonized across MODIS and VIIRS.
         </p>
 
         {IS_DEMO_DATA && (
-          <p className="mt-4 rounded-lg border border-amber-400/60 bg-amber-400/10 px-4 py-3 text-amber-100">
+          <p className="mt-4 rounded border border-fd-gold/60 bg-fd-gold/10 px-4 py-3 text-fd-gold">
             <strong>Demo data.</strong> The current dataset is illustrative and must not be used
             for operational decisions. Live NASA FIRMS data is in progress.
           </p>
         )}
 
         <section className="mt-8">
-          <h2 className="text-xl font-bold text-white">Download</h2>
-          <p className="mt-1 text-slate-300">One row per hotspot. UTF-8, comma-separated.</p>
+          <h2 className="border-b border-white/15 pb-1 text-xl font-bold text-white">Download</h2>
+          <p className="mt-1 text-white/75">One row per hotspot. UTF-8, comma-separated.</p>
           <div className="mt-3">
             <DataDownloads />
           </div>
         </section>
 
         <section className="mt-10">
-          <h2 className="text-xl font-bold text-white">Fields</h2>
+          <h2 className="border-b border-white/15 pb-1 text-xl font-bold text-white">Fields</h2>
           <div className="mt-3 overflow-x-auto rounded-lg border border-white/15">
             <table className="w-full text-left text-sm">
-              <thead className="bg-white/5 text-slate-300">
+              <thead className="bg-white/5 text-white/75">
                 <tr>
                   <th scope="col" className="px-3 py-2 font-semibold">Column</th>
                   <th scope="col" className="px-3 py-2 font-semibold">Description</th>
@@ -93,7 +96,7 @@ export default function DataPage() {
               <tbody className="divide-y divide-white/10">
                 {FIELDS.map(([col, desc]) => (
                   <tr key={col}>
-                    <td className="whitespace-nowrap px-3 py-2 font-mono text-[#fdba74]">{col}</td>
+                    <td className="whitespace-nowrap px-3 py-2 font-mono text-fd-gold">{col}</td>
                     <td className="px-3 py-2">{desc}</td>
                   </tr>
                 ))}
@@ -103,7 +106,7 @@ export default function DataPage() {
         </section>
 
         <section className="mt-10">
-          <h2 className="text-xl font-bold text-white">Method</h2>
+          <h2 className="border-b border-white/15 pb-1 text-xl font-bold text-white">Method</h2>
           <ol className="mt-3 list-decimal space-y-3 pl-5">
             <li>
               <strong className="text-white">Sensor harmonization.</strong> MODIS (1 km, 2000–) and
@@ -127,7 +130,7 @@ export default function DataPage() {
         </section>
 
         <section className="mt-10">
-          <h2 className="text-xl font-bold text-white">Limitations</h2>
+          <h2 className="border-b border-white/15 pb-1 text-xl font-bold text-white">Limitations</h2>
           <ul className="mt-3 list-disc space-y-2 pl-5">
             <li>Origin is a statistical probability to prioritize inspections, not legal evidence.</li>
             <li>It never identifies properties or people.</li>
@@ -140,7 +143,7 @@ export default function DataPage() {
         </section>
 
         <section className="mt-10">
-          <h2 className="text-xl font-bold text-white">Sources</h2>
+          <h2 className="border-b border-white/15 pb-1 text-xl font-bold text-white">Sources</h2>
           <ul className="mt-3 divide-y divide-white/10 rounded-lg border border-white/15">
             {SOURCES.map((src) => (
               <li key={src.name} className="flex flex-wrap items-baseline justify-between gap-x-4 px-3 py-2.5">
@@ -148,18 +151,18 @@ export default function DataPage() {
                   href={src.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-semibold text-[#fdba74] underline decoration-[#fdba74]/40 underline-offset-4 hover:decoration-[#fdba74]"
+                  className="font-semibold text-fd-gold underline decoration-fd-gold/40 underline-offset-4 hover:decoration-fd-gold"
                 >
                   {src.name}
                 </a>
-                <span className="text-sm text-slate-300">{src.use}</span>
+                <span className="text-sm text-white/75">{src.use}</span>
               </li>
             ))}
           </ul>
         </section>
 
         <section className="mt-10">
-          <h2 className="text-xl font-bold text-white">How to cite</h2>
+          <h2 className="border-b border-white/15 pb-1 text-xl font-bold text-white">How to cite</h2>
           <p className="mt-3 rounded-lg border border-white/15 bg-white/5 px-4 py-3 font-mono text-sm">
             Team UNDEFINED (2026). FuegoData: harmonized MODIS–VIIRS burn calendar and probable
             fire origin for the Sierra de Chihuahua. NASA Space Apps Challenge 2026.

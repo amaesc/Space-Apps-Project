@@ -14,7 +14,14 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-sans: var(--font-titillium), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Paleta estilo visor de datos: rojo institucional, dorado de acento, grises oscuros */
+  --color-fd-red: #8f1c1c;
+  --color-fd-red-dark: #6e1414;
+  --color-fd-gold: #f5c518;
+  --color-fd-bg: #2b2b2e;
+  --color-fd-panel: #1f1f22;
+  --color-fd-bar: #34495e;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --font-display: var(--font-nunito), ui-sans-serif, system-ui, sans-serif;
 }
@@ -110,4 +117,46 @@ body {
   height: 12px;
   background: #ffffff;
   border: 2px solid #0d0818;
+}
+
+/* Controles de Leaflet en tema oscuro (visor estilo FIRMS) */
+.fuego-map .leaflet-bar a {
+  width: 36px;
+  height: 36px;
+  line-height: 36px;
+  background: rgba(31, 31, 34, 0.92);
+  color: #fff;
+  border-bottom-color: rgba(0, 0, 0, 0.5);
+}
+.fuego-map .leaflet-bar a:hover {
+  background: #3a3a3f;
+  color: #f5c518;
+}
+.fuego-map .leaflet-bar {
+  border: 1px solid rgba(0, 0, 0, 0.6);
+}
+.fuego-map .leaflet-bottom {
+  margin-bottom: 3.75rem; /* deja espacio a la barra de herramientas */
+}
+.fuego-map .leaflet-control-scale-line {
+  background: rgba(31, 31, 34, 0.75);
+  border-color: #fff;
+  color: #fff;
+}
+.fd-popup .leaflet-popup-content-wrapper,
+.fd-popup .leaflet-popup-tip {
+  background: #1f1f22;
+  color: #f1f1f1;
+  border-radius: 4px;
+}
+.fd-popup .leaflet-popup-content {
+  font: 14px/1.45 var(--font-sans);
+  margin: 10px 14px;
+}
+.fd-popup a {
+  color: #f5c518 !important;
+  font-weight: 700;
+}
+.fd-popup a.leaflet-popup-close-button {
+  color: #ccc !important;
 }

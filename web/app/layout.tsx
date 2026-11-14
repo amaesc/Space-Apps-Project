@@ -1,5 +1,14 @@
 import type { Metadata, Viewport } from "next";
+import { Titillium_Web } from "next/font/google";
 import "./globals.css";
+
+// Tipografía técnica y compacta, estilo visor de datos geoespaciales.
+const titillium = Titillium_Web({
+  subsets: ["latin"],
+  weight: ["400", "600", "700"],
+  variable: "--font-titillium",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "FuegoData — Wildfire hotspot map · Sierra de Chihuahua",
@@ -8,19 +17,17 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0d0818",
+  themeColor: "#8f1c1c",
 };
 
-// Sin fuentes web: la herramienta usa la fuente del sistema (0 KB extra).
-// La fuente de marca solo se carga en app/(landing)/layout.tsx.
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full antialiased">
-      <body className="min-h-full flex flex-col bg-[#0d0818] text-[#f1f5f9] font-sans">
+    <html lang="en" className={`${titillium.variable} h-full antialiased`}>
+      <body className="min-h-full flex flex-col bg-[#2b2b2e] text-[#f1f1f1] font-sans">
         {children}
       </body>
     </html>

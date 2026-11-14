@@ -77,7 +77,7 @@ def _svg(hotspots: list[dict], stations: list[dict]) -> str:
     parts = [
         f'<svg viewBox="0 0 {_W + 2 * _PAD:.0f} {_H + 2 * _PAD:.0f}" role="img" '
         f'aria-label="Map of Chihuahua with {len(hotspots)} hotspots">',
-        f'<path d="{_OUTLINE_PATH}" fill="#1c1a2b" stroke="#8b8aa0" stroke-width="1"/>',
+        f'<path d="{_OUTLINE_PATH}" fill="#3a3a40" stroke="#9a9aa5" stroke-width="1"/>',
     ]
     for i, h in enumerate(hotspots, 1):
         x, y = _xy(h["lon"], h["lat"])
@@ -97,20 +97,22 @@ def _svg(hotspots: list[dict], stations: list[dict]) -> str:
 
 
 CSS = (
-    "body{margin:0;background:#0d0818;color:#f1f5f9;font:16px/1.45 system-ui,sans-serif}"
+    "body{margin:0;background:#2b2b2e;color:#f1f1f1;font:16px/1.45 system-ui,sans-serif}"
+    "header{background:#8f1c1c;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;gap:8px}"
+    "header a{color:#fff;font-weight:600}"
     "main{max-width:640px;margin:auto;padding:12px}"
-    "header{display:flex;justify-content:space-between;align-items:center;gap:8px}"
-    "a{color:#7dd3fc}h1{font-size:20px;margin:0}h2{font-size:17px;margin:20px 0 6px}"
-    ".b{display:inline-block;padding:1px 8px;border-radius:4px;font-weight:700}"
-    ".s{color:#a3a3b8;font-size:14px}"
-    "ol,ul{margin:0;padding:0;list-style:none}"
-    "li{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #2a2540}"
+    "a{color:#f5c518}h1{font-size:20px;margin:0;color:#fff}"
+    "h2{font-size:15px;margin:18px 0 0;padding:4px 8px;background:#34495e;text-transform:uppercase;letter-spacing:.04em}"
+    ".b{display:inline-block;padding:1px 8px;border-radius:3px;font-weight:700}"
+    ".s{color:#bdbdc4;font-size:14px}"
+    "ol,ul{margin:0;padding:0;list-style:none;background:#1f1f22}"
+    "li{display:flex;gap:10px;align-items:center;padding:8px;border-bottom:1px solid #3a3a40}"
     ".n{flex:none;width:24px;height:24px;border-radius:50%;color:#000;font-weight:700;"
     "font-size:13px;display:flex;align-items:center;justify-content:center}"
-    ".g{flex:1;min-width:0}.go{flex:none;border:1px solid #556;border-radius:6px;padding:6px 10px;"
-    "text-decoration:none;font-weight:600}"
-    "svg{width:100%;height:auto;margin-top:10px}"
-    ".w{background:#3a2d00;color:#fde68a;padding:6px 10px;border-radius:6px;font-size:14px}"
+    ".g{flex:1;min-width:0}.go{flex:none;background:#f5c518;color:#000;border-radius:3px;padding:6px 12px;"
+    "text-decoration:none;font-weight:700}"
+    "svg{width:100%;height:auto;margin-top:10px;background:#1f1f22}"
+    ".w{background:#3d3410;color:#f5c518;padding:6px 10px;border-radius:3px;font-size:14px}"
 )
 
 
@@ -156,9 +158,9 @@ async def lite_page() -> HTMLResponse:
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
         '<meta http-equiv="refresh" content="300">'
         "<title>FuegoData Lite — Sierra de Chihuahua</title>"
-        f"<style>{CSS}</style></head><body><main>"
-        f'<header><h1>FuegoData <span class="s">Lite</span></h1>'
-        f'<a href="{escape(FULL_DASHBOARD_URL)}">Full dashboard</a></header>'
+        f"<style>{CSS}</style></head><body>"
+        f'<header><h1>FuegoData <span style="font-weight:400;font-size:15px">Lite</span></h1>'
+        f'<a href="{escape(FULL_DASHBOARD_URL)}">Full fire map</a></header><main>'
         f'<p>Fire danger <span class="b" style="background:{risk_bg};color:{risk_fg}">{risk_label}</span>'
         f' · <b>{len(hotspots)}</b> hotspots · updated {updated}</p>'
         f"{demo}"
