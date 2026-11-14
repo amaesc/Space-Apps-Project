@@ -34,7 +34,7 @@ export default function FluidNav() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-[#0d0818]/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-white/6 bg-[#0d0818]/80 backdrop-blur-xl">
         <nav
           aria-label="Navegación principal"
           className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3.5 sm:px-6"
@@ -75,21 +75,21 @@ export default function FluidNav() {
           <div className="flex items-center gap-2">
             {user ? (
               <div className="hidden items-center gap-2 sm:flex">
-                <div className="flex items-center gap-2 rounded-lg border border-violet-400/25 bg-white/[0.03] px-2.5 py-1.5">
+                <div className="flex items-center gap-2 rounded-lg border border-violet-400/25 bg-white/3 px-2.5 py-1.5">
                   <span
                     aria-hidden="true"
-                    className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-[#f97316] to-[#ea580c] font-mono text-[10px] font-bold uppercase text-white"
+                    className="flex h-5 w-5 items-center justify-center rounded-full bg-linear-to-br from-[#f97316] to-[#ea580c] font-mono text-[10px] font-bold uppercase text-white"
                   >
                     {user.name.slice(0, 1)}
                   </span>
-                  <span className="max-w-[120px] truncate text-xs font-medium text-slate-200">
+                  <span className="max-w-30 truncate text-xs font-medium text-slate-200">
                     {user.name}
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="cursor-pointer rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-medium text-slate-300 transition-colors hover:border-white/25 hover:bg-white/[0.07] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  className="cursor-pointer rounded-lg border border-white/10 bg-white/3 px-3 py-1.5 text-xs font-medium text-slate-300 transition-colors hover:border-white/25 hover:bg-white/7 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                 >
                   Salir
                 </button>
@@ -97,7 +97,7 @@ export default function FluidNav() {
             ) : (
               <Link
                 href="/login"
-                className="hidden rounded-lg border border-orange-400/40 bg-white/[0.03] px-4 py-2 text-xs font-medium text-white shadow-[0_0_20px_-6px_rgba(249,115,22,0.45)] transition-all duration-300 hover:border-orange-400/80 hover:bg-orange-500/10 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:inline-flex"
+                className="hidden rounded-lg border border-orange-400/40 bg-white/3 px-4 py-2 text-xs font-medium text-white shadow-[0_0_20px_-6px_rgba(249,115,22,0.45)] transition-all duration-300 hover:border-orange-400/80 hover:bg-orange-500/10 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:inline-flex"
               >
                 Iniciar sesión
               </Link>
@@ -109,7 +109,7 @@ export default function FluidNav() {
               onClick={() => setOpen((prev) => !prev)}
               aria-expanded={open}
               aria-label={open ? "Cerrar menú" : "Abrir menú"}
-              className="relative flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-slate-200 transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white md:hidden"
+              className="relative flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-white/10 bg-white/4 text-slate-200 transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white md:hidden"
             >
               <span
                 className={`absolute h-[1.5px] w-4 bg-current transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${open ? "rotate-45 translate-y-0" : "-translate-y-1"
@@ -152,7 +152,7 @@ export default function FluidNav() {
                 <div className="flex items-center gap-3">
                   <span
                     aria-hidden="true"
-                    className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-[#f97316] to-[#ea580c] font-mono text-sm font-bold uppercase text-white"
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-linear-to-br from-[#f97316] to-[#ea580c] font-mono text-sm font-bold uppercase text-white"
                   >
                     {user.name.slice(0, 1)}
                   </span>
@@ -168,7 +168,7 @@ export default function FluidNav() {
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="w-full cursor-pointer rounded-xl border border-white/15 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-white/10"
+                  className="w-full cursor-pointer rounded-xl border border-white/15 bg-white/4 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-white/10"
                 >
                   Cerrar sesión
                 </button>
@@ -177,7 +177,7 @@ export default function FluidNav() {
               <Link
                 href="/login"
                 onClick={() => setOpen(false)}
-                className="inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-[#f97316] to-[#ea580c] px-5 py-3 text-base font-semibold text-white shadow-[0_0_28px_-4px_rgba(249,115,22,0.7)]"
+                className="inline-flex w-full items-center justify-center rounded-xl bg-linear-to-r from-[#f97316] to-[#ea580c] px-5 py-3 text-base font-semibold text-white shadow-[0_0_28px_-4px_rgba(249,115,22,0.7)]"
               >
                 Iniciar sesión
               </Link>
