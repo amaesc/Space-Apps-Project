@@ -11,10 +11,10 @@ import {
 } from "../lib/auth";
 
 const NAV_LINKS = [
-  { href: "#", label: "Inicio" },
-  { href: "#preview", label: "Reto" },
-  { href: "#arquitectura", label: "Funcionamiento" },
-  { href: "#vistas", label: "Equipo" },
+  { href: "/", label: "Inicio" },
+  { href: "/#preview", label: "Reto" },
+  { href: "/#arquitectura", label: "Funcionamiento" },
+  { href: "/#equipo", label: "Equipo" },
 ];
 
 export default function FluidNav() {

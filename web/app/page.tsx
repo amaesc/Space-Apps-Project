@@ -21,6 +21,37 @@ const PLATFORM_VIEWS = [
   { name: "Metodología", status: "Fase 2", desc: "Validación leave-year-out y calibración FWI." },
 ];
 
+const TEAM_ROLES = [
+  {
+    code: "01",
+    role: "Ciencia de Datos & FIRMS",
+    name: "Integrante 1",
+    focus: "Armonización MODIS / VIIRS, factor kₘ y validación bootstrap.",
+    accent: "text-[#fb923c]",
+  },
+  {
+    code: "02",
+    role: "Hardware IoT & ESP32",
+    name: "Integrante 2",
+    focus: "Estación en campo (BME280, AS3935), LoRa/WiFi y telemetría.",
+    accent: "text-sky-300",
+  },
+  {
+    code: "03",
+    role: "Frontend & Visualización",
+    name: "Integrante 3",
+    focus: "Calendario interactivo, mapas de riesgo y experiencia de usuario.",
+    accent: "text-violet-300",
+  },
+  {
+    code: "04",
+    role: "Backend & Geoespacial",
+    name: "Integrante 4",
+    focus: "Integración CONAFOR, GOES-GLM, Open-Meteo y API de datos.",
+    accent: "text-amber-300",
+  },
+];
+
 export default function Home() {
   return (
     <div className="relative min-h-[100dvh] bg-[#0d0818] text-[#f4f6f8]">
@@ -269,7 +300,7 @@ export default function Home() {
           <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 py-16 sm:px-6 lg:grid-cols-12 lg:py-20">
             <Reveal className="lg:col-span-5">
               <span className="inline-block rounded-full border border-orange-400/30 bg-[#f97316]/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-[#fb923c]">
-                Demostración interactiva
+                El reto · Demostración interactiva
               </span>
               <h2 className="mt-4 text-balance text-3xl font-bold uppercase leading-[1.08] tracking-[-0.02em] text-white sm:text-4xl">
                 POR QUÉ{" "}
@@ -517,6 +548,59 @@ export default function Home() {
                     </div>
                     <p className="mt-2 text-xs leading-relaxed text-slate-400">
                       {view.desc}
+                    </p>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* 5. EQUIPO */}
+        <section
+          id="equipo"
+          className="border-t border-white/[0.06] bg-[#0d0818]"
+        >
+          <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-20">
+            <Reveal>
+              <div className="flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <span className="inline-block rounded-full border border-orange-400/30 bg-[#f97316]/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-[#fb923c]">
+                    Equipo UNDEFINED · NASA Space Apps 2026
+                  </span>
+                  <h2 className="mt-3 text-balance text-3xl font-bold uppercase leading-[1.08] tracking-[-0.02em] text-white sm:text-4xl">
+                    Construyendo desde{" "}
+                    <span className="bg-gradient-to-r from-[#fb923c] to-violet-400 bg-clip-text text-transparent">
+                      Chihuahua
+                    </span>
+                  </h2>
+                </div>
+                <span className="rounded-full border border-violet-400/20 bg-[#140d24] px-4 py-1.5 font-mono text-xs text-slate-300">
+                  Sede: Chihuahua, Chih.
+                </span>
+              </div>
+            </Reveal>
+
+            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {TEAM_ROLES.map((member, idx) => (
+                <Reveal key={member.code} delayMs={idx * 60}>
+                  <div className="relative h-full overflow-hidden rounded-2xl border border-violet-400/20 bg-[#140d24] p-5 transition-colors hover:border-orange-400/40">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={`font-mono text-xs font-bold ${member.accent}`}>
+                        {member.code}
+                      </span>
+                      <span className="rounded-full border border-white/10 bg-[#0d0818] px-2.5 py-0.5 font-mono text-[10px] text-slate-400">
+                        UNDEFINED
+                      </span>
+                    </div>
+                    <h3 className="mt-3 text-sm font-semibold text-white">
+                      {member.name}
+                    </h3>
+                    <p className={`mt-0.5 font-mono text-[11px] ${member.accent}`}>
+                      {member.role}
+                    </p>
+                    <p className="mt-2.5 text-xs leading-relaxed text-slate-400">
+                      {member.focus}
                     </p>
                   </div>
                 </Reveal>
