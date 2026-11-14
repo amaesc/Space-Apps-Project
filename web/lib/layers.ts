@@ -1,7 +1,7 @@
 // Capas del mapa: definiciones, escalas de color y leyendas.
 import { RISK_SCALE, type Station, type WeatherCell } from "./fire-data";
 
-export type ConditionLayer = "temperature" | "humidity" | "pressure" | "noise" | "battery" | "connectivity";
+export type ConditionLayer = "temperature" | "humidity" | "pressure" | "noise" | "battery" | "connectivity" | "light";
 
 export interface FireLayers {
   nasa: boolean; // NASA FIRMS, activos (48 h)
@@ -34,6 +34,7 @@ const TEMP: Stop[] = [[0, "#2c7bb6"], [10, "#00a6ca"], [18, "#90eb9d"], [25, "#f
 const HUM: Stop[] = [[0, "#d7191c"], [20, "#f29e2e"], [40, "#f9d057"], [60, "#90eb9d"], [80, "#00a6ca"], [100, "#2c7bb6"]];
 const PRES: Stop[] = [[750, "#3f007d"], [800, "#6a51a3"], [850, "#9e9ac8"], [900, "#cbc9e2"], [1013, "#f2f0f7"]];
 const NOISE: Stop[] = [[30, "#1a9850"], [50, "#a6d96a"], [65, "#fee08b"], [80, "#f46d43"], [95, "#a50026"]];
+const LIGHT: Stop[] = [[0, "#1e1b4b"], [30, "#6d28d9"], [60, "#f59e0b"], [100, "#fef08a"]];
 const BATT: Stop[] = [[0, "#a50026"], [25, "#f46d43"], [50, "#fee08b"], [75, "#a6d96a"], [100, "#1a9850"]];
 
 /** Batería Li-ion: 3.3 V ≈ 0 %, 4.2 V ≈ 100 %. */
@@ -114,6 +115,13 @@ export const CONDITIONS: ConditionDef[] = [
       return { text: `${pct} % · ${s.batteryV.toFixed(2)} V`, color: ramp(BATT, pct) };
     },
     legend: { stops: grad(BATT), min: "0 %", max: "100 %" },
+  },
+  {
+    id: "light",
+    label: "Light level",
+    grid: false,
+    stationValue: (s) => (s.luminosityPct === null ? null : { text: `${Math.round(s.luminosityPct)} % light`, color: ramp(LIGHT, s.luminosityPct) }),
+    legend: { stops: grad(LIGHT), min: "dark", max: "full sun" },
   },
   {
     id: "connectivity",

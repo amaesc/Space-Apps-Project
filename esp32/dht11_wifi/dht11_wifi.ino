@@ -1,15 +1,20 @@
 #include <DHT.h>
 #include <HTTPClient.h>
 #include <WiFi.h>
+#include <WiFiClientSecure.h>
 
-// 1. Configura tu red WiFi (2.4 GHz para ESP32)
-const char *WIFI_SSID = "POCO M7 Pro 5G";
-const char *WIFI_PASSWORD = "Kentucky";
+// Credenciales y token en secrets.h (copia secrets.example.h). Git lo ignora.
+#include "secrets.h"
 
-// 2. Configura la IP local de tu PC donde corre FastAPI (ej. 192.168.1.50)
-//    No uses "localhost" o "127.0.0.1" porque en el ESP32 eso apunta al propio
-//    ESP32.
-const char *SERVER_URL = "http://10.236.41.243:8000/api/iot/telemetry";
+// 1. Red WiFi (2.4 GHz para ESP32): se define en secrets.h
+const char *WIFI_SSID = WIFI_SSID_VALUE;
+const char *WIFI_PASSWORD = WIFI_PASSWORD_VALUE;
+
+// 2. API de FuegoData en la Raspberry Pi (HTTPS público vía Tailscale Funnel).
+//    Para pruebas locales puedes poner http://<IP-de-tu-PC>:8000/api/iot/telemetry
+//    en secrets.h (nunca "localhost": en el ESP32 apunta al propio ESP32).
+const char *SERVER_URL = SERVER_URL_VALUE;
+const char *STATION_TOKEN = STATION_TOKEN_VALUE;
 const char *STATION_ID = "ESP32-DHT11-01";
 const char *STATION_NAME = "ESP32 DHT11 Prueba";
 
@@ -79,15 +84,29 @@ void loop() {
       return;
   }
 
-  HTTPClient http;
-  http.begin(SERVER_URL);
-  http.addHeader("Content-Type", "application/json");
+  // HTTPS: para el prototipo no se valida el certificado (setInsecure).
+  // En producción conviene fijar el certificado raíz de Let's Encrypt.
+  WiFiClientSecure secureClient;
+  secureClient.setInsecure();
+  WiFiClient plainClient;
 
-  char payload[256];
+  HTTPClient http;
+  if (strncmp(SERVER_URL, "https://", 8) == 0) {
+    http.begin(secureClient, SERVER_URL);
+  } else {
+    http.begin(plainClient, SERVER_URL);
+  }
+  http.addHeader("Content-Type", "application/json");
+  http.addHeader("X-Station-Token", STATION_TOKEN);
+
+  // rssi_dbm + link_type alimentan la capa de conectividad del mapa.
+  char payload[320];
   snprintf(payload, sizeof(payload),
            "{\"station_id\":\"%s\",\"name\":\"%s\",\"temperature_c\":%.2f,"
-           "\"humidity_pct\":%.2f,\"luminosity_pct\":%.2f}",
-           STATION_ID, STATION_NAME, tempC, humidity, luminosityPct);
+           "\"humidity_pct\":%.2f,\"luminosity_pct\":%.2f,"
+           "\"rssi_dbm\":%d,\"link_type\":\"wifi\"}",
+           STATION_ID, STATION_NAME, tempC, humidity, luminosityPct,
+           (int)WiFi.RSSI());
 
   int httpCode = http.POST((uint8_t *)payload, strlen(payload));
   if (httpCode > 0) {

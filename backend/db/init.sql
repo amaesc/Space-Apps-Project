@@ -73,6 +73,7 @@ ALTER TABLE iot_readings ADD COLUMN IF NOT EXISTS pressure_hpa DOUBLE PRECISION;
 ALTER TABLE iot_readings ADD COLUMN IF NOT EXISTS noise_db DOUBLE PRECISION;
 ALTER TABLE iot_readings ADD COLUMN IF NOT EXISTS rssi_dbm INTEGER;
 ALTER TABLE iot_readings ADD COLUMN IF NOT EXISTS link_type VARCHAR(16);
+ALTER TABLE iot_readings ADD COLUMN IF NOT EXISTS luminosity_pct DOUBLE PRECISION;
 
 -- Valores de demostración para las estaciones de ejemplo que aún no los tienen.
 UPDATE iot_readings SET pressure_hpa = 781.4, noise_db = 38, rssi_dbm = -67, link_type = 'wifi'

@@ -72,6 +72,7 @@ function toStation(s: any): Station {
     noiseDb: s.noise_db ?? null,
     rssiDbm: s.rssi_dbm ?? null,
     linkType: s.link_type ?? null,
+    luminosityPct: s.luminosity_pct ?? null,
   };
 }
 

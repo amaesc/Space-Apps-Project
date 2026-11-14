@@ -97,7 +97,7 @@ def _load_stations() -> dict[str, dict[str, Any]]:
                     SELECT DISTINCT ON (station_id)
                         station_id, name, lat, lon, temperature_c, humidity_pct,
                         wind_kmh, rain_mm, lightning_strikes, battery_v,
-                        pressure_hpa, noise_db, rssi_dbm, link_type,
+                        pressure_hpa, noise_db, rssi_dbm, link_type, luminosity_pct,
                         hdw_score, risk_level, risk_label, source,
                         recorded_at AS timestamp
                     FROM iot_readings
@@ -135,14 +135,14 @@ def _save_reading(record: dict[str, Any]) -> None:
                     INSERT INTO iot_readings (
                         station_id, name, lat, lon, temperature_c, humidity_pct,
                         wind_kmh, rain_mm, lightning_strikes, battery_v,
-                        pressure_hpa, noise_db, rssi_dbm, link_type,
+                        pressure_hpa, noise_db, rssi_dbm, link_type, luminosity_pct,
                         hdw_score, risk_level, risk_label, source
                     ) VALUES (
                         %(station_id)s, %(name)s, %(lat)s, %(lon)s, %(temperature_c)s,
                         %(humidity_pct)s, %(wind_kmh)s, %(rain_mm)s,
                         %(lightning_strikes)s, %(battery_v)s,
                         %(pressure_hpa)s, %(noise_db)s, %(rssi_dbm)s, %(link_type)s,
-                        %(hdw_score)s, %(risk_level)s, %(risk_label)s, %(source)s
+                        %(luminosity_pct)s, %(hdw_score)s, %(risk_level)s, %(risk_label)s, %(source)s
                     )
                     """,
                     record,
