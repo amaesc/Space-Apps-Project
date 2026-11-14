@@ -3,11 +3,28 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useState } from "react";
+import {
+  type FormEvent,
+  useEffect,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import FluidNav from "../../components/FluidNav";
-import { saveStoredUser } from "../../lib/auth";
+import {
+  getStoredUser,
+  saveStoredUser,
+  subscribeAuthChange,
+} from "../../lib/auth";
 
 type AuthMode = "login" | "register";
+
+const emptySubscribe = () => () => {};
+function getOAuthErrorSnapshot(): string | null {
+  return new URLSearchParams(window.location.search).get("error");
+}
+function getOAuthErrorServerSnapshot(): string | null {
+  return null;
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -20,6 +37,38 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const resetIfSignedOut = () => {
+      if (!getStoredUser()) {
+        setSubmitting(false);
+        setError(null);
+      }
+    };
+
+    const unsubscribe = subscribeAuthChange(resetIfSignedOut);
+    window.addEventListener("pageshow", resetIfSignedOut);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener("pageshow", resetIfSignedOut);
+    };
+  }, []);
+
+  const oauthErrorCode = useSyncExternalStore(
+    emptySubscribe,
+    getOAuthErrorSnapshot,
+    getOAuthErrorServerSnapshot
+  );
+
+  const oauthErrorMessage =
+    oauthErrorCode === "missing_google_env"
+      ? "Faltan GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET en web/.env.local para habilitar Google OAuth."
+      : oauthErrorCode === "oauth_failed"
+        ? "No se pudo completar el inicio de sesión con Google."
+        : null;
+
+  const displayError = error ?? oauthErrorMessage;
 
   const switchMode = (nextMode: AuthMode) => {
     setMode(nextMode);
@@ -60,27 +109,20 @@ export default function LoginPage() {
         : trimmedEmail.split("@")[0] || "Operador";
 
     // TODO: Conectar con endpoint real de autenticación (/api/auth/login o /api/auth/register)
-    saveStoredUser({
-      name: displayName,
-      email: trimmedEmail,
-      organization: organization.trim() || undefined,
-    });
+    try {
+      saveStoredUser({
+        name: displayName,
+        email: trimmedEmail,
+        organization: organization.trim() || undefined,
+      });
+      router.push("/dashboard");
+    } catch {
+      setSubmitting(false);
+      setError("No se pudo guardar la sesión. Inténtalo de nuevo.");
+      return;
+    }
 
-    router.push("/dashboard");
-  };
-
-  const handleGoogleAuth = () => {
-    setError(null);
-    setSubmitting(true);
-
-    // TODO: Redirigir al flujo real de Google OAuth (e.g. /api/auth/google)
-    saveStoredUser({
-      name: "Cuenta Google",
-      email: "operador@gmail.com",
-      organization: "Google OAuth",
-    });
-
-    router.push("/dashboard");
+    window.setTimeout(() => setSubmitting(false), 1500);
   };
 
   return (
@@ -213,12 +255,12 @@ export default function LoginPage() {
                   </p>
                 </div>
 
-                {error && (
+                {displayError && (
                   <div
                     role="alert"
                     className="mt-5 rounded-xl border border-red-400/35 bg-red-500/10 px-4 py-3 text-xs text-red-200"
                   >
-                    {error}
+                    {displayError}
                   </div>
                 )}
 
@@ -369,11 +411,9 @@ export default function LoginPage() {
                   <div className="h-px flex-1 bg-white/8" />
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handleGoogleAuth}
-                  disabled={submitting}
-                  className="inline-flex w-full cursor-pointer items-center justify-center gap-3 rounded-xl border border-white/15 bg-white/4 px-5 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:border-white/30 hover:bg-white/8 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                <a
+                  href="/api/auth/google"
+                  className="inline-flex w-full cursor-pointer items-center justify-center gap-3 rounded-xl border border-white/15 bg-white/4 px-5 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:border-white/30 hover:bg-white/8 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                 >
                   <svg
                     aria-hidden="true"
@@ -403,7 +443,7 @@ export default function LoginPage() {
                       ? "Continuar con Google"
                       : "Registrarse con Google"}
                   </span>
-                </button>
+                </a>
 
                 <div className="mt-6 flex flex-wrap items-center justify-end gap-2 border-t border-white/[0.07] pt-4 text-xs text-slate-400">
                   <Link

@@ -6,8 +6,9 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   type AuthUser,
-  clearStoredUser,
+  fetchServerSession,
   getStoredUser,
+  logoutAll,
   subscribeAuthChange,
 } from "../../lib/auth";
 import {
@@ -48,9 +49,24 @@ export default function DashboardPage() {
   const [hoveredDayIdx, setHoveredDayIdx] = useState<number | null>(null);
 
   useEffect(() => {
-    const syncUser = () => setUser(getStoredUser());
-    syncUser();
-    return subscribeAuthChange(syncUser);
+    let active = true;
+    const syncUser = async () => {
+      const localUser = getStoredUser();
+      if (localUser) {
+        if (active) setUser(localUser);
+        return;
+      }
+      const serverUser = await fetchServerSession();
+      if (active) setUser(serverUser);
+    };
+    void syncUser();
+    const unsubscribe = subscribeAuthChange(() => {
+      void syncUser();
+    });
+    return () => {
+      active = false;
+      unsubscribe();
+    };
   }, []);
 
   const filteredEvents = useMemo(() => {
@@ -185,7 +201,9 @@ export default function DashboardPage() {
                 </span>
                 <button
                   type="button"
-                  onClick={() => clearStoredUser()}
+                  onClick={() => {
+                    void logoutAll().then(() => setUser(null));
+                  }}
                   className="cursor-pointer rounded-lg border border-white/10 bg-white/4 px-2.5 py-1.5 text-xs text-slate-300 transition-colors hover:bg-white/8 hover:text-white"
                 >
                   Salir
