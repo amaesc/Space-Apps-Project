@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import json
+import os
+import secrets
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel, Field
 
 from app.db import get_conn, is_db_configured
@@ -133,9 +135,19 @@ def _save_reading(record: dict[str, Any]) -> None:
     DATA_FILE.write_text(json.dumps(stations, indent=2, ensure_ascii=False))
 
 
+# Si STATION_TOKEN está definido, la estaca debe enviarlo en el header X-Station-Token.
+# Evita que cualquiera en internet registre lecturas falsas cuando la API es pública.
+STATION_TOKEN = os.getenv("STATION_TOKEN", "")
+
+
 @router.post("/telemetry")
-async def ingest_telemetry(payload: TelemetryIn):
+async def ingest_telemetry(
+    payload: TelemetryIn,
+    x_station_token: str | None = Header(default=None),
+):
     """Recibe una lectura de campo desde una estación ESP32 (WiFi / LoRa)."""
+    if STATION_TOKEN and not secrets.compare_digest(x_station_token or "", STATION_TOKEN):
+        raise HTTPException(status_code=401, detail="Invalid station token")
     level, label, hdw_score = compute_fire_risk_level(
         payload.temperature_c,
         payload.humidity_pct,

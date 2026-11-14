@@ -1,0 +1,14 @@
+[Unit]
+Description=FuegoData API (FastAPI: datos, estacas IoT y modo ligero)
+After=network-online.target postgresql.service
+
+[Service]
+WorkingDirectory=/home/undefined_club/fuegodata/backend
+EnvironmentFile=/home/undefined_club/fuegodata/backend/.env
+# Solo escucha en local: el público entra por Tailscale Funnel (HTTPS).
+ExecStart=/home/undefined_club/fuegodata/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --proxy-headers --forwarded-allow-ips 127.0.0.1
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target

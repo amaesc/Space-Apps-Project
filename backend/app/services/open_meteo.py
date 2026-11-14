@@ -47,8 +47,26 @@ def compute_fire_risk_level(
     return level, RISK_LABELS[level], hdw_score
 
 
+# Caché de 10 min por punto: el clima no cambia tan rápido y así las páginas
+# no esperan a un servicio externo en cada visita.
+_CACHE: dict[tuple[float, float], tuple[float, dict[str, Any]]] = {}
+_CACHE_TTL_S = 600.0
+
+
 async def fetch_open_meteo_risk(lat: float, lon: float) -> dict[str, Any]:
     """Consulta clima actual en Open-Meteo (sin API key) con fallback seguro."""
+    key = (round(lat, 2), round(lon, 2))
+    now_ts = datetime.now(timezone.utc).timestamp()
+    cached = _CACHE.get(key)
+    if cached and now_ts - cached[0] < _CACHE_TTL_S:
+        return cached[1]
+    result = await _fetch_open_meteo_risk(lat, lon)
+    if result["source"] == "open-meteo-live":
+        _CACHE[key] = (now_ts, result)
+    return result
+
+
+async def _fetch_open_meteo_risk(lat: float, lon: float) -> dict[str, Any]:
     url = "https://api.open-meteo.com/v1/forecast"
     params = {
         "latitude": lat,
