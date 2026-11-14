@@ -45,9 +45,10 @@ export interface NasaFire {
   lat: number;
   lon: number;
   frpMw: number;
-  confidence: string;
+  confidence: string; // low | nominal | high
   date: string;
   time: string;
+  satellite: string;
 }
 
 /** Celda de la cuadrícula de clima del estado (Open-Meteo + riesgo HDW). */
@@ -58,13 +59,23 @@ export interface WeatherCell {
   humidityPct: number;
   pressureHpa: number;
   riskLevel: number;
+  ndvi: number | null;
+  lstC: number | null;
+  fireProbLevel: number;
+  fireProbFactors: string[];
 }
 
 export interface BurnCalendar {
   monthLabels: string[];
   monthlyMedians: number[];
   current: { year: number; month: string; value: number; median: number; anomalyPct: number };
-  rows: { year: number; months: number[]; source: string }[];
+  rows: { year: number; months: (number | null)[]; source: string }[];
+  kmFactors: number[];
+  kmCi95: ([number, number] | null)[] | null;
+  /** "nasa" = conteos reales de FIRMS; "illustrative" = serie de demostración. */
+  dataSource: "nasa" | "illustrative";
+  /** Avance de la construcción del calendario real (0-1), si está en curso. */
+  realCoverage: number | null;
 }
 
 export const ORIGIN_COLORS: Record<FireOrigin, { hex: string }> = {

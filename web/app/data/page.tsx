@@ -23,39 +23,39 @@ const FIELDS = [
 
 const SOURCES = [
   {
-    name: "NASA FIRMS — MODIS C6.1 & VIIRS 375 m",
-    use: "Active-fire detections, 2000–present",
-    href: "https://firms.modaps.eosdis.nasa.gov/",
+    name: "NASA FIRMS — VIIRS 375 m (NOAA-20, NOAA-21)",
+    use: "Active fires (last 48 h) and archive 2020–",
+    href: "https://www.earthdata.nasa.gov/data/tools/firms",
   },
   {
-    name: "NASA GIBS — VIIRS NOAA-20 thermal anomalies",
-    use: "Active and historical fire layers on the map",
+    name: "NASA FIRMS — MODIS 1 km (Terra, Aqua)",
+    use: "Fire archive 2002– and kₘ harmonization",
+    href: "https://www.earthdata.nasa.gov/data/tools/firms/active-fire-data-attributes-modis-viirs",
+  },
+  {
+    name: "NASA GIBS",
+    use: "Tiles of FIRMS detections, GOES, true color, smoke, NDVI, land surface temperature",
     href: "https://www.earthdata.nasa.gov/engage/open-data-services-software/earthdata-developer-portal/gibs-api",
   },
   {
-    name: "GOES-R Geostationary Lightning Mapper (GLM)",
-    use: "Lightning near each detection",
-    href: "https://www.goes-r.gov/spacesegment/glm.html",
+    name: "GOES-East ABI (fire temperature, GeoColor)",
+    use: "Near-live imagery every 10 minutes",
+    href: "https://www.goes-r.gov/",
+  },
+  {
+    name: "VIIRS NDVI and MODIS land surface temperature",
+    use: "Fuel and surface dryness in the fire probability model",
+    href: "https://www.earthdata.nasa.gov/data/tools/worldview",
   },
   {
     name: "Open-Meteo",
-    use: "Weather fallback outside IoT coverage",
+    use: "Current weather grid (0.5°) and station backup",
     href: "https://open-meteo.com/",
   },
   {
-    name: "Canadian Fire Weather Index (FWI)",
-    use: "Fire danger calibration",
-    href: "https://cwfis.cfs.nrcan.gc.ca/background/summary/fwi",
-  },
-  {
-    name: "CONAFOR",
-    use: "Historical fire records with known cause",
+    name: "CONAFOR · CONANP",
+    use: "Fire records with known cause · protected areas",
     href: "https://www.gob.mx/conafor",
-  },
-  {
-    name: "CONANP",
-    use: "Protected-area polygons",
-    href: "https://www.gob.mx/conanp",
   },
 ];
 
@@ -114,11 +114,18 @@ export default function DataPage() {
           <h2 className="border-b border-white/15 pb-1 text-xl font-bold text-white">Method</h2>
           <ol className="mt-3 list-decimal space-y-3 pl-5">
             <li>
-              <strong className="text-white">Sensor harmonization.</strong> MODIS (1 km, 2000–) and
-              VIIRS (375 m, 2012–) counts are not directly comparable. A monthly factor{" "}
-              <span className="font-mono">kₘ</span> is fitted on the 2012–2026 overlap to scale
-              MODIS to VIIRS-equivalent counts. Uncertainty: 95% bootstrap confidence intervals.
-              Validation: leave-one-year-out.
+              <strong className="text-white">Burn calendar and sensor harmonization.</strong> Our server reads every
+              daily NASA FIRMS detection inside Chihuahua: MODIS (1 km) since 2002 and VIIRS NOAA-20 (375 m) since
+              2020. On the overlap, a monthly factor <span className="font-mono">kₘ</span> = VIIRS ÷ MODIS is fitted
+              (ratio of sums) with a 95% bootstrap confidence interval over years, and MODIS months before 2020 are
+              scaled by <span className="font-mono">kₘ</span>. MODIS detections flagged as volcano or static
+              industrial sources are excluded.
+            </li>
+            <li>
+              <strong className="text-white">Fire probability.</strong> Prototype index per 0.5° cell: Hot-Dry-Windy
+              weather score × a fuel factor from NASA NDVI (bare ground burns little; dry grass and shrubs burn most;
+              very green vegetation holds moisture) + a bonus for hot land surface temperature (NASA). Shown in 5
+              levels.
             </li>
             <li>
               <strong className="text-white">Probable origin.</strong> Each detection is classified
@@ -144,6 +151,11 @@ export default function DataPage() {
               exact place or time a fire will start.
             </li>
             <li>Cloud cover and satellite overpass times can delay or miss detections.</li>
+            <li>
+              Global NASA FIRMS data arrive within about 3 hours of the satellite pass; real-time FIRMS is only
+              available for the US and Canada.
+            </li>
+            <li>A detection is the center of a 375 m (VIIRS) or 1 km (MODIS) pixel, not the exact fire location.</li>
           </ul>
         </section>
 
@@ -171,6 +183,11 @@ export default function DataPage() {
           <p className="mt-3 rounded-lg border border-white/15 bg-white/5 px-4 py-3 font-mono text-sm">
             Team UNDEFINED (2026). FuegoData: harmonized MODIS–VIIRS burn calendar and probable
             fire origin for the Sierra de Chihuahua. NASA Space Apps Challenge 2026.
+          </p>
+          <p className="mt-3 text-sm text-white/75">
+            NASA acknowledgement: We acknowledge the use of data and/or imagery from NASA&apos;s Fire Information for
+            Resource Management System (FIRMS), part of NASA&apos;s Earth Science Data and Information System (ESDIS),
+            and imagery from NASA&apos;s Global Imagery Browse Services (GIBS).
           </p>
         </section>
       </main>

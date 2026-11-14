@@ -12,7 +12,7 @@ import {
   type Station,
   type WeatherCell,
 } from "../lib/fire-data";
-import { type ConditionDef, probabilityColor } from "../lib/layers";
+import { type ConditionDef, gibsTileUrl, probabilityColor, type SatelliteLayer } from "../lib/layers";
 
 export type Basemap = "satellite" | "dark";
 
@@ -36,6 +36,7 @@ interface Props {
   nasaFires: NasaFire[] | null;
   historyFires: NasaFire[] | null;
   showCause: boolean;
+  satellite: SatelliteLayer | null;
 }
 
 const CENTER: [number, number] = [28.4, -106.2];
@@ -61,12 +62,12 @@ const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
 
 export default function ChihuahuaOsmMap(props: Props) {
   const { events, stations, showStations, basemap, selectedId, onSelect, onReady } = props;
-  const { condition, grid, showProbability, nasaFires, historyFires, showCause } = props;
+  const { condition, grid, showProbability, nasaFires, historyFires, showCause, satellite } = props;
 
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const rendererRef = useRef<L.Canvas | null>(null);
-  const layers = useRef<Record<"base" | "grid" | "history" | "nasa" | "stations" | "hotspots", L.LayerGroup> | null>(null);
+  const layers = useRef<Record<"base" | "sat" | "grid" | "history" | "nasa" | "stations" | "hotspots", L.LayerGroup> | null>(null);
   const meRef = useRef<L.CircleMarker | null>(null);
 
   useEffect(() => {
@@ -74,9 +75,11 @@ export default function ChihuahuaOsmMap(props: Props) {
     const map = L.map(containerRef.current, { center: CENTER, zoom: ZOOM, zoomControl: false });
     L.control.zoom({ position: "topleft" }).addTo(map);
     L.control.scale({ position: "bottomleft", imperial: false }).addTo(map);
+    map.attributionControl.addAttribution('Fire data: <a href="https://firms.modaps.eosdis.nasa.gov/" target="_blank" rel="noopener">NASA FIRMS</a> · imagery: NASA GIBS');
     rendererRef.current = L.canvas({ padding: 0.3 });
     layers.current = {
       base: L.layerGroup().addTo(map),
+      sat: L.layerGroup().addTo(map),
       grid: L.layerGroup().addTo(map),
       history: L.layerGroup().addTo(map),
       nasa: L.layerGroup().addTo(map),
@@ -110,6 +113,16 @@ export default function ChihuahuaOsmMap(props: Props) {
     L.tileLayer(cfg.labels, { maxZoom: 17 }).addTo(g);
   }, [basemap]);
 
+  // Imagen satelital de NASA GIBS (opcional)
+  useEffect(() => {
+    const g = layers.current?.sat;
+    if (!g) return;
+    g.clearLayers();
+    if (!satellite) return;
+    const cfg = gibsTileUrl(satellite);
+    L.tileLayer(cfg.url, { maxNativeZoom: cfg.maxNativeZoom, maxZoom: 17, opacity: cfg.opacity }).addTo(g);
+  }, [satellite]);
+
   // Cuadrícula: probabilidad de incendio (prioridad) o condición del estado
   useEffect(() => {
     const g = layers.current?.grid;
@@ -119,7 +132,7 @@ export default function ChihuahuaOsmMap(props: Props) {
     const half = grid.stepDeg / 2;
     const colorOf = showProbability ? probabilityColor : condition?.grid ? condition.cellColor! : null;
     const textOf = showProbability
-      ? (c: WeatherCell) => `Fire probability: level ${c.riskLevel}/5`
+      ? (c: WeatherCell) => `Fire probability: level ${c.fireProbLevel}/5 · ${c.fireProbFactors.join(" · ")}`
       : condition?.cellText;
     if (!colorOf || !textOf) return;
     for (const c of grid.cells) {
@@ -143,12 +156,12 @@ export default function ChihuahuaOsmMap(props: Props) {
     for (const f of historyFires ?? []) {
       L.circleMarker([f.lat, f.lon], {
         renderer: rendererRef.current!,
-        radius: 2.5,
+        radius: f.confidence === "low" ? 2 : 2.5,
         stroke: false,
         fillColor: "#ff9f1c",
-        fillOpacity: 0.65,
+        fillOpacity: f.confidence === "low" ? 0.3 : 0.65,
       })
-        .bindTooltip(`Historical detection · ${f.date} · FRP ${f.frpMw} MW`)
+        .bindTooltip(`Historical detection · ${f.date} · FRP ${f.frpMw} MW · ${f.confidence} confidence`)
         .addTo(g);
     }
   }, [historyFires]);
@@ -159,15 +172,17 @@ export default function ChihuahuaOsmMap(props: Props) {
     if (!g) return;
     g.clearLayers();
     for (const f of nasaFires ?? []) {
+      const low = f.confidence === "low";
       L.circleMarker([f.lat, f.lon], {
         renderer: rendererRef.current!,
-        radius: 5.5,
+        radius: low ? 4 : f.confidence === "high" ? 7 : 5.5,
         color: "#ffe066",
         weight: 1.5,
+        opacity: low ? 0.5 : 1,
         fillColor: "#ff2a00",
-        fillOpacity: 1,
+        fillOpacity: low ? 0.4 : 1,
       })
-        .bindTooltip(`NASA FIRMS (VIIRS) · ${f.date} ${f.time} UTC · FRP ${f.frpMw} MW · confidence ${f.confidence}`)
+        .bindTooltip(`NASA FIRMS · ${f.satellite} · ${f.date} ${f.time} UTC · FRP ${f.frpMw} MW · ${f.confidence} confidence`)
         .addTo(g);
     }
   }, [nasaFires]);

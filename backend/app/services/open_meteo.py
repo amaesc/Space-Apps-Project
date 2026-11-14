@@ -109,6 +109,37 @@ async def _fetch_open_meteo_risk(lat: float, lon: float) -> dict[str, Any]:
     }
 
 
+def fire_probability(hdw_score: float, ndvi: float | None, lst_c: float | None) -> tuple[int, float, list[str]]:
+    """Probabilidad de incendio (prototipo): clima HDW × combustible (NDVI) + superficie caliente (LST).
+
+    - Combustible (NDVI de NASA): suelo desnudo (<0.08) casi no arde; pasto/matorral
+      (0.2–0.45) es combustible fino que se seca rápido; vegetación muy verde (>0.6)
+      retiene humedad.
+    - Temperatura de superficie (LST de NASA): suelo muy caliente seca el combustible.
+    """
+    factors = [f"weather HDW {hdw_score:.0f}"]
+    fuel = 1.0
+    if ndvi is not None:
+        if ndvi < 0.08:
+            fuel = 0.4
+        elif ndvi < 0.2:
+            fuel = 0.85
+        elif ndvi < 0.45:
+            fuel = 1.15
+        elif ndvi < 0.6:
+            fuel = 1.0
+        else:
+            fuel = 0.8
+        factors.append(f"vegetation NDVI {ndvi:.2f} (fuel ×{fuel})")
+    bonus = 0.0
+    if lst_c is not None:
+        bonus = 10.0 if lst_c >= 45 else 6.0 if lst_c >= 38 else 3.0 if lst_c >= 32 else 0.0
+        factors.append(f"surface {lst_c:.0f} °C (+{bonus:.0f})")
+    score = round(hdw_score * fuel + bonus, 1)
+    level = 1 if score < 25 else 2 if score < 42 else 3 if score < 60 else 4 if score < 78 else 5
+    return level, score, factors
+
+
 # --- Cuadrícula de clima del estado (capas de temperatura, humedad, presión y
 # probabilidad de incendio) ----------------------------------------------------
 
@@ -168,13 +199,23 @@ async def fetch_weather_grid() -> dict[str, Any]:
             for lat, lon in pts
         ]
 
+    # Datos de NASA GIBS para el modelo (si fallan, el modelo usa solo el clima).
+    try:
+        from app.services.gibs_raster import ndvi_and_lst
+
+        sat = await ndvi_and_lst(pts)
+    except Exception:  # noqa: BLE001
+        sat = {"ndvi": [None] * len(pts), "lst_c": [None] * len(pts)}
+
     cells = []
-    for (lat, lon), cur in zip(pts, currents):
+    for i, ((lat, lon), cur) in enumerate(zip(pts, currents)):
         temp = float(cur.get("temperature_2m", 24.0))
         rh = float(cur.get("relative_humidity_2m", 30.0))
         wind = float(cur.get("wind_speed_10m", 15.0))
         rain = float(cur.get("precipitation", 0.0))
         level, label, hdw = compute_fire_risk_level(temp, rh, wind, rain)
+        ndvi, lst_c = sat["ndvi"][i], sat["lst_c"][i]
+        p_level, p_score, p_factors = fire_probability(hdw, ndvi, lst_c)
         cells.append(
             {
                 "lat": lat,
@@ -186,6 +227,11 @@ async def fetch_weather_grid() -> dict[str, Any]:
                 "hdw_score": hdw,
                 "risk_level": level,
                 "risk_label": label,
+                "ndvi": ndvi,
+                "lst_c": lst_c,
+                "fire_prob_level": p_level,
+                "fire_prob_score": p_score,
+                "fire_prob_factors": p_factors,
             }
         )
 

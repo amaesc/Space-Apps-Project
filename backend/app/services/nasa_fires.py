@@ -1,10 +1,17 @@
-"""Detecciones de incendios activos de NASA FIRMS vía NASA GIBS (sin clave de API).
+"""Detecciones de incendios de NASA FIRMS vía NASA GIBS (sin clave de API).
 
-GIBS publica las anomalías térmicas de VIIRS (NOAA-20, 375 m) como vector tiles
-diarias. En EPSG:4326, nivel 4, cada tile cubre 18°: Chihuahua cabe en 2 tiles
-(fila 3, columnas 3 y 4). Se descargan, se decodifican y se filtran al contorno
-del estado. Días pasados se guardan en disco (no cambian); el día actual se
-refresca cada 30 min.
+GIBS publica las anomalías térmicas de FIRMS como vector tiles diarias.
+En EPSG:4326, nivel 4, cada tile cubre 18°: Chihuahua cabe en 2 tiles
+(fila 3, columnas 3 y 4). Se descargan, se decodifican y se filtran al
+contorno del estado.
+
+Fuentes:
+- VIIRS NOAA-20 (375 m) desde 2020-01-01
+- VIIRS NOAA-21 (375 m) desde 2024-01-17
+- MODIS Terra+Aqua (1 km) desde 2002-07-04 (archivo "Standard" en los años
+  antiguos; se descartan volcanes y fuentes fijas con TYPE != 0)
+
+Días pasados se guardan en disco (no cambian); hoy y ayer se refrescan cada 30 min.
 """
 
 from __future__ import annotations
@@ -13,6 +20,7 @@ import asyncio
 import gzip
 import json
 import time
+from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
@@ -22,17 +30,25 @@ import mapbox_vector_tile
 
 from app.services.chihuahua_outline import CHIHUAHUA_OUTLINE
 
-LAYER = "VIIRS_NOAA20_Thermal_Anomalies_375m_All"
-FIRST_DAY = date(2020, 1, 1)  # inicio del archivo de NOAA-20 en GIBS
-TILE_URL = (
-    "https://gibs.earthdata.nasa.gov/wmts/epsg4326/best/"
-    f"{LAYER}/default/{{day}}/500m/4/3/{{col}}.mvt"
-)
-TILE_COLS = (3, 4)
 
+@dataclass(frozen=True)
+class FireSource:
+    key: str
+    layer: str
+    matrix_set: str
+    first_day: date
+    label: str
+
+
+VIIRS_N20 = FireSource("viirs_n20", "VIIRS_NOAA20_Thermal_Anomalies_375m_All", "500m", date(2020, 1, 1), "VIIRS NOAA-20")
+VIIRS_N21 = FireSource("viirs_n21", "VIIRS_NOAA21_Thermal_Anomalies_375m_All", "500m", date(2024, 1, 17), "VIIRS NOAA-21")
+MODIS = FireSource("modis", "MODIS_Combined_Thermal_Anomalies_All", "1km", date(2002, 7, 4), "MODIS Terra/Aqua")
+SOURCES = {s.key: s for s in (VIIRS_N20, VIIRS_N21, MODIS)}
+
+TILE_COLS = (3, 4)
 CACHE_DIR = Path(__file__).resolve().parents[2] / "data" / "nasa_fires"
-_TODAY_CACHE: dict[str, tuple[float, list[dict[str, Any]]]] = {}
-_TODAY_TTL_S = 30 * 60
+_RECENT_CACHE: dict[str, tuple[float, list[dict[str, Any]]]] = {}
+_RECENT_TTL_S = 30 * 60
 
 _LONS = [p[0] for p in CHIHUAHUA_OUTLINE]
 _LATS = [p[1] for p in CHIHUAHUA_OUTLINE]
@@ -55,7 +71,16 @@ def inside_chihuahua(lon: float, lat: float) -> bool:
     return inside
 
 
-def _decode(raw: bytes) -> list[dict[str, Any]]:
+def _confidence(raw: Any) -> str:
+    """VIIRS ya trae low/nominal/high; MODIS trae 0-100 (clases FIRMS: <30, 30-79, ≥80)."""
+    if isinstance(raw, str):
+        return {"l": "low", "n": "nominal", "h": "high"}.get(raw[:1].lower(), raw)
+    if isinstance(raw, (int, float)):
+        return "low" if raw < 30 else "nominal" if raw < 80 else "high"
+    return "nominal"
+
+
+def _decode(raw: bytes, source: FireSource) -> list[dict[str, Any]]:
     if raw[:2] == b"\x1f\x8b":
         raw = gzip.decompress(raw)
     out = []
@@ -65,64 +90,87 @@ def _decode(raw: bytes) -> list[dict[str, Any]]:
             lat, lon = p.get("LATITUDE"), p.get("LONGITUDE")
             if lat is None or lon is None or not inside_chihuahua(lon, lat):
                 continue
+            if p.get("TYPE", 0) not in (0, None):  # MODIS: volcán / fuente fija / costa afuera
+                continue
+            sat = p.get("SATELLITE")
             out.append(
                 {
                     "lat": round(lat, 4),
                     "lon": round(lon, 4),
                     "frp_mw": p.get("FRP"),
-                    "confidence": p.get("CONFIDENCE"),
+                    "confidence": _confidence(p.get("CONFIDENCE")),
                     "date": p.get("ACQ_DATE"),
                     "time": p.get("ACQ_TIME"),
                     "daynight": p.get("DAYNIGHT"),
-                    "satellite": "NOAA-20 VIIRS",
+                    "satellite": f"MODIS {sat}" if source is MODIS else source.label,
                 }
             )
     return out
 
 
-async def _fetch_day(client: httpx.AsyncClient, day: date) -> list[dict[str, Any]]:
+async def _fetch_day(client: httpx.AsyncClient, source: FireSource, day: date) -> list[dict[str, Any]]:
     points: list[dict[str, Any]] = []
     for col in TILE_COLS:
-        res = await client.get(TILE_URL.format(day=day.isoformat(), col=col))
+        url = (
+            f"https://gibs.earthdata.nasa.gov/wmts/epsg4326/best/{source.layer}/default/"
+            f"{day.isoformat()}/{source.matrix_set}/4/3/{col}.mvt"
+        )
+        res = await client.get(url)
         if res.status_code == 404:  # sin datos ese día / tile
             continue
         res.raise_for_status()
-        points.extend(_decode(res.content))
+        points.extend(_decode(res.content, source))
     return points
 
 
-async def detections_for_day(client: httpx.AsyncClient, day: date) -> list[dict[str, Any]]:
-    """Detecciones de un día dentro de Chihuahua (con caché)."""
-    key = day.isoformat()
-    today = date.today()
-    if day >= today - timedelta(days=1):
-        cached = _TODAY_CACHE.get(key)
-        if cached and time.time() - cached[0] < _TODAY_TTL_S:
+async def detections_for_day(client: httpx.AsyncClient, source: FireSource, day: date) -> list[dict[str, Any]]:
+    """Detecciones de un día y una fuente dentro de Chihuahua (con caché)."""
+    if day < source.first_day or day > date.today():
+        return []
+    key = f"{source.key}/{day.isoformat()}"
+    if day >= date.today() - timedelta(days=1):
+        cached = _RECENT_CACHE.get(key)
+        if cached and time.time() - cached[0] < _RECENT_TTL_S:
             return cached[1]
-        pts = await _fetch_day(client, day)
-        _TODAY_CACHE[key] = (time.time(), pts)
+        pts = await _fetch_day(client, source, day)
+        _RECENT_CACHE[key] = (time.time(), pts)
         return pts
 
-    path = CACHE_DIR / f"{key}.json"
+    path = CACHE_DIR / source.key / f"{day.isoformat()}.json"
     if path.exists():
         return json.loads(path.read_text())
-    pts = await _fetch_day(client, day)
-    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    pts = await _fetch_day(client, source, day)
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(pts))
     return pts
 
 
-async def detections_for_range(start: date, end: date, concurrency: int = 4) -> list[dict[str, Any]]:
+def is_cached(source: FireSource, day: date) -> bool:
+    return (CACHE_DIR / source.key / f"{day.isoformat()}.json").exists()
+
+
+async def detections_for_range(
+    start: date, end: date, sources: tuple[FireSource, ...], concurrency: int = 4
+) -> list[dict[str, Any]]:
     days = [start + timedelta(days=i) for i in range((end - start).days + 1)]
     sem = asyncio.Semaphore(concurrency)
     async with httpx.AsyncClient(timeout=30.0) as client:
 
-        async def one(d: date) -> list[dict[str, Any]]:
+        async def one(src: FireSource, d: date) -> list[dict[str, Any]]:
             async with sem:
                 try:
-                    return await detections_for_day(client, d)
+                    return await detections_for_day(client, src, d)
                 except httpx.HTTPError:
                     return []
 
-        chunks = await asyncio.gather(*(one(d) for d in days))
+        chunks = await asyncio.gather(*(one(s, d) for s in sources for d in days))
     return [p for chunk in chunks for p in chunk]
+
+
+def history_sources(month_start: date) -> tuple[FireSource, ...]:
+    """Fuente(s) del histórico para un mes: VIIRS desde 2020, MODIS antes."""
+    if month_start >= VIIRS_N21.first_day.replace(day=1):
+        return (VIIRS_N20, VIIRS_N21)
+    if month_start >= VIIRS_N20.first_day:
+        return (VIIRS_N20,)
+    return (MODIS,)

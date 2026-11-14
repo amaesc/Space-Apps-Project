@@ -40,6 +40,8 @@ import {
   type FireLayers,
   historyMonths,
   monthLabel,
+  SATELLITE_LAYERS,
+  type SatelliteLayer,
 } from "../lib/layers";
 
 type Range = "24h" | "7d" | "all";
@@ -84,6 +86,7 @@ export default function FireMapPage() {
   const [basemap, setBasemap] = useState<Basemap>("satellite");
   const [showStations, setShowStations] = useState(true);
   const [conditionId, setConditionId] = useState<ConditionLayer | null>(null);
+  const [satellite, setSatellite] = useState<SatelliteLayer | null>(null);
   const [fire, setFire] = useState<FireLayers>({ nasa: true, history: false, probability: false, cause: true });
   const months = historyMonths();
   const [historyMonth, setHistoryMonth] = useState(months.find((m) => m.endsWith("-05")) ?? months[0]);
@@ -142,9 +145,10 @@ export default function FireMapPage() {
           nasaFires={fire.nasa ? nasa.data?.fires ?? null : null}
           historyFires={fire.history ? history.data : null}
           showCause={fire.cause}
+          satellite={satellite}
         />
 
-        <MapLegend condition={condition} fire={fire} historyMonth={historyMonth} />
+        <MapLegend condition={condition} fire={fire} historyMonth={historyMonth} satellite={satellite} />
 
         {/* Avisos de conexión */}
         {(slow || data.status === "offline") && (
@@ -209,8 +213,8 @@ export default function FireMapPage() {
               <div className="space-y-3 px-3 py-2.5">
                 <fieldset>
                   <legend className="mb-1 text-xs font-semibold uppercase tracking-wide text-fd-gold">Fire</legend>
-                  <LayerCheck checked={fire.nasa} onChange={() => toggleFire("nasa")} label="NASA active fires" hint={fire.nasa ? layerHint(nasa.status, `VIIRS · last 48 h · ${nasa.data?.fires.length ?? 0} in Chihuahua`) : "NASA FIRMS, VIIRS 375 m, last 48 h"} swatch={<span className="h-3 w-3 rounded-full border-2 border-[#ffe066] bg-[#ff2a00]" />} />
-                  <LayerCheck checked={fire.history} onChange={() => toggleFire("history")} label="Historical fires" hint={fire.history ? layerHint(history.status, `${history.data?.length ?? 0} detections in ${monthLabel(historyMonth)}`) : "NASA VIIRS archive, by month (2020–)"} swatch={<span className="h-2.5 w-2.5 rounded-full bg-[#ff9f1c]" />}>
+                  <LayerCheck checked={fire.nasa} onChange={() => toggleFire("nasa")} label="NASA active fires" hint={fire.nasa ? layerHint(nasa.status, `VIIRS NOAA-20 + NOAA-21 · last 48 h · ${nasa.data?.fires.length ?? 0} in Chihuahua · up to ~3 h delay`) : "NASA FIRMS, VIIRS 375 m, last 48 h"} swatch={<span className="h-3 w-3 rounded-full border-2 border-[#ffe066] bg-[#ff2a00]" />} />
+                  <LayerCheck checked={fire.history} onChange={() => toggleFire("history")} label="Historical fires" hint={fire.history ? layerHint(history.status, `${history.data?.length ?? 0} detections in ${monthLabel(historyMonth)} · ${historyMonth < "2020-01" ? "MODIS 1 km" : "VIIRS 375 m"}`) : "NASA archive by month: MODIS 2002–, VIIRS 2020–"} swatch={<span className="h-2.5 w-2.5 rounded-full bg-[#ff9f1c]" />}>
                     <select
                       value={historyMonth}
                       onChange={(e) => setHistoryMonth(e.target.value)}
@@ -222,7 +226,7 @@ export default function FireMapPage() {
                       ))}
                     </select>
                   </LayerCheck>
-                  <LayerCheck checked={fire.probability} onChange={() => toggleFire("probability")} label="Fire probability (our model)" hint={layerHint(grid.status, "Hot-Dry-Windy index on a 0.5° weather grid")} swatch={<span className="h-3 w-3 bg-gradient-to-r from-[#16a34a] via-[#facc15] to-[#dc2626]" />} />
+                  <LayerCheck checked={fire.probability} onChange={() => toggleFire("probability")} label="Fire probability (our model)" hint={layerHint(grid.status, "Weather (HDW) + NASA vegetation (NDVI) + land surface temperature")} swatch={<span className="h-3 w-3 bg-gradient-to-r from-[#16a34a] via-[#facc15] to-[#dc2626]" />} />
                   <LayerCheck checked={fire.cause} onChange={() => toggleFire("cause")} label="Probable cause of active fires" hint="Human · lightning · wildland, with probability" swatch={<span className="h-3 w-3 rounded-full bg-[#f97316] ring-2 ring-[#38bdf8]" />} />
                 </fieldset>
 
@@ -243,6 +247,23 @@ export default function FireMapPage() {
                     <input type="checkbox" checked={showStations} onChange={(e) => setShowStations(e.target.checked)} className="accent-[#f5c518]" />
                     Always show station markers
                   </label>
+                </fieldset>
+
+                <fieldset className="border-t border-white/10 pt-2.5">
+                  <legend className="mb-1 text-xs font-semibold uppercase tracking-wide text-fd-gold">Satellite imagery (NASA GIBS)</legend>
+                  <label className="flex cursor-pointer items-center gap-2 py-0.5">
+                    <input type="radio" name="satellite" checked={satellite === null} onChange={() => setSatellite(null)} className="accent-[#f5c518]" />
+                    None
+                  </label>
+                  {SATELLITE_LAYERS.map((s) => (
+                    <label key={s.id} className="flex cursor-pointer items-start gap-2 py-0.5">
+                      <input type="radio" name="satellite" checked={satellite === s.id} onChange={() => setSatellite(s.id)} className="mt-1 accent-[#f5c518]" />
+                      <span className="leading-tight">
+                        {s.label}
+                        <span className="block text-xs text-white/55">{s.hint}</span>
+                      </span>
+                    </label>
+                  ))}
                 </fieldset>
 
                 <fieldset className="border-t border-white/10 pt-2.5">
@@ -489,19 +510,29 @@ function Modal({ title, onClose, children, wide }: { title: string; onClose: () 
 
 /** Calendario de quema armonizado: años × meses (MODIS → VIIRS con kₘ). */
 function CalendarHeatmap({ calendar }: { calendar: BurnCalendar }) {
-  const max = Math.max(...calendar.rows.flatMap((r) => r.months));
-  const shade = (v: number) => `rgba(245, 120, 30, ${(0.08 + 0.92 * (v / max)).toFixed(2)})`;
+  const values = calendar.rows.flatMap((r) => r.months).filter((v): v is number => v !== null);
+  const max = Math.max(1, ...values);
+  const shade = (v: number | null) => (v === null ? "transparent" : `rgba(245, 120, 30, ${(0.08 + 0.92 * (v / max)).toFixed(2)})`);
   const rows = [...calendar.rows].reverse();
+  const real = calendar.dataSource === "nasa";
   return (
     <>
-      <p className="text-sm text-white/75">
-        Monthly hotspot activity, {rows[rows.length - 1].year}–{rows[0].year}. MODIS counts scaled to VIIRS with a monthly kₘ factor. Darker = more activity.
+      <p className="text-sm text-white/80">
+        Monthly fire detections in Chihuahua, {rows[rows.length - 1].year}–{rows[0].year}. MODIS counts are scaled to VIIRS-equivalent with
+        a monthly factor kₘ. Darker = more activity.
+      </p>
+      <p className={`mt-2 rounded px-2 py-1 text-sm ${real ? "bg-emerald-500/15 text-emerald-200" : "bg-fd-gold/15 text-fd-gold"}`}>
+        {real
+          ? "Source: real NASA FIRMS detections (MODIS 2002–, VIIRS NOAA-20 2020–), kₘ fitted on the overlap with 95% bootstrap CI."
+          : `Illustrative series. The real NASA calendar is being built on our server${
+              calendar.realCoverage !== null ? ` (${Math.round(calendar.realCoverage * 100)}% done)` : ""
+            }.`}
       </p>
       <div className="mt-3 overflow-x-auto">
         <table className="w-full min-w-[560px] border-separate border-spacing-0.5 text-center text-xs tabular-nums">
           <thead>
             <tr>
-              <th className="w-12" />
+              <th className="w-14" />
               {calendar.monthLabels.map((m) => (
                 <th key={m} scope="col" className="font-semibold text-white/80">{m}</th>
               ))}
@@ -510,9 +541,9 @@ function CalendarHeatmap({ calendar }: { calendar: BurnCalendar }) {
           <tbody>
             {rows.map((r) => (
               <tr key={r.year}>
-                <th scope="row" className="pr-1 text-right font-semibold text-white/80">{r.year}</th>
+                <th scope="row" className="pr-1 text-right font-semibold text-white/80" title={r.source}>{r.year}</th>
                 {r.months.map((v, i) => (
-                  <td key={i} title={`${calendar.monthLabels[i]} ${r.year}: ${v}`} className="h-4" style={{ backgroundColor: shade(v) }} />
+                  <td key={i} title={v === null ? "no data" : `${calendar.monthLabels[i]} ${r.year}: ${v}`} className="h-4" style={{ backgroundColor: shade(v) }} />
                 ))}
               </tr>
             ))}
@@ -521,6 +552,17 @@ function CalendarHeatmap({ calendar }: { calendar: BurnCalendar }) {
               {calendar.monthlyMedians.map((v, i) => (
                 <td key={i} className="pt-1 text-sky-300">{Math.round(v)}</td>
               ))}
+            </tr>
+            <tr>
+              <th scope="row" className="pr-1 text-right font-semibold text-fd-gold">kₘ</th>
+              {calendar.kmFactors.map((k, i) => {
+                const ci = calendar.kmCi95?.[i];
+                return (
+                  <td key={i} className="text-fd-gold" title={ci ? `95% CI ${ci[0]}–${ci[1]}` : undefined}>
+                    {k.toFixed(2)}
+                  </td>
+                );
+              })}
             </tr>
           </tbody>
         </table>
@@ -564,8 +606,20 @@ function LayerCheck({
 }
 
 /** Leyenda de las capas activas, sobre el mapa (abajo a la izquierda). */
-function MapLegend({ condition, fire, historyMonth }: { condition: ConditionDef | null; fire: FireLayers; historyMonth: string }) {
+function MapLegend({
+  condition,
+  fire,
+  historyMonth,
+  satellite,
+}: {
+  condition: ConditionDef | null;
+  fire: FireLayers;
+  historyMonth: string;
+  satellite: SatelliteLayer | null;
+}) {
   const rows: ReactNode[] = [];
+  const sat = SATELLITE_LAYERS.find((s) => s.id === satellite);
+  if (sat) rows.push(<p key="sat" className="text-white/80">Imagery: <b>{sat.label}</b> (NASA GIBS)</p>);
   if (fire.probability) {
     rows.push(
       <div key="prob">
@@ -603,7 +657,7 @@ function MapLegend({ condition, fire, historyMonth }: { condition: ConditionDef 
     );
   }
   const points: [boolean, string, string][] = [
-    [fire.nasa, "NASA active fire (48 h)", "h-2.5 w-2.5 rounded-full border-2 border-[#ffe066] bg-[#ff2a00]"],
+    [fire.nasa, "NASA active fire (48 h) · faded = low confidence", "h-2.5 w-2.5 rounded-full border-2 border-[#ffe066] bg-[#ff2a00]"],
     [fire.history, `Historical · ${monthLabel(historyMonth)}`, "h-2 w-2 rounded-full bg-[#ff9f1c]"],
   ];
   const active = points.filter(([on]) => on);

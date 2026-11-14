@@ -75,20 +75,38 @@ function toStation(s: any): Station {
   };
 }
 
-function toCalendar(c: any): BurnCalendar {
+function toCalendar(c: any, realCoverage: number | null): BurnCalendar {
   const EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const monthIdx = EN.indexOf(c.current_month.month) >= 0 ? EN.indexOf(c.current_month.month) : c.month_labels.indexOf(c.current_month.month);
   return {
     monthLabels: EN,
     monthlyMedians: c.monthly_medians,
     current: {
       year: c.current_month.year,
-      month: EN[c.month_labels.indexOf(c.current_month.month)] ?? c.current_month.month,
+      month: EN[monthIdx] ?? c.current_month.month,
       value: c.current_month.value,
       median: c.current_month.historical_median,
       anomalyPct: c.current_month.anomaly_pct,
     },
     rows: c.rows.map((r: any) => ({ year: r.year, months: r.months, source: r.sensor_source })),
+    kmFactors: c.km_factors,
+    kmCi95: c.km_ci95 ?? null,
+    dataSource: c.data_source === "nasa-firms-gibs" ? "nasa" : "illustrative",
+    realCoverage,
   };
+}
+
+/** Calendario real de la NASA si ya está casi completo; si no, el ilustrativo + avance. */
+async function loadCalendar(): Promise<BurnCalendar> {
+  let coverage: number | null = null;
+  try {
+    const real = await getJson<any>("/api/nasa/calendar");
+    coverage = real.coverage ?? null;
+    if ((coverage ?? 0) >= 0.9) return toCalendar(real, coverage);
+  } catch {
+    // aún no existe: usar el ilustrativo
+  }
+  return toCalendar(await getJson<any>("/api/fires/calendar"), coverage);
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
@@ -119,14 +137,14 @@ export function useDashboardData(): DashboardData {
         const [h, s, c] = await Promise.all([
           getJson<{ hotspots: unknown[] }>("/api/fires/hotspots"),
           getJson<{ stations: unknown[] }>("/api/iot/stations"),
-          getJson<unknown>("/api/fires/calendar"),
+          loadCalendar(),
         ]);
         if (!alive) return;
         setData({
           status: "live",
           hotspots: h.hotspots.map(toHotspot).sort((a, b) => b.detectedAt.localeCompare(a.detectedAt)),
           stations: s.stations.map(toStation),
-          calendar: toCalendar(c),
+          calendar: c,
           fetchedAt: Date.now(),
         });
       } catch {
@@ -210,13 +228,13 @@ export function useNasaFires(enabled: boolean) {
   return useOnDemand<{ fires: NasaFire[]; start: string; end: string }>(enabled ? "/api/nasa/fires?days=2" : null, (j: any) => ({
     start: j.start,
     end: j.end,
-    fires: j.fires.map((f: any) => ({ lat: f.lat, lon: f.lon, frpMw: f.frp_mw, confidence: f.confidence, date: f.date, time: f.time })),
+    fires: j.fires.map((f: any) => ({ lat: f.lat, lon: f.lon, frpMw: f.frp_mw, confidence: f.confidence, date: f.date, time: f.time, satellite: f.satellite })),
   }));
 }
 
 export function useHistoricalFires(month: string | null) {
   return useOnDemand<NasaFire[]>(month ? `/api/nasa/fires/history?month=${month}` : null, (j: any) =>
-    j.fires.map((f: any[]) => ({ lat: f[0], lon: f[1], frpMw: f[2], date: f[3], time: "", confidence: "" }))
+    j.fires.map((f: any[]) => ({ lat: f[0], lon: f[1], frpMw: f[2], date: f[3], time: "", confidence: f[4] ?? "nominal", satellite: "" }))
   );
 }
 
@@ -231,6 +249,10 @@ export function useWeatherGrid(enabled: boolean) {
       humidityPct: c.humidity_pct,
       pressureHpa: c.pressure_hpa,
       riskLevel: c.risk_level,
+      ndvi: c.ndvi ?? null,
+      lstC: c.lst_c ?? null,
+      fireProbLevel: c.fire_prob_level ?? c.risk_level,
+      fireProbFactors: c.fire_prob_factors ?? [],
     })),
   }));
 }

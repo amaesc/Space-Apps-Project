@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import math
 import os
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from html import escape
 from zoneinfo import ZoneInfo
 
@@ -19,6 +19,7 @@ from fastapi.responses import HTMLResponse
 from app.routers.iot import list_stations
 from app.services.chihuahua_outline import CHIHUAHUA_OUTLINE
 from app.services.harmonizer import HOTSPOTS_DATA
+from app.services.nasa_fires import VIIRS_N20, VIIRS_N21, detections_for_range
 
 router = APIRouter(tags=["lite"])
 
@@ -73,12 +74,16 @@ def _ago(ts: str, now: datetime) -> str:
     return when.astimezone(LOCAL_TZ).strftime("%b %d, %H:%M")
 
 
-def _svg(hotspots: list[dict], stations: list[dict]) -> str:
+def _svg(hotspots: list[dict], stations: list[dict], nasa: list[dict]) -> str:
     parts = [
         f'<svg viewBox="0 0 {_W + 2 * _PAD:.0f} {_H + 2 * _PAD:.0f}" role="img" '
         f'aria-label="Map of Chihuahua with {len(hotspots)} hotspots">',
         f'<path d="{_OUTLINE_PATH}" fill="#3a3a40" stroke="#9a9aa5" stroke-width="1"/>',
     ]
+    # Detecciones NASA FIRMS (48 h): puntos rojos pequeños debajo de los focos numerados.
+    for f in nasa:
+        x, y = _xy(f["lon"], f["lat"])
+        parts.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="3" fill="#ff2a00" stroke="#ffe066" stroke-width="1"/>')
     for i, h in enumerate(hotspots, 1):
         x, y = _xy(h["lon"], h["lat"])
         color = ORIGIN_COLOR.get(h["origin"], "#a78bfa")
@@ -121,6 +126,10 @@ async def lite_page() -> HTMLResponse:
     now = datetime.now(timezone.utc)
     hotspots = sorted(HOTSPOTS_DATA, key=lambda h: h["timestamp"], reverse=True)
     stations = (await list_stations())["stations"]
+    try:
+        nasa = await detections_for_range(date.today() - timedelta(days=1), date.today(), (VIIRS_N20, VIIRS_N21))
+    except Exception:  # noqa: BLE001 - la página ligera nunca debe fallar por la NASA
+        nasa = []
 
     level = max((int(s.get("risk_level", 1)) for s in stations), default=1)
     risk_label, risk_bg, risk_fg = RISK[level]
@@ -164,12 +173,15 @@ async def lite_page() -> HTMLResponse:
         f'<p>Fire danger <span class="b" style="background:{risk_bg};color:{risk_fg}">{risk_label}</span>'
         f' · <b>{len(hotspots)}</b> hotspots · updated {updated}</p>'
         f"{demo}"
-        f"{_svg(hotspots, stations)}"
-        '<p class="s">Numbers match the list. ■ = field station.</p>'
+        f"{_svg(hotspots, stations, nasa)}"
+        f'<p class="s">Numbers match the list. ■ = field station. '
+        f'<span style="color:#ff6b4a">●</span> = NASA satellite fire detection, last 48 h ({len(nasa)}).</p>'
         f"<h2>Hotspots</h2><ol>{''.join(items)}</ol>"
         f"<h2>Field stations</h2><ul>{''.join(station_items)}</ul>"
         '<p class="s">Origin is a probability to prioritize inspections, not evidence. '
-        "Data: NASA FIRMS, GOES-GLM, Open-Meteo. Map outline © OpenStreetMap. "
+        "NASA detections arrive up to ~3 h after the satellite pass. "
+        "We acknowledge the use of data and/or imagery from NASA's Fire Information for Resource "
+        "Management System (FIRMS). Weather: Open-Meteo. Map outline © OpenStreetMap. "
         "Auto-refreshes every 5 min.</p>"
         "</main></body></html>"
     )

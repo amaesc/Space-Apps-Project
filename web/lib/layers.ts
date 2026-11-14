@@ -132,13 +132,13 @@ export const CONDITIONS: ConditionDef[] = [
 export const conditionDef = (id: ConditionLayer | null) => CONDITIONS.find((c) => c.id === id) ?? null;
 
 /** Probabilidad de incendio (modelo HDW): nivel 1-5 con la escala de peligro. */
-export const probabilityColor = (c: WeatherCell) => RISK_SCALE[Math.min(5, Math.max(1, c.riskLevel)) - 1].bg;
+export const probabilityColor = (c: WeatherCell) => RISK_SCALE[Math.min(5, Math.max(1, c.fireProbLevel)) - 1].bg;
 
-/** Meses disponibles para el histórico de NASA (desde 2020 hasta el mes pasado). */
+/** Meses disponibles para el histórico de NASA (MODIS desde 2002-07, VIIRS desde 2020). */
 export function historyMonths(now = new Date()): string[] {
   const out: string[] = [];
   const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  while (d.getFullYear() >= 2020) {
+  while (d >= new Date(2002, 6, 1)) {
     out.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
     d.setMonth(d.getMonth() - 1);
   }
@@ -147,3 +147,39 @@ export function historyMonths(now = new Date()): string[] {
 
 export const monthLabel = (m: string) =>
   new Date(`${m}-15T12:00:00`).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+
+/** Imágenes satelitales de NASA GIBS (raster) que se pueden superponer al mapa. */
+export type SatelliteLayer = "goes_fire" | "goes_color" | "truecolor" | "smoke" | "lst" | "ndvi";
+
+const yesterday = () => {
+  const d = new Date(Date.now() - 24 * 3600 * 1000);
+  return d.toISOString().slice(0, 10);
+};
+
+export const SATELLITE_LAYERS: {
+  id: SatelliteLayer;
+  label: string;
+  hint: string;
+  layer: string;
+  level: number;
+  ext: "png" | "jpg";
+  /** "default" = la imagen más reciente disponible en GIBS. */
+  time: () => string;
+  opacity: number;
+}[] = [
+  { id: "goes_fire", label: "GOES-East fire temperature", hint: "Geostationary, every 10 min (coarser than VIIRS)", layer: "GOES-East_ABI_FireTemp", level: 7, ext: "png", time: () => "default", opacity: 0.85 },
+  { id: "goes_color", label: "GOES-East GeoColor (smoke & clouds)", hint: "Near-live image, every 10 min", layer: "GOES-East_ABI_GeoColor", level: 7, ext: "png", time: () => "default", opacity: 0.9 },
+  { id: "truecolor", label: "True color, yesterday (VIIRS NOAA-20)", hint: "Daily satellite photo: smoke plumes and burn scars", layer: "VIIRS_NOAA20_CorrectedReflectance_TrueColor", level: 9, ext: "jpg", time: yesterday, opacity: 1 },
+  { id: "smoke", label: "Smoke (UV aerosol index, TEMPO)", hint: "Aerosols over North America, several times a day", layer: "TEMPO_L3_Ozone_UV_Aerosol_Index", level: 7, ext: "png", time: () => "default", opacity: 0.7 },
+  { id: "lst", label: "Land surface temperature (day)", hint: "VIIRS NOAA-20 · used by our fire probability model", layer: "VIIRS_NOAA20_Land_Surface_Temp_Day", level: 7, ext: "png", time: () => "default", opacity: 0.7 },
+  { id: "ndvi", label: "Vegetation / fuel (NDVI, 8 days)", hint: "VIIRS NOAA-20 · used by our fire probability model", layer: "VIIRS_NOAA20_NDVI_8Day", level: 8, ext: "png", time: () => "default", opacity: 0.7 },
+];
+
+export function gibsTileUrl(id: SatelliteLayer): { url: string; maxNativeZoom: number; opacity: number } {
+  const l = SATELLITE_LAYERS.find((s) => s.id === id)!;
+  return {
+    url: `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${l.layer}/default/${l.time()}/GoogleMapsCompatible_Level${l.level}/{z}/{y}/{x}.${l.ext}`,
+    maxNativeZoom: l.level,
+    opacity: l.opacity,
+  };
+}
