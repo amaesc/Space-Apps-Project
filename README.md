@@ -94,3 +94,6 @@ Para cubrir al 100 % la propuesta técnica de **UNDEFINED** y los objetivos del 
 - La atribución de origen es una **probabilidad estadística** para priorizar inspecciones preventivas; en ningún caso señala predios ni personas ni constituye prueba legal.
 - Fuera del radio de cobertura de la estación IoT en campo, el sistema utiliza respaldo modelado de **Open-Meteo** y **GOES-GLM**.
 - El modelo de riesgo estima peligro según condiciones meteorológicas y estacionales; no predice el punto ni la hora exacta de inicio de un incendio.
+
+
+//.
