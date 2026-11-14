@@ -72,3 +72,23 @@ body {
     animation: none !important;
   }
 }
+
+.osm-dark-map.leaflet-container {
+  background: #0a0714;
+  font-family: var(--font-mono);
+}
+
+.osm-dark-map .leaflet-tile-pane {
+  filter: invert(93%) hue-rotate(195deg) brightness(88%) contrast(95%) saturate(85%);
+}
+
+.osm-dark-map .leaflet-control-attribution {
+  background: rgba(13, 8, 24, 0.8) !important;
+  color: #94a3b8 !important;
+  border-top-left-radius: 6px;
+  font-size: 10px;
+}
+
+.osm-dark-map .leaflet-control-attribution a {
+  color: #fb923c !important;
+}

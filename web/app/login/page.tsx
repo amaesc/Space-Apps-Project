@@ -66,7 +66,7 @@ export default function LoginPage() {
       organization: organization.trim() || undefined,
     });
 
-    router.push("/");
+    router.push("/dashboard");
   };
 
   const handleGoogleAuth = () => {
@@ -80,7 +80,7 @@ export default function LoginPage() {
       organization: "Google OAuth",
     });
 
-    router.push("/");
+    router.push("/dashboard");
   };
 
   return (

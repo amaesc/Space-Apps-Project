@@ -75,6 +75,12 @@ export default function FluidNav() {
           <div className="flex items-center gap-2">
             {user ? (
               <div className="hidden items-center gap-2 sm:flex">
+                <Link
+                  href="/dashboard"
+                  className="rounded-lg border border-orange-400/40 bg-[#f97316]/15 px-3 py-1.5 text-xs font-medium text-[#fb923c] transition-colors hover:bg-[#f97316]/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                >
+                  Panel
+                </Link>
                 <div className="flex items-center gap-2 rounded-lg border border-violet-400/25 bg-white/3 px-2.5 py-1.5">
                   <span
                     aria-hidden="true"
@@ -165,13 +171,22 @@ export default function FluidNav() {
                     </p>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="w-full cursor-pointer rounded-xl border border-white/15 bg-white/4 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-white/10"
-                >
-                  Cerrar sesión
-                </button>
+                <div className="flex flex-col gap-2">
+                  <Link
+                    href="/dashboard"
+                    onClick={() => setOpen(false)}
+                    className="inline-flex w-full items-center justify-center rounded-xl bg-linear-to-r from-[#f97316] to-[#ea580c] px-4 py-3 text-sm font-semibold text-white shadow-[0_0_24px_-4px_rgba(249,115,22,0.6)]"
+                  >
+                    Ir al Panel
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="w-full cursor-pointer rounded-xl border border-white/15 bg-white/4 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-white/10"
+                  >
+                    Cerrar sesión
+                  </button>
+                </div>
               </div>
             ) : (
               <Link
