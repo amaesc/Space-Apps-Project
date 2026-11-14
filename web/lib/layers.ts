@@ -164,6 +164,14 @@ const yesterday = () => {
   return d.toISOString().slice(0, 10);
 };
 
+/** Simbología: degradado oficial (tabla de colores de NASA GIBS) o clases con significado (RGB). */
+export type SatLegend =
+  | { kind: "gradient"; stops: string[]; ticks: { at: number; label: string }[]; caption: string }
+  | { kind: "classes"; items: { color: string; label: string }[]; caption: string };
+
+// Kelvin → °C para las etiquetas de temperatura de superficie (la tabla de NASA va de 200 a 350 K).
+const lstTick = (k: number) => ({ at: (k - 200) / 150, label: `${Math.round(k - 273.15)} °C` });
+
 export const SATELLITE_LAYERS: {
   id: SatelliteLayer;
   label: string;
@@ -174,13 +182,143 @@ export const SATELLITE_LAYERS: {
   /** "default" = la imagen más reciente disponible en GIBS. */
   time: () => string;
   opacity: number;
+  legend: SatLegend;
 }[] = [
-  { id: "goes_fire", label: "GOES-East fire temperature", hint: "Geostationary, every 10 min (coarser than VIIRS)", layer: "GOES-East_ABI_FireTemp", level: 7, ext: "png", time: () => "default", opacity: 0.85 },
-  { id: "goes_color", label: "GOES-East GeoColor (smoke & clouds)", hint: "Near-live image, every 10 min", layer: "GOES-East_ABI_GeoColor", level: 7, ext: "png", time: () => "default", opacity: 0.9 },
-  { id: "truecolor", label: "True color, yesterday (VIIRS NOAA-20)", hint: "Daily satellite photo: smoke plumes and burn scars", layer: "VIIRS_NOAA20_CorrectedReflectance_TrueColor", level: 9, ext: "jpg", time: yesterday, opacity: 1 },
-  { id: "smoke", label: "Smoke (UV aerosol index, TEMPO)", hint: "Aerosols over North America, several times a day", layer: "TEMPO_L3_Ozone_UV_Aerosol_Index", level: 7, ext: "png", time: () => "default", opacity: 0.7 },
-  { id: "lst", label: "Land surface temperature (day)", hint: "VIIRS NOAA-20 · used by our fire probability model", layer: "VIIRS_NOAA20_Land_Surface_Temp_Day", level: 7, ext: "png", time: () => "default", opacity: 0.7 },
-  { id: "ndvi", label: "Vegetation / fuel (NDVI, 8 days)", hint: "VIIRS NOAA-20 · used by our fire probability model", layer: "VIIRS_NOAA20_NDVI_8Day", level: 8, ext: "png", time: () => "default", opacity: 0.7 },
+  {
+    id: "goes_fire",
+    label: "GOES-East fire temperature",
+    hint: "Geostationary, every 10 min (2 km, coarser than VIIRS)",
+    layer: "GOES-East_ABI_FireTemp",
+    level: 7,
+    ext: "png",
+    time: () => "default",
+    opacity: 0.85,
+    // Fuente: descripción de la capa en NASA Worldview (Fire Temperature RGB).
+    legend: {
+      kind: "classes",
+      caption: "Fire intensity goes from red (warm) to near white (very hot). Swatches are approximate.",
+      items: [
+        { color: "#ff1a00", label: "Warm fire" },
+        { color: "#ff8c00", label: "Very warm fire" },
+        { color: "#ffe600", label: "Hot fire" },
+        { color: "#fffbe0", label: "Very hot fire" },
+        { color: "#6e1a2c", label: "Burn scar" },
+        { color: "#b25fbf", label: "Clear land" },
+        { color: "#121212", label: "Water, snow or night" },
+        { color: "#2f6fd6", label: "Water clouds" },
+        { color: "#2fae5f", label: "Ice clouds" },
+      ],
+    },
+  },
+  {
+    id: "goes_color",
+    label: "GOES-East GeoColor (smoke & clouds)",
+    hint: "Near-live image, every 10 min (1 km)",
+    layer: "GOES-East_ABI_GeoColor",
+    level: 7,
+    ext: "png",
+    time: () => "default",
+    opacity: 0.9,
+    // Fuente: descripción de la capa en NASA Worldview (GeoColor).
+    legend: {
+      kind: "classes",
+      caption: "Day: approximate true color. Night: infrared blend; city lights are a static map.",
+      items: [
+        { color: "#f4f4f4", label: "Clouds (day)" },
+        { color: "#9b8f7e", label: "Smoke or dust (day)" },
+        { color: "#4e7a3a", label: "Vegetation (day)" },
+        { color: "#c9a77c", label: "Desert / bare soil (day)" },
+        { color: "#8fd3f5", label: "Low water clouds (night)" },
+        { color: "#c8c8c8", label: "High ice clouds (night)" },
+        { color: "#ffc34d", label: "City lights (night)" },
+      ],
+    },
+  },
+  {
+    id: "truecolor",
+    label: "True color, yesterday (VIIRS NOAA-20)",
+    hint: "Daily natural-color photo (250 m)",
+    layer: "VIIRS_NOAA20_CorrectedReflectance_TrueColor",
+    level: 9,
+    ext: "jpg",
+    time: yesterday,
+    opacity: 1,
+    legend: {
+      kind: "classes",
+      caption: "Natural color, close to what the human eye sees (bands I1, M4, M3). Typical interpretation:",
+      items: [
+        { color: "#f4f4f4", label: "Clouds" },
+        { color: "#a39b8f", label: "Smoke plume (gray-brown haze)" },
+        { color: "#3b2f2a", label: "Fresh burn scar (dark)" },
+        { color: "#4e7a3a", label: "Green vegetation" },
+        { color: "#c9a77c", label: "Bare soil / dry grass" },
+        { color: "#1d3557", label: "Water" },
+      ],
+    },
+  },
+  {
+    id: "smoke",
+    label: "Smoke (UV aerosol index, TEMPO)",
+    hint: "Aerosols over North America, hourly in daylight",
+    layer: "TEMPO_L3_Ozone_UV_Aerosol_Index",
+    level: 7,
+    ext: "png",
+    time: () => "default",
+    opacity: 0.7,
+    // Fuente: tabla de colores oficial TEMPO_Ozone_UV_Aerosol_Index (NASA GIBS).
+    legend: {
+      kind: "gradient",
+      stops: ["#f1edec", "#e2c7bf", "#d7a290", "#cc7f64", "#c0593b", "#af2f24", "#901129", "#660f24", "#3c0912"],
+      ticks: [
+        { at: 0, label: "0" },
+        { at: 0.5, label: "2.5" },
+        { at: 1, label: "≥5" },
+      ],
+      caption: "UV aerosol index (unitless). Higher = more UV-absorbing aerosols such as smoke or dust.",
+    },
+  },
+  {
+    id: "lst",
+    label: "Land surface temperature (day), yesterday",
+    hint: "VIIRS NOAA-20 · used by our fire probability model",
+    layer: "VIIRS_NOAA20_Land_Surface_Temp_Day",
+    level: 7,
+    ext: "png",
+    // El día en curso aún no cubre todo México: se muestra el anterior completo.
+    time: yesterday,
+    opacity: 0.7,
+    // Fuente: tabla de colores oficial MODIS_Land_Surface_Temp (NASA GIBS), 200–350 K.
+    legend: {
+      kind: "gradient",
+      stops: ["#c900ff", "#4d00ff", "#0047ff", "#00e6ff", "#66ff12", "#dbff00", "#ffc100", "#ff5e00", "#ff0100"],
+      ticks: [lstTick(230), lstTick(260), lstTick(290), lstTick(320)],
+      caption: "Temperature of the ground surface (not the air), −73 to 77 °C. Hotter surfaces dry out fuel faster. Gaps = clouds.",
+    },
+  },
+  {
+    id: "ndvi",
+    label: "Vegetation / fuel (NDVI, 8 days)",
+    hint: "VIIRS NOAA-20 · used by our fire probability model",
+    layer: "VIIRS_NOAA20_NDVI_8Day",
+    level: 8,
+    ext: "png",
+    time: () => "default",
+    opacity: 0.7,
+    // Fuente: tabla de colores oficial MODIS_NDVI (NASA GIBS), 0–1.
+    legend: {
+      kind: "gradient",
+      stops: ["#f1ecec", "#e1d2c6", "#b4a596", "#a18063", "#96ba20", "#56a101", "#2e8000", "#006400", "#001801"],
+      ticks: [
+        { at: 0, label: "0" },
+        { at: 0.2, label: "0.2" },
+        { at: 0.4, label: "0.4" },
+        { at: 0.6, label: "0.6" },
+        { at: 0.8, label: "0.8" },
+        { at: 1, label: "1" },
+      ],
+      caption: "Tan = little or no vegetation · light green = some · dark green = dense, healthy vegetation.",
+    },
+  },
 ];
 
 export function gibsTileUrl(id: SatelliteLayer): { url: string; maxNativeZoom: number; opacity: number } {

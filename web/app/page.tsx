@@ -42,6 +42,7 @@ import {
   monthLabel,
   SATELLITE_LAYERS,
   type SatelliteLayer,
+  type SatLegend,
 } from "../lib/layers";
 
 type Range = "24h" | "7d" | "all";
@@ -258,9 +259,10 @@ export default function FireMapPage() {
                   {SATELLITE_LAYERS.map((s) => (
                     <label key={s.id} className="flex cursor-pointer items-start gap-2 py-0.5">
                       <input type="radio" name="satellite" checked={satellite === s.id} onChange={() => setSatellite(s.id)} className="mt-1 accent-[#f5c518]" />
-                      <span className="leading-tight">
+                      <span className="min-w-0 flex-1 leading-tight">
                         {s.label}
                         <span className="block text-xs text-white/55">{s.hint}</span>
+                        <SatLegendPreview legend={s.legend} />
                       </span>
                     </label>
                   ))}
@@ -619,7 +621,13 @@ function MapLegend({
 }) {
   const rows: ReactNode[] = [];
   const sat = SATELLITE_LAYERS.find((s) => s.id === satellite);
-  if (sat) rows.push(<p key="sat" className="text-white/80">Imagery: <b>{sat.label}</b> (NASA GIBS)</p>);
+  if (sat)
+    rows.push(
+      <div key="sat">
+        <p className="font-semibold">{sat.label}</p>
+        <SatLegendView legend={sat.legend} />
+      </div>
+    );
   if (fire.probability) {
     rows.push(
       <div key="prob">
@@ -687,8 +695,70 @@ function MapLegend({
   }
   if (!rows.length) return null;
   return (
-    <div className="pointer-events-none absolute bottom-[5.5rem] left-2 z-[999] w-56 space-y-2 rounded border border-black/50 bg-fd-panel/90 px-2.5 py-2 text-xs shadow-lg md:bottom-[5.75rem]">
+    <div
+      className={`absolute bottom-[5.5rem] left-2 z-[999] max-h-[45vh] space-y-2 overflow-y-auto rounded border border-black/50 bg-fd-panel/90 px-2.5 py-2 text-xs shadow-lg md:bottom-[5.75rem] md:max-h-[60vh] ${
+        sat ? "w-64" : "w-56"
+      }`}
+    >
       {rows}
     </div>
+  );
+}
+
+/** Simbología completa de una capa satelital (leyenda del mapa). */
+function SatLegendView({ legend }: { legend: SatLegend }) {
+  if (legend.kind === "gradient") {
+    return (
+      <div className="mt-1">
+        <span className="block h-3" style={{ background: `linear-gradient(to right, ${legend.stops.join(",")})` }} />
+        <div className="relative mt-0.5 h-3.5 text-[10px] text-white/80">
+          {legend.ticks.map((tk) => (
+            <span
+              key={tk.label}
+              className="absolute -translate-x-1/2 whitespace-nowrap"
+              style={{ left: `${Math.min(92, Math.max(8, tk.at * 100))}%` }}
+            >
+              {tk.label}
+            </span>
+          ))}
+        </div>
+        <p className="mt-1 text-[11px] leading-snug text-white/70">{legend.caption}</p>
+      </div>
+    );
+  }
+  return (
+    <div className="mt-1">
+      <ul className="grid grid-cols-2 gap-x-2 gap-y-0.5">
+        {legend.items.map((i) => (
+          <li key={i.label} className="flex items-center gap-1.5">
+            <span className="h-3 w-3 shrink-0 border border-white/30" style={{ backgroundColor: i.color }} />
+            <span className="leading-tight">{i.label}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-1 text-[11px] leading-snug text-white/70">{legend.caption}</p>
+    </div>
+  );
+}
+
+/** Vista previa compacta de la simbología (panel de capas). */
+function SatLegendPreview({ legend }: { legend: SatLegend }) {
+  if (legend.kind === "gradient") {
+    const first = legend.ticks[0]?.label;
+    const last = legend.ticks[legend.ticks.length - 1]?.label;
+    return (
+      <span className="mt-1 flex items-center gap-1.5 text-[10px] text-white/60">
+        {first}
+        <span className="h-2 flex-1" style={{ background: `linear-gradient(to right, ${legend.stops.join(",")})` }} />
+        {last}
+      </span>
+    );
+  }
+  return (
+    <span className="mt-1 flex flex-wrap gap-0.5" aria-hidden="true">
+      {legend.items.map((i) => (
+        <span key={i.label} title={i.label} className="h-2 w-4 border border-white/20" style={{ backgroundColor: i.color }} />
+      ))}
+    </span>
   );
 }
