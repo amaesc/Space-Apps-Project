@@ -4,9 +4,10 @@ import Image from "next/image";
 import { useState } from "react";
 
 const NAV_LINKS = [
-  { href: "#preview", label: "Calendario" },
-  { href: "#arquitectura", label: "Sistema" },
-  { href: "#vistas", label: "Vistas MVP" },
+  { href: "#", label: "Inicio" },
+  { href: "#preview", label: "El reto" },
+  { href: "#arquitectura", label: "Cómo funciona" },
+  { href: "#vistas", label: "Roadmap" },
 ];
 
 export default function FluidNav() {
