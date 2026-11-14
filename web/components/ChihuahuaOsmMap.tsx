@@ -103,10 +103,10 @@ export default function ChihuahuaOsmMap({
   }, [selectedId, events]);
 
   return (
-    <div className="relative h-full min-h-96 w-full lg:min-h-[420px]">
+    <div className="relative h-full min-h-96 w-full lg:min-h-105">
       <div
         ref={containerRef}
-        className="osm-dark-map h-full min-h-96 w-full lg:min-h-[420px]"
+        className="osm-dark-map h-full min-h-96 w-full lg:min-h-105"
       />
 
       {/* Controles de zoom arriba derecha */}

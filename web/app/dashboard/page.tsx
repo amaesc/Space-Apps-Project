@@ -24,7 +24,7 @@ const ChihuahuaOsmMap = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex h-full min-h-96 w-full items-center justify-center bg-[#0a0714] font-mono text-xs text-slate-400 lg:min-h-[420px]">
+      <div className="flex h-full min-h-96 w-full items-center justify-center bg-[#0a0714] font-mono text-xs text-slate-400 lg:min-h-105">
         Cargando mapa OpenStreetMap...
       </div>
     ),
@@ -261,7 +261,7 @@ export default function DashboardPage() {
               </span>
             </div>
 
-            <div className="max-h-[460px] flex-1 divide-y divide-white/6 overflow-y-auto">
+            <div className="max-h-115 flex-1 divide-y divide-white/6 overflow-y-auto">
               {filteredEvents.map((ev) => {
                 const isSelected = activeEvent?.id === ev.id;
                 const colors = ORIGIN_COLORS[ev.origin];
@@ -315,7 +315,7 @@ export default function DashboardPage() {
         {/* ÁREA PRINCIPAL DERECHA: Mapa arriba + 2 Gráficas abajo */}
         <div className="flex min-w-0 flex-col gap-3">
           {/* MAPA OPENSTREETMAP INTERACTIVO */}
-          <section className="relative min-h-96 flex-1 overflow-hidden rounded-2xl border border-orange-500/35 bg-[#0a0714] shadow-[0_24px_60px_-15px_rgba(0,0,0,0.8)] lg:min-h-[420px]">
+          <section className="relative min-h-96 flex-1 overflow-hidden rounded-2xl border border-orange-500/35 bg-[#0a0714] shadow-[0_24px_60px_-15px_rgba(0,0,0,0.8)] lg:min-h-105">
             {/* Leyenda arriba izquierda */}
             <div className="absolute left-3 top-3 z-500 flex flex-wrap items-center gap-3 rounded-xl border border-white/12 bg-[#0d0818]/90 px-3 py-2 font-mono text-[10px] text-slate-300 backdrop-blur-md">
               {(Object.keys(ORIGIN_COLORS) as FireOrigin[]).map((origin) => (
