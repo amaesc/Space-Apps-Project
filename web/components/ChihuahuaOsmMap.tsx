@@ -333,6 +333,7 @@ export default function ChihuahuaOsmMap(props: Props) {
     g.clearLayers();
     if (!showStations && !condition) return;
     for (const s of stations) {
+      const isAgora = s.id === "AGORA-TEC" || s.name.includes("Agora");
       const v = s.flameDetected
         ? {
             text:
@@ -342,15 +343,40 @@ export default function ChihuahuaOsmMap(props: Props) {
             color: "#ef4444",
           }
         : condition?.stationValue(s);
-      const html = v
-        ? `<span class="station-badge" style="--c:${v.color}"><span class="station-marker"></span>${esc(v.text)}</span>`
-        : '<span class="station-marker"></span>';
-      L.marker([s.lat, s.lon], {
+      
+      const badgeText = v ? esc(v.text) : (isAgora ? `${s.temperatureC}°C · REAL` : "");
+      const badgeColor = v ? v.color : (isAgora ? "#10b981" : "#f59e0b");
+      
+      const html = badgeText
+        ? `<span class="station-badge" style="--c:${badgeColor}; cursor:pointer;"><span class="station-marker"></span>${badgeText}</span>`
+        : '<span class="station-marker" style="cursor:pointer;"></span>';
+      
+      const popupHtml = `
+        <div style="font-family: inherit; min-width: 200px;">
+          <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: ${isAgora ? '#10b981' : '#f59e0b'}; font-weight: bold;">
+            ${isAgora ? '● ESTACIÓN REAL (EN VIVO)' : '○ Estación Demostración'}
+          </div>
+          <strong style="font-size: 14px; display: block; margin: 2px 0 6px 0;">${esc(s.name)}</strong>
+          <div style="font-size: 12px; line-height: 1.5; color: #333;">
+            <strong>Temp:</strong> ${s.temperatureC} °C<br>
+            <strong>Humedad:</strong> ${s.humidityPct} %<br>
+            ${s.luminosityPct !== null ? `<strong>Luz:</strong> ${s.luminosityPct} %<br>` : ''}
+            ${s.pressureHpa !== null ? `<strong>Presión:</strong> ${s.pressureHpa} hPa<br>` : ''}
+            ${s.noiseDb !== null ? `<strong>Ruido:</strong> ${s.noiseDb} dB<br>` : ''}
+            <strong>Riesgo:</strong> Nivel ${s.riskLevel} / 5<br>
+            <span style="font-size: 10px; color: #777; margin-top: 4px; display: block;">ID: ${esc(s.id)} · ${isAgora ? 'Auditorio Menlo, Tec de Monterrey' : 'Sierra de Chihuahua'}</span>
+          </div>
+        </div>
+      `;
+
+      const marker = L.marker([s.lat, s.lon], {
         icon: L.divIcon({ className: "", iconSize: [0, 0], iconAnchor: [-4, 16], html }),
         title: `Field station ${s.name}`,
-        interactive: false,
-        zIndexOffset: 1500,
-      }).addTo(g);
+        interactive: true,
+        zIndexOffset: isAgora ? 2500 : 1500,
+      });
+      marker.bindPopup(popupHtml, { className: "fd-popup", autoPan: true });
+      marker.addTo(g);
     }
   }, [stations, showStations, condition]);
 

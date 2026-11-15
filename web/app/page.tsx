@@ -612,19 +612,36 @@ export default function FireMapPage() {
               <ul className="divide-y divide-white/10">
                 {data.stations.map((s) => {
                   const r = riskFor(s.riskLevel);
+                  const isAgora = s.id === "AGORA-TEC" || s.name.includes("Agora");
                   return (
-                    <li key={s.id} className="px-3 py-2.5">
-                      <p className="flex items-center gap-2 font-semibold">
-                        {s.name}
-                        <span className="rounded px-1.5 text-xs font-bold uppercase" style={{ backgroundColor: r.bg, color: r.fg }}>
-                          {r.level}
+                    <li
+                      key={s.id}
+                      onClick={() => mapApi.current?.focus(s.lat, s.lon, 16)}
+                      className={`px-3 py-2.5 cursor-pointer transition-colors hover:bg-white/5 ${
+                        isAgora ? "border-l-4 border-emerald-500 bg-emerald-950/20" : ""
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="flex items-center gap-2 font-semibold">
+                          {s.name}
+                          <span className="rounded px-1.5 text-xs font-bold uppercase" style={{ backgroundColor: r.bg, color: r.fg }}>
+                            {r.level}
+                          </span>
+                        </p>
+                        <span
+                          className={`text-[10px] px-1.5 py-0.5 rounded font-mono font-bold tracking-wider uppercase ${
+                            isAgora ? "bg-emerald-500 text-black" : "bg-white/10 text-white/60"
+                          }`}
+                        >
+                          {isAgora ? "ESTACIÓN REAL" : "DEMO"}
                         </span>
-                      </p>
-                      <p className="text-sm tabular-nums text-white/75">
-                        {s.temperatureC} °C · {s.humidityPct}% RH · {s.windKmh} km/h · {s.lightningStrikes} strikes
+                      </div>
+                      <p className="text-sm tabular-nums text-white/75 mt-0.5">
+                        {s.temperatureC} °C · {s.humidityPct}% RH · {s.pressureHpa ? `${s.pressureHpa} hPa` : ""}{" "}
+                        {s.luminosityPct !== null ? `· ${s.luminosityPct}% Luz` : ""}
                       </p>
                       <p className="text-xs text-white/55">
-                        {s.id} · {formatAgo(s.recordedAt, now)} · {s.fallbackActive ? "weather backup" : "field sensor"}
+                        {s.id} · {formatAgo(s.recordedAt, now)} · {isAgora ? "ESP32 Live Telemetry" : "Demo Sensor"}
                       </p>
                     </li>
                   );
