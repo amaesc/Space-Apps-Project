@@ -22,6 +22,7 @@ import { LITE_URL, type ModelForecast, useDashboardData, useHarmonizedArchive, u
 import { asset } from "../lib/asset";
 import {
   type BurnCalendar,
+  DEMO_CALENDAR,
   directionsUrl,
   downloadHistoricalCsv,
   downloadHotspotsCsv,
@@ -823,45 +824,74 @@ function CalendarHeatmap({
   onSelectMonth?: (ym: string) => void;
 }) {
   const [applyPost2012Offset, setApplyPost2012Offset] = useState(false);
+  const [sourceMode, setSourceMode] = useState<"harmonized" | "live">("harmonized");
   const m = HARMONIZATION_META;
+  const hasLiveServer = Boolean(calendar && calendar.dataSource === "nasa");
+  const activeSource: "harmonized" | "live" = hasLiveServer ? sourceMode : "harmonized";
+  const activeCalendar: BurnCalendar | null = activeSource === "live" ? calendar : DEMO_CALENDAR;
 
   const scaleVal = (year: number, v: number | null) => {
     if (v === null) return null;
     return applyPost2012Offset && year >= 2012 ? Math.round(v / m.post2012OffsetDivisor) : v;
   };
 
-  const rows = calendar ? [...calendar.rows].reverse() : [];
+  const rows = activeCalendar ? [...activeCalendar.rows].reverse() : [];
   const values = rows.flatMap((r) => r.months.map((v) => scaleVal(r.year, v))).filter((v): v is number => v !== null);
   const max = Math.max(1, ...values);
   const shade = (v: number | null) => (v === null ? "transparent" : `rgba(245, 120, 30, ${(0.08 + 0.92 * (v / max)).toFixed(2)})`);
-  const real = calendar?.dataSource === "nasa";
 
   return (
     <div className="space-y-4">
-      {calendar ? (
+      {activeCalendar ? (
         <>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm text-white/80">
               Monthly fire detections in Chihuahua, {rows[rows.length - 1]?.year}–{rows[0]?.year}. Darker = more activity.
               {onSelectMonth && <span className="ml-1.5 text-xs text-fd-gold/90">Click any cell to load that month on the map.</span>}
             </p>
-            <label className="flex cursor-pointer items-center gap-2 rounded border border-fd-gold/40 bg-fd-gold/10 px-2.5 py-1 text-xs font-semibold text-fd-gold">
-              <input
-                type="checkbox"
-                checked={applyPost2012Offset}
-                onChange={(e) => setApplyPost2012Offset(e.target.checked)}
-                className="accent-[#f5c518]"
-              />
-              Apply ÷{m.post2012OffsetDivisor} post-2012 S-NPP offset correction
-            </label>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex rounded border border-white/20 bg-black/30 p-0.5 text-xs" role="group" aria-label="Calendar data source">
+                <button
+                  type="button"
+                  onClick={() => setSourceMode("harmonized")}
+                  className={`cursor-pointer rounded px-2 py-0.5 font-semibold transition ${
+                    activeSource === "harmonized" ? "bg-emerald-500/25 text-emerald-200" : "text-white/65 hover:text-white"
+                  }`}
+                >
+                  in_calendar = 1 (55,902)
+                </button>
+                <button
+                  type="button"
+                  disabled={!hasLiveServer}
+                  onClick={() => setSourceMode("live")}
+                  title={hasLiveServer ? "Switch to live Raspberry Pi GIBS counts" : "Live GIBS series unavailable from server"}
+                  className={`rounded px-2 py-0.5 font-semibold transition ${
+                    !hasLiveServer
+                      ? "cursor-not-allowed text-white/30"
+                      : activeSource === "live"
+                        ? "cursor-pointer bg-sky-500/25 text-sky-200"
+                        : "cursor-pointer text-white/65 hover:text-white"
+                  }`}
+                >
+                  Live API (GIBS)
+                </button>
+              </div>
+              <label className="flex cursor-pointer items-center gap-2 rounded border border-fd-gold/40 bg-fd-gold/10 px-2.5 py-1 text-xs font-semibold text-fd-gold">
+                <input
+                  type="checkbox"
+                  checked={applyPost2012Offset}
+                  onChange={(e) => setApplyPost2012Offset(e.target.checked)}
+                  className="accent-[#f5c518]"
+                />
+                Apply ÷{m.post2012OffsetDivisor} post-2012 S-NPP offset correction
+              </label>
+            </div>
           </div>
 
-          <p className={`rounded px-2.5 py-1.5 text-sm ${real ? "bg-emerald-500/15 text-emerald-200" : "bg-fd-gold/15 text-fd-gold"}`}>
-            {real
-              ? "Source: real NASA FIRMS detections (MODIS 2002–, VIIRS S-NPP/NOAA-20), harmonized with monthly factor kₘ and detection-level cell filtering."
-              : `Illustrative series. The real NASA calendar is being built on our server${
-                  calendar.realCoverage !== null ? ` (${Math.round(calendar.realCoverage * 100)}% done)` : ""
-                }.`}
+          <p className={`rounded px-2.5 py-1.5 text-sm ${activeSource === "harmonized" ? "bg-emerald-500/15 text-emerald-200" : "bg-sky-500/15 text-sky-200"}`}>
+            {activeSource === "harmonized"
+              ? "Source: detection-level harmonized series (in_calendar = 1, 55,902 rows, 2002–2026) — Aqua MODIS before 2012-01-20 + S-NPP VIIRS ≥ 15 MW / 1.4 km cell."
+              : "Source: live NASA FIRMS GIBS server detections (MODIS 2002–, VIIRS S-NPP/NOAA-20), harmonized with monthly factor kₘ."}
           </p>
 
           <div className="overflow-x-auto">
@@ -869,7 +899,7 @@ function CalendarHeatmap({
               <thead>
                 <tr>
                   <th className="w-14" />
-                  {calendar.monthLabels.map((lbl) => (
+                  {activeCalendar.monthLabels.map((lbl) => (
                     <th key={lbl} scope="col" className="font-semibold text-white/80">{lbl}</th>
                   ))}
                 </tr>
@@ -882,7 +912,7 @@ function CalendarHeatmap({
                       const v = scaleVal(r.year, rawV);
                       const ym = `${r.year}-${String(i + 1).padStart(2, "0")}`;
                       const isSelected = selectedMonth === ym;
-                      const label = v === null ? "no data" : `${calendar.monthLabels[i]} ${r.year}: ${v}${applyPost2012Offset && r.year >= 2012 ? ` (raw ${rawV})` : ""}`;
+                      const label = v === null ? "no data" : `${activeCalendar.monthLabels[i]} ${r.year}: ${v}${applyPost2012Offset && r.year >= 2012 ? ` (raw ${rawV})` : ""}`;
                       return (
                         <td key={i} className="h-4 p-0" style={{ backgroundColor: shade(v) }} title={label}>
                           {v !== null && onSelectMonth ? (
@@ -902,14 +932,14 @@ function CalendarHeatmap({
                 ))}
                 <tr>
                   <th scope="row" className="pr-1 pt-1 text-right font-semibold text-sky-300">Median</th>
-                  {calendar.monthlyMedians.map((v, i) => (
+                  {activeCalendar.monthlyMedians.map((v, i) => (
                     <td key={i} className="pt-1 text-sky-300">{Math.round(v)}</td>
                   ))}
                 </tr>
                 <tr>
                   <th scope="row" className="pr-1 text-right font-semibold text-fd-gold">kₘ</th>
-                  {calendar.kmFactors.map((k, i) => {
-                    const ci = calendar.kmCi95?.[i];
+                  {activeCalendar.kmFactors.map((k, i) => {
+                    const ci = activeCalendar.kmCi95?.[i];
                     return (
                       <td key={i} className="text-fd-gold" title={ci ? `95% CI ${ci[0]}–${ci[1]}` : undefined}>
                         {k.toFixed(2)}
