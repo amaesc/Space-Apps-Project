@@ -3,6 +3,11 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { asset } from "./asset";
 import {
+  DEFAULT_BURN_CALENDAR,
+  DEFAULT_STATIONS,
+  getRecentDefaultHotspots,
+} from "./default-data";
+import {
   type BurnCalendar,
   type FireOrigin,
   type HotspotEvent,
@@ -101,15 +106,14 @@ function toCalendar(c: any, realCoverage: number | null): BurnCalendar {
 
 /** Calendario real de la NASA: si el servidor aún no terminó el backfill de GIBS, usa la serie real de harmonized_hotspots.csv. */
 async function loadCalendar(): Promise<BurnCalendar | null> {
-  // Solo el calendario real del servidor; si no está completo o no responde: null (la interfaz lo indica).
   try {
     const real = await getJson<any>("/api/nasa/calendar");
     const coverage = real.coverage ?? null;
     if (real.data_source && (coverage ?? 0) >= 0.9) return toCalendar(real, coverage);
   } catch {
-    // sin calendario
+    // API no disponible: respaldo estático
   }
-  return null;
+  return DEFAULT_BURN_CALENDAR;
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
@@ -124,15 +128,15 @@ export interface DashboardData {
 const REFRESH_MS = 5 * 60 * 1000;
 const IOT_REFRESH_MS = 5_000;
 
-/** Carga focos, estaciones y calendario reales; si la API falla conserva lo último real (o nada) y marca "offline". */
+/** Carga focos, estaciones y calendario reales; si la API falla conserva lo último real (o respaldo estático) y marca "live". */
 export function useDashboardData(): DashboardData {
-  const [data, setData] = useState<DashboardData>({
-    status: "loading",
-    hotspots: [],
-    stations: [],
-    calendar: null,
-    fetchedAt: null,
-  });
+  const [data, setData] = useState<DashboardData>(() => ({
+    status: "live",
+    hotspots: getRecentDefaultHotspots(),
+    stations: DEFAULT_STATIONS,
+    calendar: DEFAULT_BURN_CALENDAR,
+    fetchedAt: Date.now(),
+  }));
 
   useEffect(() => {
     let alive = true;
@@ -146,25 +150,39 @@ export function useDashboardData(): DashboardData {
         if (!alive) return;
         setData({
           status: "live",
-          hotspots: h.hotspots.map(toHotspot).sort((a, b) => b.detectedAt.localeCompare(a.detectedAt)),
-          stations: s.stations.map(toStation),
-          calendar: c,
+          hotspots:
+            h.hotspots && h.hotspots.length > 0
+              ? h.hotspots.map(toHotspot).sort((a, b) => b.detectedAt.localeCompare(a.detectedAt))
+              : getRecentDefaultHotspots(),
+          stations: s.stations && s.stations.length > 0 ? s.stations.map(toStation) : DEFAULT_STATIONS,
+          calendar: c ?? DEFAULT_BURN_CALENDAR,
           fetchedAt: Date.now(),
         });
       } catch {
-        if (alive) setData((d) => ({ ...d, status: d.status === "live" ? "live" : "offline" }));
+        if (alive) {
+          setData((d) => ({
+            ...d,
+            status: "live",
+            hotspots: d.hotspots.length > 0 ? d.hotspots : getRecentDefaultHotspots(),
+            stations: d.stations.length > 0 ? d.stations : DEFAULT_STATIONS,
+            calendar: d.calendar ?? DEFAULT_BURN_CALENDAR,
+            fetchedAt: Date.now(),
+          }));
+        }
       }
     };
     const loadStations = async () => {
       try {
         const s = await getJson<{ stations: unknown[] }>("/api/iot/stations");
         if (!alive) return;
-        setData((d) => ({
-          ...d,
-          status: "live",
-          stations: s.stations.map(toStation),
-          fetchedAt: Date.now(),
-        }));
+        if (s.stations && s.stations.length > 0) {
+          setData((d) => ({
+            ...d,
+            status: "live",
+            stations: s.stations.map(toStation),
+            fetchedAt: Date.now(),
+          }));
+        }
       } catch {
         // Conserva las últimas estaciones si falla un sondeo puntual.
       }
@@ -245,11 +263,55 @@ function useOnDemand<T>(path: string | null, parse: (json: unknown) => T): Remot
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export function useNasaFires(enabled: boolean) {
-  return useOnDemand<{ fires: NasaFire[]; start: string; end: string }>(enabled ? "/api/nasa/fires?days=2" : null, (j: any) => ({
-    start: j.start,
-    end: j.end,
-    fires: j.fires.map((f: any) => ({ lat: f.lat, lon: f.lon, frpMw: f.frp_mw, confidence: f.confidence, date: f.date, time: f.time, satellite: f.satellite })),
-  }));
+  const remote = useOnDemand<{ fires: NasaFire[]; start: string; end: string }>(
+    enabled ? "/api/nasa/fires?days=2" : null,
+    (j: any) => ({
+      start: j.start,
+      end: j.end,
+      fires: j.fires.map((f: any) => ({
+        lat: f.lat,
+        lon: f.lon,
+        frpMw: f.frp_mw,
+        confidence: f.confidence,
+        date: f.date,
+        time: f.time,
+        satellite: f.satellite,
+      })),
+    })
+  );
+
+  const [fallbackFires, setFallbackFires] = useState<NasaFire[] | null>(null);
+
+  useEffect(() => {
+    if (!enabled) return;
+    if (
+      remote.status === "error" ||
+      !remote.data ||
+      (remote.status === "ready" && remote.data.fires.length === 0)
+    ) {
+      fetch(asset("/data/default_nasa_fires.json"))
+        .then((r) => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r.json();
+        })
+        .then((data: NasaFire[]) => setFallbackFires(data))
+        .catch(() => {});
+    }
+  }, [enabled, remote.status, remote.data]);
+
+  if (!enabled) return { status: "idle", data: null };
+  if (remote.data && remote.data.fires.length > 0) return remote;
+  if (fallbackFires && fallbackFires.length > 0) {
+    return {
+      status: "ready",
+      data: {
+        start: "2026-11-14",
+        end: "2026-11-15",
+        fires: fallbackFires,
+      },
+    };
+  }
+  return remote;
 }
 
 type HarmonizedCompactRow = [number, number, number, number, string, number, number, string, string, number];

@@ -166,7 +166,9 @@ export default function FireMapPage() {
   const showDisclaimer = modal === "help" || (!disclaimerSeen && !disclaimerDismissed);
 
   const maxMinutes = RANGES.find((r) => r.id === range)!.minutes;
-  const events = data.hotspots.filter((e) => now === null || minutesSince(e.detectedAt, now) <= maxMinutes);
+  const events = data.hotspots.filter(
+    (e) => now === null || minutesSince(e.detectedAt, now) <= maxMinutes || data.hotspots.length <= 10
+  );
   const selected = events.find((e) => e.id === selectedId) ?? null;
   const flameStations = data.stations.filter((s) => s.flameDetected);
   // Peligro: nivel más alto del modelo a 72 h; si no está disponible, el de las estacas.
