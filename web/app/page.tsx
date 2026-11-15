@@ -678,7 +678,17 @@ export default function FireMapPage() {
 
         {modal === "calendar" && (
           <Modal title="Harmonized burn calendar & MODIS ↔ VIIRS calibration" onClose={() => setModal(null)} wide>
-            <CalendarHeatmap calendar={data.calendar} />
+            <CalendarHeatmap
+              calendar={data.calendar}
+              selectedMonth={historyMonth}
+              onSelectMonth={(ym) => {
+                setHistoryMonth(ym);
+                setHistoryStartDate("");
+                setHistoryEndDate("");
+                setFire((f) => ({ ...f, history: true }));
+                setModal(null);
+              }}
+            />
           </Modal>
         )}
 
@@ -803,7 +813,15 @@ function Modal({ title, onClose, children, wide }: { title: string; onClose: () 
 }
 
 /** Calendario de quema armonizado + documentación y límites de harmonization/ (MODIS ↔ VIIRS). */
-function CalendarHeatmap({ calendar }: { calendar: BurnCalendar | null }) {
+function CalendarHeatmap({
+  calendar,
+  selectedMonth,
+  onSelectMonth,
+}: {
+  calendar: BurnCalendar | null;
+  selectedMonth?: string;
+  onSelectMonth?: (ym: string) => void;
+}) {
   const [applyPost2012Offset, setApplyPost2012Offset] = useState(false);
   const m = HARMONIZATION_META;
 
@@ -825,6 +843,7 @@ function CalendarHeatmap({ calendar }: { calendar: BurnCalendar | null }) {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm text-white/80">
               Monthly fire detections in Chihuahua, {rows[rows.length - 1]?.year}–{rows[0]?.year}. Darker = more activity.
+              {onSelectMonth && <span className="ml-1.5 text-xs text-fd-gold/90">Click any cell to load that month on the map.</span>}
             </p>
             <label className="flex cursor-pointer items-center gap-2 rounded border border-fd-gold/40 bg-fd-gold/10 px-2.5 py-1 text-xs font-semibold text-fd-gold">
               <input
@@ -861,13 +880,22 @@ function CalendarHeatmap({ calendar }: { calendar: BurnCalendar | null }) {
                     <th scope="row" className="pr-1 text-right font-semibold text-white/80" title={r.source}>{r.year}</th>
                     {r.months.map((rawV, i) => {
                       const v = scaleVal(r.year, rawV);
+                      const ym = `${r.year}-${String(i + 1).padStart(2, "0")}`;
+                      const isSelected = selectedMonth === ym;
+                      const label = v === null ? "no data" : `${calendar.monthLabels[i]} ${r.year}: ${v}${applyPost2012Offset && r.year >= 2012 ? ` (raw ${rawV})` : ""}`;
                       return (
-                        <td
-                          key={i}
-                          title={v === null ? "no data" : `${calendar.monthLabels[i]} ${r.year}: ${v}${applyPost2012Offset && r.year >= 2012 ? ` (raw ${rawV})` : ""}`}
-                          className="h-4"
-                          style={{ backgroundColor: shade(v) }}
-                        />
+                        <td key={i} className="h-4 p-0" style={{ backgroundColor: shade(v) }} title={label}>
+                          {v !== null && onSelectMonth ? (
+                            <button
+                              type="button"
+                              onClick={() => onSelectMonth(ym)}
+                              aria-label={`Load ${label} on map`}
+                              className={`block h-4 w-full cursor-pointer transition hover:ring-1 hover:ring-white/85 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#f5c518] ${
+                                isSelected ? "ring-1 ring-[#f5c518]" : ""
+                              }`}
+                            />
+                          ) : null}
+                        </td>
                       );
                     })}
                   </tr>
