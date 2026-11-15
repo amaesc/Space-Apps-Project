@@ -18,6 +18,13 @@ import { type ConditionDef, gibsTileUrl, probabilityColor, type SatelliteLayer }
 
 export type Basemap = "satellite" | "dark";
 
+export interface AreaBounds {
+  north: number;
+  south: number;
+  east: number;
+  west: number;
+}
+
 export interface MapApi {
   reset: () => void;
   locate: () => void;
@@ -41,6 +48,9 @@ interface Props {
   historyFires: NasaFire[] | null;
   showCause: boolean;
   satellite: SatelliteLayer | null;
+  selectAreaMode?: boolean;
+  selectedBounds?: AreaBounds | null;
+  onAreaSelected?: (bounds: AreaBounds) => void;
 }
 
 const CENTER: [number, number] = [28.4, -106.2];
@@ -67,12 +77,18 @@ const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
 export default function ChihuahuaOsmMap(props: Props) {
   const { events, stations, showStations, basemap, selectedId, onSelect, onReady } = props;
   const { condition, grid, showProbability, forecast, nasaFires, historyFires, showCause, satellite } = props;
+  const { selectAreaMode = false, selectedBounds = null, onAreaSelected } = props;
 
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const rendererRef = useRef<L.Canvas | null>(null);
-  const layers = useRef<Record<"base" | "sat" | "grid" | "history" | "nasa" | "stations" | "hotspots", L.LayerGroup> | null>(null);
+  const layers = useRef<Record<"base" | "sat" | "grid" | "history" | "nasa" | "stations" | "hotspots" | "selection", L.LayerGroup> | null>(null);
   const meRef = useRef<L.CircleMarker | null>(null);
+  const onAreaSelectedRef = useRef(onAreaSelected);
+
+  useEffect(() => {
+    onAreaSelectedRef.current = onAreaSelected;
+  }, [onAreaSelected]);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -89,6 +105,7 @@ export default function ChihuahuaOsmMap(props: Props) {
       nasa: L.layerGroup().addTo(map),
       stations: L.layerGroup().addTo(map),
       hotspots: L.layerGroup().addTo(map),
+      selection: L.layerGroup().addTo(map),
     };
     mapRef.current = map;
 
@@ -272,6 +289,135 @@ export default function ChihuahuaOsmMap(props: Props) {
       map.closePopup();
     }
   }, [events, selectedId, onSelect, showCause]);
+
+  // Rectángulo del área seleccionada
+  useEffect(() => {
+    const g = layers.current?.selection;
+    if (!g) return;
+    g.clearLayers();
+    if (!selectedBounds) return;
+    L.rectangle(
+      [
+        [selectedBounds.south, selectedBounds.west],
+        [selectedBounds.north, selectedBounds.east],
+      ],
+      {
+        color: "#f59e0b",
+        weight: 2,
+        dashArray: "6 4",
+        fillColor: "#f59e0b",
+        fillOpacity: 0.14,
+        interactive: false,
+      }
+    ).addTo(g);
+  }, [selectedBounds]);
+
+  // Modo captura de área (arrastrar de un punto a otro como recorte)
+  useEffect(() => {
+    const map = mapRef.current;
+    const container = containerRef.current;
+    const g = layers.current?.selection;
+    if (!map || !container || !g) return;
+
+    if (!selectAreaMode) {
+      map.dragging.enable();
+      container.style.cursor = "";
+      container.style.touchAction = "";
+      return;
+    }
+
+    map.dragging.disable();
+    container.style.cursor = "crosshair";
+    container.style.touchAction = "none";
+
+    let startPoint: L.Point | null = null;
+    let startLatLng: L.LatLng | null = null;
+    let previewRect: L.Rectangle | null = null;
+
+    const toContainerPoint = (e: PointerEvent) => {
+      const rect = container.getBoundingClientRect();
+      return L.point(e.clientX - rect.left, e.clientY - rect.top);
+    };
+
+    const onPointerDown = (e: PointerEvent) => {
+      if (e.button !== 0 && e.pointerType === "mouse") return;
+      const target = e.target as HTMLElement | null;
+      if (target?.closest(".leaflet-control-container")) return;
+
+      startPoint = toContainerPoint(e);
+      startLatLng = map.containerPointToLatLng(startPoint);
+      g.clearLayers();
+      previewRect = L.rectangle([startLatLng, startLatLng], {
+        color: "#f59e0b",
+        weight: 2,
+        dashArray: "6 4",
+        fillColor: "#f59e0b",
+        fillOpacity: 0.18,
+        interactive: false,
+      }).addTo(g);
+
+      try {
+        container.setPointerCapture(e.pointerId);
+      } catch {
+        // Ignora si el navegador no permite captura para este puntero
+      }
+    };
+
+    const onPointerMove = (e: PointerEvent) => {
+      if (!startLatLng || !previewRect) return;
+      const currentLatLng = map.containerPointToLatLng(toContainerPoint(e));
+      previewRect.setBounds(L.latLngBounds(startLatLng, currentLatLng));
+    };
+
+    const finishDrag = (e: PointerEvent) => {
+      if (!startPoint || !startLatLng) return;
+      const originPoint = startPoint;
+      const originLatLng = startLatLng;
+      const endPoint = toContainerPoint(e);
+      const endLatLng = map.containerPointToLatLng(endPoint);
+      const movedPx = Math.hypot(endPoint.x - originPoint.x, endPoint.y - originPoint.y);
+
+      startPoint = null;
+      startLatLng = null;
+      previewRect = null;
+
+      try {
+        if (container.hasPointerCapture(e.pointerId)) {
+          container.releasePointerCapture(e.pointerId);
+        }
+      } catch {
+        // Ignora
+      }
+
+      if (movedPx < 8) {
+        g.clearLayers();
+        return;
+      }
+
+      const bounds = L.latLngBounds(originLatLng, endLatLng);
+      onAreaSelectedRef.current?.({
+        north: bounds.getNorth(),
+        south: bounds.getSouth(),
+        east: bounds.getEast(),
+        west: bounds.getWest(),
+      });
+    };
+
+    container.addEventListener("pointerdown", onPointerDown);
+    container.addEventListener("pointermove", onPointerMove);
+    container.addEventListener("pointerup", finishDrag);
+    container.addEventListener("pointercancel", finishDrag);
+
+    return () => {
+      container.removeEventListener("pointerdown", onPointerDown);
+      container.removeEventListener("pointermove", onPointerMove);
+      container.removeEventListener("pointerup", finishDrag);
+      container.removeEventListener("pointercancel", finishDrag);
+      map.dragging.enable();
+      container.style.cursor = "";
+      container.style.touchAction = "";
+    };
+  }, [selectAreaMode]);
 
   return <div ref={containerRef} className="fuego-map absolute inset-0" />;
 }

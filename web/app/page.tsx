@@ -1,7 +1,7 @@
 "use client";
 
-import { type ReactNode, useCallback, useRef, useState, useSyncExternalStore } from "react";
-import type { Basemap, MapApi } from "../components/ChihuahuaOsmMap";
+import { type ReactNode, useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import type { AreaBounds, Basemap, MapApi } from "../components/ChihuahuaOsmMap";
 import {
   CalendarIcon,
   CloseIcon,
@@ -13,6 +13,7 @@ import {
   LayersIcon,
   LocateIcon,
   ResetIcon,
+  SelectAreaIcon,
   WarnIcon,
 } from "../components/Icons";
 import LazyMap from "../components/LazyMap";
@@ -25,12 +26,15 @@ import {
   type FireOrigin,
   formatAgo,
   formatTime,
+  type HotspotEvent,
   IS_DEMO_DATA,
   minutesSince,
+  type NasaFire,
   ORIGIN_COLORS,
   ORIGINS,
   RISK_SCALE,
   riskFor,
+  type Station,
 } from "../lib/fire-data";
 import {
   CONDITIONS,
@@ -92,10 +96,27 @@ export default function FireMapPage() {
   const months = historyMonths();
   const [historyMonth, setHistoryMonth] = useState(months.find((m) => m.endsWith("-05")) ?? months[0]);
   const [panelPref, setPanelPref] = useState<boolean | null>(null);
-  const [modal, setModal] = useState<"help" | "calendar" | null>(null);
+  const [modal, setModal] = useState<"help" | "calendar" | "area" | null>(null);
+  const [selectAreaMode, setSelectAreaMode] = useState(false);
+  const [selectedBounds, setSelectedBounds] = useState<AreaBounds | null>(null);
   const [disclaimerDismissed, setDisclaimerDismissed] = useState(false);
   const mapApi = useRef<MapApi | null>(null);
   const onReady = useCallback((api: MapApi) => (mapApi.current = api), []);
+
+  useEffect(() => {
+    if (!selectAreaMode) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSelectAreaMode(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [selectAreaMode]);
+
+  const handleAreaSelected = (bounds: AreaBounds) => {
+    setSelectedBounds(bounds);
+    setSelectAreaMode(false);
+    setModal("area");
+  };
 
   // Capas bajo demanda: cada una se descarga solo al activarla.
   const condition = conditionDef(conditionId);
@@ -152,7 +173,16 @@ export default function FireMapPage() {
           historyFires={fire.history ? history.data : null}
           showCause={fire.cause}
           satellite={satellite}
+          selectAreaMode={selectAreaMode}
+          selectedBounds={selectedBounds}
+          onAreaSelected={handleAreaSelected}
         />
+
+        {selectAreaMode && (
+          <div className="pointer-events-none absolute left-1/2 top-3 z-[1001] -translate-x-1/2 rounded border border-fd-gold/60 bg-[#141416]/95 px-3.5 py-2 text-center text-xs font-semibold text-fd-gold shadow-xl">
+            Drag on the map from one point to another to capture an area · Press Esc to cancel
+          </div>
+        )}
 
         <MapLegend condition={condition} fire={fire} historyMonth={historyMonth} satellite={satellite} forecast={model.data} />
 
@@ -427,6 +457,18 @@ export default function FireMapPage() {
         <nav aria-label="Map tools" className="absolute inset-x-0 bottom-0 z-[1001] flex justify-center">
           <ul className="flex max-w-full overflow-x-auto border border-black/50 bg-[#1f1f22]/95 shadow-2xl md:mb-2 md:rounded">
             <Tool label="Layers" active={panelOpen} onClick={() => setPanelPref(!panelOpen)} icon={<LayersIcon />} />
+            <Tool
+              label="Area"
+              active={selectAreaMode || Boolean(selectedBounds)}
+              onClick={() => {
+                if (selectedBounds && !selectAreaMode) {
+                  setModal("area");
+                } else {
+                  setSelectAreaMode((v) => !v);
+                }
+              }}
+              icon={<SelectAreaIcon />}
+            />
             <Tool label="Location" onClick={() => mapApi.current?.locate()} icon={<LocateIcon />} />
             <Tool label="Reset" onClick={() => mapApi.current?.reset()} icon={<ResetIcon />} />
             <Tool label="Calendar" onClick={() => setModal("calendar")} icon={<CalendarIcon />} disabled={!data.calendar} />
@@ -444,6 +486,27 @@ export default function FireMapPage() {
         {modal === "calendar" && data.calendar && (
           <Modal title="Harmonized burn calendar" onClose={() => setModal(null)} wide>
             <CalendarHeatmap calendar={data.calendar} />
+          </Modal>
+        )}
+
+        {modal === "area" && selectedBounds && (
+          <Modal title="Selected area data" onClose={() => setModal(null)} wide>
+            <AreaSummary
+              bounds={selectedBounds}
+              events={events}
+              stations={data.stations}
+              nasaFires={fire.nasa ? nasa.data?.fires ?? null : null}
+              historyFires={fire.history ? history.data : null}
+              forecast={model.data}
+              onClear={() => {
+                setSelectedBounds(null);
+                setModal(null);
+              }}
+              onReselect={() => {
+                setModal(null);
+                setSelectAreaMode(true);
+              }}
+            />
           </Modal>
         )}
 
@@ -799,5 +862,157 @@ function SatLegendPreview({ legend }: { legend: SatLegend }) {
         <span key={i.label} title={i.label} className="h-2 w-4 border border-white/20" style={{ backgroundColor: i.color }} />
       ))}
     </span>
+  );
+}
+
+/** Resumen de datos extraídos dentro del rectángulo capturado en el mapa. */
+function AreaSummary({
+  bounds,
+  events,
+  stations,
+  nasaFires,
+  historyFires,
+  forecast,
+  onClear,
+  onReselect,
+}: {
+  bounds: AreaBounds;
+  events: HotspotEvent[];
+  stations: Station[];
+  nasaFires: NasaFire[] | null;
+  historyFires: NasaFire[] | null;
+  forecast: ModelForecast | null;
+  onClear: () => void;
+  onReselect: () => void;
+}) {
+  const inBounds = (lat: number, lon: number) =>
+    lat >= bounds.south && lat <= bounds.north && lon >= bounds.west && lon <= bounds.east;
+
+  const areaEvents = events.filter((e) => inBounds(e.lat, e.lon));
+  const areaStations = stations.filter((s) => inBounds(s.lat, s.lon));
+  const areaNasa = nasaFires ? nasaFires.filter((f) => inBounds(f.lat, f.lon)) : null;
+  const areaHistory = historyFires ? historyFires.filter((f) => inBounds(f.lat, f.lon)) : null;
+  const areaCells = forecast ? forecast.cells.filter((c) => inBounds(c.lat, c.lon)) : null;
+
+  const midLatRad = (((bounds.north + bounds.south) / 2) * Math.PI) / 180;
+  const heightKm = Math.abs(bounds.north - bounds.south) * 111.32;
+  const widthKm = Math.abs(bounds.east - bounds.west) * 111.32 * Math.cos(midLatRad);
+  const areaKm2 = Math.round(heightKm * widthKm);
+
+  const maxFrp = areaEvents.length > 0 ? Math.max(...areaEvents.map((e) => e.frpMw)) : 0;
+  const irregularCount = areaEvents.filter((e) => e.irregularUseAlert).length;
+  const maxRiskLevel =
+    areaCells && areaCells.length > 0
+      ? Math.max(...areaCells.map((c) => c.level))
+      : areaStations.length > 0
+        ? Math.max(...areaStations.map((s) => s.riskLevel))
+        : null;
+  const maxRisk = maxRiskLevel !== null ? riskFor(maxRiskLevel) : null;
+
+  const avgTemp =
+    areaStations.length > 0
+      ? (areaStations.reduce((s, st) => s + st.temperatureC, 0) / areaStations.length).toFixed(1)
+      : null;
+  const avgHumidity =
+    areaStations.length > 0
+      ? Math.round(areaStations.reduce((s, st) => s + st.humidityPct, 0) / areaStations.length)
+      : null;
+  const totalStrikes = areaStations.reduce((s, st) => s + st.lightningStrikes, 0);
+
+  return (
+    <div className="space-y-4 text-sm text-white/85">
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded border border-white/10 bg-black/25 px-3 py-2 text-xs tabular-nums">
+        <span>
+          Bounds: <strong>{bounds.south.toFixed(3)}°</strong> to <strong>{bounds.north.toFixed(3)}° N</strong>,{" "}
+          <strong>{bounds.west.toFixed(3)}°</strong> to <strong>{bounds.east.toFixed(3)}° E</strong>
+        </span>
+        <span className="font-semibold text-fd-gold">≈ {areaKm2.toLocaleString()} km²</span>
+      </div>
+
+      <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded border border-white/10 bg-white/5 p-3">
+          <p className="text-[11px] uppercase text-white/60">Active hotspots</p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-white">{areaEvents.length}</p>
+          <p className="mt-0.5 text-xs text-white/65">
+            {areaEvents.length > 0 ? `Max FRP ${maxFrp} MW · ${irregularCount} irregular` : "None in selected area"}
+          </p>
+        </div>
+
+        <div className="rounded border border-white/10 bg-white/5 p-3">
+          <p className="text-[11px] uppercase text-white/60">NASA FIRMS (48 h)</p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-white">{areaNasa ? areaNasa.length : "—"}</p>
+          <p className="mt-0.5 text-xs text-white/65">
+            {areaNasa ? "VIIRS detections in box" : "Enable NASA layer to count"}
+          </p>
+        </div>
+
+        <div className="rounded border border-white/10 bg-white/5 p-3">
+          <p className="text-[11px] uppercase text-white/60">Field stations</p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-white">{areaStations.length}</p>
+          <p className="mt-0.5 text-xs text-white/65">
+            {avgTemp !== null ? `${avgTemp} °C · ${avgHumidity}% RH · ${totalStrikes} strikes` : "No stations inside box"}
+          </p>
+        </div>
+
+        <div className="rounded border border-white/10 bg-white/5 p-3">
+          <p className="text-[11px] uppercase text-white/60">Peak danger / History</p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-white">
+            {maxRisk ? (
+              <span className="rounded px-2 py-0.5 text-sm font-bold uppercase" style={{ backgroundColor: maxRisk.bg, color: maxRisk.fg }}>
+                {maxRisk.level}
+              </span>
+            ) : (
+              "—"
+            )}
+          </p>
+          <p className="mt-0.5 text-xs text-white/65">
+            {areaHistory !== null ? `${areaHistory.length} historical fires` : "Enable History for past count"}
+          </p>
+        </div>
+      </div>
+
+      {areaEvents.length > 0 && (
+        <div>
+          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-white/70">Hotspots by probable cause</p>
+          <div className="flex flex-wrap gap-2">
+            {ORIGINS.map((o) => {
+              const count = areaEvents.filter((e) => e.origin === o).length;
+              if (count === 0) return null;
+              return (
+                <span key={o} className="inline-flex items-center gap-1.5 rounded border border-white/10 bg-white/5 px-2.5 py-1 text-xs">
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: ORIGIN_COLORS[o].hex }} />
+                  {o}: <strong>{count}</strong>
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center justify-end gap-2 border-t border-white/10 pt-3">
+        <button
+          type="button"
+          onClick={onClear}
+          className="cursor-pointer rounded border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/80 hover:bg-white/10 hover:text-white"
+        >
+          Clear selection
+        </button>
+        <button
+          type="button"
+          onClick={onReselect}
+          className="cursor-pointer rounded border border-fd-gold/40 bg-fd-gold/15 px-3 py-1.5 text-xs font-semibold text-fd-gold hover:bg-fd-gold/25"
+        >
+          Select another area
+        </button>
+        <button
+          type="button"
+          disabled={areaEvents.length === 0}
+          onClick={() => downloadHotspotsCsv(areaEvents)}
+          className="cursor-pointer rounded bg-fd-gold px-3.5 py-1.5 text-xs font-bold text-black hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Download area CSV ({areaEvents.length})
+        </button>
+      </div>
+    </div>
   );
 }

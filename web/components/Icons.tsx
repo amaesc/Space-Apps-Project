@@ -53,3 +53,9 @@ export const FlameIcon = ({ className }: P) => (
 export const CloudIcon = ({ className }: P) => (
   <svg {...base(className)}><path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9Z" /></svg>
 );
+export const SelectAreaIcon = ({ className }: P) => (
+  <svg {...base(className)}>
+    <path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3" />
+    <rect x="8" y="8" width="8" height="8" strokeDasharray="2 2" />
+  </svg>
+);
