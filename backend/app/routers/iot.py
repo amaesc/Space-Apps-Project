@@ -38,6 +38,8 @@ class TelemetryIn(BaseModel):
     noise_db: float | None = Field(default=None, ge=0, le=140)
     rssi_dbm: int | None = Field(default=None, ge=-140, le=0, description="Intensidad de señal WiFi/LoRa")
     link_type: str | None = Field(default=None, pattern="^(wifi|lora|cellular)$")
+    flame_detected: bool = Field(default=False)
+    flame_intensity_pct: float = Field(default=0.0, ge=0, le=100)
 
 
 def _seed_stations() -> dict[str, dict[str, Any]]:

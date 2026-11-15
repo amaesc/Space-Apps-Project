@@ -7,6 +7,7 @@ backend/**/__pycache__/
 
 # Credenciales de las estacas ESP32 (WiFi y token)
 esp32/**/secrets.h
+esp32/dht11_wifi/dht11_wifi.ino
 
 # Datos y entornos del modelo (se regeneran con ml/build_dataset.py)
 ml/data/
