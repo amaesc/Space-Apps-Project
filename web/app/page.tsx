@@ -824,6 +824,7 @@ function CalendarHeatmap({
   onSelectMonth?: (ym: string) => void;
 }) {
   const [applyPost2012Offset, setApplyPost2012Offset] = useState(false);
+  const [showCounts, setShowCounts] = useState(false);
   const [sourceMode, setSourceMode] = useState<"harmonized" | "live">("harmonized");
   const m = HARMONIZATION_META;
   const hasLiveServer = Boolean(calendar && calendar.dataSource === "nasa");
@@ -876,6 +877,15 @@ function CalendarHeatmap({
                   Live API (GIBS)
                 </button>
               </div>
+              <label className="flex cursor-pointer items-center gap-1.5 rounded border border-white/20 bg-white/5 px-2.5 py-1 text-xs font-semibold text-white/85">
+                <input
+                  type="checkbox"
+                  checked={showCounts}
+                  onChange={(e) => setShowCounts(e.target.checked)}
+                  className="accent-[#f5c518]"
+                />
+                Show counts
+              </label>
               <label className="flex cursor-pointer items-center gap-2 rounded border border-fd-gold/40 bg-fd-gold/10 px-2.5 py-1 text-xs font-semibold text-fd-gold">
                 <input
                   type="checkbox"
@@ -895,46 +905,64 @@ function CalendarHeatmap({
           </p>
 
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[560px] border-separate border-spacing-0.5 text-center text-xs tabular-nums">
+            <table className="w-full min-w-[610px] border-separate border-spacing-0.5 text-center text-xs tabular-nums">
               <thead>
                 <tr>
                   <th className="w-14" />
                   {activeCalendar.monthLabels.map((lbl) => (
                     <th key={lbl} scope="col" className="font-semibold text-white/80">{lbl}</th>
                   ))}
+                  <th scope="col" className="pl-2 text-right font-semibold text-white/80">Total</th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r) => (
-                  <tr key={r.year}>
-                    <th scope="row" className="pr-1 text-right font-semibold text-white/80" title={r.source}>{r.year}</th>
-                    {r.months.map((rawV, i) => {
-                      const v = scaleVal(r.year, rawV);
-                      const ym = `${r.year}-${String(i + 1).padStart(2, "0")}`;
-                      const isSelected = selectedMonth === ym;
-                      const label = v === null ? "no data" : `${activeCalendar.monthLabels[i]} ${r.year}: ${v}${applyPost2012Offset && r.year >= 2012 ? ` (raw ${rawV})` : ""}`;
-                      return (
-                        <td key={i} className="h-4 p-0" style={{ backgroundColor: shade(v) }} title={label}>
-                          {v !== null && onSelectMonth ? (
-                            <button
-                              type="button"
-                              onClick={() => onSelectMonth(ym)}
-                              aria-label={`Load ${label} on map`}
-                              className={`block h-4 w-full cursor-pointer transition hover:ring-1 hover:ring-white/85 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#f5c518] ${
-                                isSelected ? "ring-1 ring-[#f5c518]" : ""
-                              }`}
-                            />
-                          ) : null}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
+                {rows.map((r) => {
+                  const rowTotal = r.months.reduce<number>((acc, rawV) => acc + (scaleVal(r.year, rawV) ?? 0), 0);
+                  const cellHeight = showCounts ? "h-5" : "h-4";
+                  return (
+                    <tr key={r.year}>
+                      <th scope="row" className="pr-1 text-right font-semibold text-white/80" title={r.source}>{r.year}</th>
+                      {r.months.map((rawV, i) => {
+                        const v = scaleVal(r.year, rawV);
+                        const ym = `${r.year}-${String(i + 1).padStart(2, "0")}`;
+                        const isSelected = selectedMonth === ym;
+                        const label = v === null ? "no data" : `${activeCalendar.monthLabels[i]} ${r.year}: ${v}${applyPost2012Offset && r.year >= 2012 ? ` (raw ${rawV})` : ""}`;
+                        const countText = showCounts && v !== null ? v : null;
+                        return (
+                          <td key={i} className={`${cellHeight} p-0`} style={{ backgroundColor: shade(v) }} title={label}>
+                            {v !== null && onSelectMonth ? (
+                              <button
+                                type="button"
+                                onClick={() => onSelectMonth(ym)}
+                                aria-label={`Load ${label} on map`}
+                                className={`flex ${cellHeight} w-full cursor-pointer items-center justify-center text-[10px] font-medium leading-none text-white/95 transition hover:ring-1 hover:ring-white/85 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#f5c518] ${
+                                  isSelected ? "ring-1 ring-[#f5c518]" : ""
+                                }`}
+                              >
+                                {countText}
+                              </button>
+                            ) : (
+                              countText !== null && (
+                                <span className="flex h-full items-center justify-center text-[10px] font-medium leading-none text-white/95">
+                                  {countText}
+                                </span>
+                              )
+                            )}
+                          </td>
+                        );
+                      })}
+                      <td className="pl-2 text-right font-semibold text-white/85">{rowTotal.toLocaleString()}</td>
+                    </tr>
+                  );
+                })}
                 <tr>
                   <th scope="row" className="pr-1 pt-1 text-right font-semibold text-sky-300">Median</th>
                   {activeCalendar.monthlyMedians.map((v, i) => (
                     <td key={i} className="pt-1 text-sky-300">{Math.round(v)}</td>
                   ))}
+                  <td className="pl-2 pt-1 text-right font-semibold text-sky-300">
+                    {Math.round(activeCalendar.monthlyMedians.reduce((a, b) => a + b, 0)).toLocaleString()}
+                  </td>
                 </tr>
                 <tr>
                   <th scope="row" className="pr-1 text-right font-semibold text-fd-gold">kₘ</th>
@@ -946,9 +974,23 @@ function CalendarHeatmap({
                       </td>
                     );
                   })}
+                  <td className="pl-2 text-right text-white/40">—</td>
                 </tr>
               </tbody>
             </table>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-white/65">
+            <div className="flex items-center gap-2">
+              <span>0</span>
+              <span
+                className="inline-block h-2.5 w-32 rounded-sm border border-white/15"
+                style={{ background: "linear-gradient(90deg, rgba(245, 120, 30, 0.08), rgba(245, 120, 30, 1))" }}
+                aria-hidden="true"
+              />
+              <span>{max.toLocaleString()} detections/mo</span>
+            </div>
+            {applyPost2012Offset && <span className="text-fd-gold/90">÷{m.post2012OffsetDivisor} offset active for 2012–2026</span>}
           </div>
         </>
       ) : (
