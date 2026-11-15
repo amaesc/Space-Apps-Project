@@ -175,6 +175,7 @@ export default function FireMapPage() {
     (e) => (origin === "All" || e.origin === origin) && (now === null || minutesSince(e.detectedAt, now) <= maxMinutes)
   );
   const selected = events.find((e) => e.id === selectedId) ?? null;
+  const flameStations = data.stations.filter((s) => s.flameDetected);
   // Peligro: nivel más alto del modelo a 72 h; si no está disponible, el de las estacas.
   const riskLevel = model.data ? Math.max(1, ...model.data.cells.map((c) => c.level)) : Math.max(1, ...data.stations.map((s) => s.riskLevel));
   const risk = riskFor(riskLevel);
@@ -225,6 +226,25 @@ export default function FireMapPage() {
         {selectAreaMode && (
           <div className="pointer-events-none absolute left-1/2 top-3 z-[1001] -translate-x-1/2 rounded border border-fd-gold/60 bg-[#141416]/95 px-3.5 py-2 text-center text-xs font-semibold text-fd-gold shadow-xl">
             Drag on the map from one point to another to capture an area · Press Esc to cancel
+          </div>
+        )}
+
+        {flameStations.length > 0 && (
+          <div
+            role="alert"
+            className="pointer-events-none absolute left-1/2 top-3 z-[1002] flex w-[min(92%,34rem)] -translate-x-1/2 items-center justify-center gap-2 rounded border border-red-400 bg-red-600/95 px-4 py-2 text-center text-sm font-bold text-white shadow-xl"
+          >
+            <span className="inline-block h-2.5 w-2.5 animate-ping rounded-full bg-white" />
+            <span>
+              FLAME DETECTED:{" "}
+              {flameStations
+                .map((s) =>
+                  s.flameIntensityPct !== null
+                    ? `${s.name} (${Math.round(s.flameIntensityPct)}%)`
+                    : s.name
+                )
+                .join(" · ")}
+            </span>
           </div>
         )}
 

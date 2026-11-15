@@ -39,6 +39,8 @@ export interface Station {
   rssiDbm: number | null;
   linkType: string | null;
   luminosityPct: number | null;
+  flameDetected: boolean;
+  flameIntensityPct: number | null;
 }
 
 /** Detección de incendio activo o histórico de NASA FIRMS (MODIS / VIIRS). */
@@ -226,8 +228,8 @@ export const DEMO_HOTSPOTS: HotspotEvent[] = [
 ];
 
 export const DEMO_STATIONS: Station[] = [
-  { id: "ESP32-CHIH-04", name: "Bocoyna · San Juanito", lat: 27.97, lon: -107.58, temperatureC: 27.4, humidityPct: 22, windKmh: 24.5, lightningStrikes: 0, riskLevel: 4, recordedAt: `${DEMO_DAY}T14:30:00-06:00`, fallbackActive: false, batteryV: 4.12, pressureHpa: 781.4, noiseDb: 38, rssiDbm: -67, linkType: "wifi", luminosityPct: 72 },
-  { id: "ESP32-CHIH-07", name: "Guachochi · Sinforosa", lat: 26.82, lon: -107.07, temperatureC: 22.8, humidityPct: 41, windKmh: 14, lightningStrikes: 3, riskLevel: 2, recordedAt: `${DEMO_DAY}T14:30:00-06:00`, fallbackActive: false, batteryV: 3.98, pressureHpa: 802.9, noiseDb: 44, rssiDbm: -98, linkType: "lora", luminosityPct: 64 },
+  { id: "ESP32-CHIH-04", name: "Bocoyna · San Juanito", lat: 27.97, lon: -107.58, temperatureC: 27.4, humidityPct: 22, windKmh: 24.5, lightningStrikes: 0, riskLevel: 4, recordedAt: `${DEMO_DAY}T14:30:00-06:00`, fallbackActive: false, batteryV: 4.12, pressureHpa: 781.4, noiseDb: 38, rssiDbm: -67, linkType: "wifi", luminosityPct: 72, flameDetected: false, flameIntensityPct: 0 },
+  { id: "ESP32-CHIH-07", name: "Guachochi · Sinforosa", lat: 26.82, lon: -107.07, temperatureC: 22.8, humidityPct: 41, windKmh: 14, lightningStrikes: 3, riskLevel: 2, recordedAt: `${DEMO_DAY}T14:30:00-06:00`, fallbackActive: false, batteryV: 3.98, pressureHpa: 802.9, noiseDb: 44, rssiDbm: -98, linkType: "lora", luminosityPct: 64, flameDetected: false, flameIntensityPct: 0 },
 ];
 
 /** Calendario real 2002–2026 calculado directamente de harmonization/harmonized_hotspots.csv (in_calendar = 1, 55,902 filas). */

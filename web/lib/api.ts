@@ -76,6 +76,8 @@ function toStation(s: any): Station {
     rssiDbm: s.rssi_dbm ?? null,
     linkType: s.link_type ?? null,
     luminosityPct: s.luminosity_pct ?? null,
+    flameDetected: Boolean(s.flame_detected),
+    flameIntensityPct: s.flame_intensity_pct ?? null,
   };
 }
 
@@ -123,6 +125,7 @@ export interface DashboardData {
 }
 
 const REFRESH_MS = 5 * 60 * 1000;
+const IOT_REFRESH_MS = 5_000;
 
 /** Carga focos, estaciones y calendario; si la API falla usa el respaldo de demostración. */
 export function useDashboardData(): DashboardData {
@@ -155,11 +158,27 @@ export function useDashboardData(): DashboardData {
         if (alive) setData((d) => ({ ...d, status: d.status === "live" ? "live" : "offline" }));
       }
     };
+    const loadStations = async () => {
+      try {
+        const s = await getJson<{ stations: unknown[] }>("/api/iot/stations");
+        if (!alive) return;
+        setData((d) => ({
+          ...d,
+          status: "live",
+          stations: s.stations.map(toStation),
+          fetchedAt: Date.now(),
+        }));
+      } catch {
+        // Conserva las últimas estaciones si falla un sondeo puntual.
+      }
+    };
     void load();
     const timer = setInterval(load, REFRESH_MS);
+    const iotTimer = setInterval(loadStations, IOT_REFRESH_MS);
     return () => {
       alive = false;
       clearInterval(timer);
+      clearInterval(iotTimer);
     };
   }, []);
 

@@ -329,7 +329,15 @@ export default function ChihuahuaOsmMap(props: Props) {
     g.clearLayers();
     if (!showStations && !condition) return;
     for (const s of stations) {
-      const v = condition?.stationValue(s);
+      const v = s.flameDetected
+        ? {
+            text:
+              s.flameIntensityPct !== null
+                ? `FLAME ${Math.round(s.flameIntensityPct)}%`
+                : "FLAME ALERT",
+            color: "#ef4444",
+          }
+        : condition?.stationValue(s);
       const html = v
         ? `<span class="station-badge" style="--c:${v.color}"><span class="station-marker"></span>${esc(v.text)}</span>`
         : '<span class="station-marker"></span>';
