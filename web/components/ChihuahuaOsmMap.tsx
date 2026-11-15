@@ -441,7 +441,7 @@ export default function ChihuahuaOsmMap(props: Props) {
       startPoint = toContainerPoint(e);
       startLatLng = map.containerPointToLatLng(startPoint);
       g.clearLayers();
-      previewRect = L.rectangle([startLatLng, startLatLng], {
+      previewRect = L.rectangle(L.latLngBounds(startLatLng, startLatLng), {
         color: "#f59e0b",
         weight: 2,
         dashArray: "6 4",
