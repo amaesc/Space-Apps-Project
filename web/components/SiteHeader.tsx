@@ -11,6 +11,7 @@ import { DataIcon, FeatherIcon, InfoIcon, MapIcon } from "./Icons";
 const LINKS = [
   { href: "/", label: "Fire Map", Icon: MapIcon },
   { href: "/data", label: "Data", Icon: DataIcon },
+  { href: "/agora", label: "Agora", Icon: FeatherIcon },
   { href: "/about", label: "About", Icon: InfoIcon },
 ];
 
