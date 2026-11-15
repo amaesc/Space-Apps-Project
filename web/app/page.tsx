@@ -98,6 +98,8 @@ export default function FireMapPage() {
   const [fire, setFire] = useState<FireLayers>({ nasa: true, history: false, probability: false, weekly: false, cause: true });
   const months = historyMonths();
   const [historyMonth, setHistoryMonth] = useState(months.find((m) => m.endsWith("-05")) ?? months[0]);
+  const [historyStartDate, setHistoryStartDate] = useState("");
+  const [historyEndDate, setHistoryEndDate] = useState("");
   const [historyOnlyInCalendar, setHistoryOnlyInCalendar] = useState(true);
   const [showHarmonizationZone, setShowHarmonizationZone] = useState(false);
   const [panelPref, setPanelPref] = useState<boolean | null>(null);
@@ -126,7 +128,38 @@ export default function FireMapPage() {
   // Capas bajo demanda: cada una se descarga solo al activarla.
   const condition = conditionDef(conditionId);
   const nasa = useNasaFires(fire.nasa);
-  const history = useHistoricalFires(fire.history ? historyMonth : null);
+  const hasRange = Boolean(historyStartDate || historyEndDate);
+  const rangeStart = historyStartDate || historyEndDate;
+  const rangeEnd = historyEndDate || historyStartDate;
+  const isMultiMonthRange = Boolean(
+    rangeStart && rangeEnd && rangeStart.slice(0, 7) !== rangeEnd.slice(0, 7)
+  );
+  const history = useHistoricalFires(fire.history && !isMultiMonthRange ? historyMonth : null);
+  const rangeArchive = useHarmonizedArchive(fire.history && isMultiMonthRange);
+
+  const filteredHistory = (() => {
+    if (!hasRange) return history.data;
+    if (isMultiMonthRange) {
+      if (!rangeArchive.data) return null;
+      const ymStart = rangeStart.slice(0, 7);
+      const ymEnd = rangeEnd.slice(0, 7);
+      return Object.entries(rangeArchive.data)
+        .filter(([ym]) => ym >= ymStart && ym <= ymEnd)
+        .flatMap(([, rows]) => rows.filter((f) => f.date >= rangeStart && f.date <= rangeEnd));
+    }
+    if (!history.data) return null;
+    return history.data.filter((f) => f.date >= rangeStart && f.date <= rangeEnd);
+  })();
+
+  const visibleHistory =
+    filteredHistory && historyOnlyInCalendar
+      ? filteredHistory.filter((f) => f.inCalendar)
+      : filteredHistory;
+  const historyRangeLabel = hasRange
+    ? rangeStart === rangeEnd
+      ? rangeStart
+      : `${rangeStart}_to_${rangeEnd}`
+    : historyMonth;
   // El modelo se carga siempre (alimenta el panel de peligro); la cuadrícula de clima, solo si hace falta.
   const model = useModelForecast(true);
   const weekly = useWeeklyForecast(fire.weekly || modal === "weekly" || modal === "area");
@@ -178,7 +211,7 @@ export default function FireMapPage() {
           weeklyForecast={weekly.data}
           showWeekly={fire.weekly}
           nasaFires={fire.nasa ? nasa.data?.fires ?? null : null}
-          historyFires={fire.history ? history.data : null}
+          historyFires={fire.history ? filteredHistory : null}
           historyOnlyInCalendar={historyOnlyInCalendar}
           showHarmonizationZone={fire.history && showHarmonizationZone}
           showCause={fire.cause}
@@ -294,7 +327,11 @@ export default function FireMapPage() {
                   >
                     <select
                       value={historyMonth}
-                      onChange={(e) => setHistoryMonth(e.target.value)}
+                      onChange={(e) => {
+                        setHistoryMonth(e.target.value);
+                        setHistoryStartDate("");
+                        setHistoryEndDate("");
+                      }}
                       aria-label="Historical month"
                       className="mt-1 w-full rounded border border-white/20 bg-[#141416] px-2 py-1 text-sm"
                     >
@@ -302,6 +339,98 @@ export default function FireMapPage() {
                         <option key={m} value={m}>{monthLabel(m)}</option>
                       ))}
                     </select>
+                    <div className="mt-1.5 rounded border border-white/15 bg-black/25 p-2 text-xs">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-white/85">Calendar range &amp; print</span>
+                        {hasRange && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setHistoryStartDate("");
+                              setHistoryEndDate("");
+                            }}
+                            className="cursor-pointer text-[11px] font-semibold text-fd-gold hover:underline"
+                          >
+                            All month
+                          </button>
+                        )}
+                      </div>
+                      <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+                        <label className="block text-[10px] text-white/60">
+                          From
+                          <input
+                            type="date"
+                            value={historyStartDate}
+                            min="2002-07-04"
+                            max={historyEndDate || "2026-08-30"}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setHistoryStartDate(val);
+                              if (val) {
+                                const ym = val.slice(0, 7);
+                                if (months.includes(ym)) setHistoryMonth(ym);
+                                if (historyEndDate && historyEndDate < val) setHistoryEndDate(val);
+                              }
+                            }}
+                            aria-label="Start date"
+                            className="mt-0.5 w-full rounded border border-white/20 bg-[#141416] px-1.5 py-1 text-[11px] text-white"
+                          />
+                        </label>
+                        <label className="block text-[10px] text-white/60">
+                          To
+                          <input
+                            type="date"
+                            value={historyEndDate}
+                            min={historyStartDate || "2002-07-04"}
+                            max="2026-08-30"
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setHistoryEndDate(val);
+                              if (val && !historyStartDate) {
+                                const ym = val.slice(0, 7);
+                                if (months.includes(ym)) setHistoryMonth(ym);
+                              }
+                            }}
+                            aria-label="End date"
+                            className="mt-0.5 w-full rounded border border-white/20 bg-[#141416] px-1.5 py-1 text-[11px] text-white"
+                          />
+                        </label>
+                      </div>
+                      <div className="mt-1.5 flex items-center justify-between gap-1.5">
+                        <span className="truncate text-[11px] text-white/65">
+                          {isMultiMonthRange && rangeArchive.status === "loading"
+                            ? "Loading range…"
+                            : `${visibleHistory?.length ?? 0} detections`}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            disabled={!visibleHistory || visibleHistory.length === 0}
+                            onClick={() =>
+                              visibleHistory &&
+                              printHistoricalReport(
+                                visibleHistory,
+                                hasRange ? `${rangeStart} to ${rangeEnd}` : monthLabel(historyMonth)
+                              )
+                            }
+                            className="cursor-pointer rounded border border-fd-gold/40 bg-fd-gold/15 px-2.5 py-1 text-[11px] font-semibold text-fd-gold hover:bg-fd-gold/25 disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            Print
+                          </button>
+                          <button
+                            type="button"
+                            disabled={!visibleHistory || visibleHistory.length === 0}
+                            onClick={() =>
+                              visibleHistory &&
+                              downloadHistoricalCsv(visibleHistory, historyRangeLabel)
+                            }
+                            className="cursor-pointer rounded border border-white/20 bg-white/10 px-2 py-1 text-[11px] font-semibold text-white hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            CSV
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                     <label className="mt-1.5 flex cursor-pointer items-start gap-2 text-xs text-white/80">
                       <input
                         type="checkbox"
@@ -573,8 +702,8 @@ export default function FireMapPage() {
               events={events}
               stations={data.stations}
               nasaFires={fire.nasa ? nasa.data?.fires ?? null : null}
-              historyFires={fire.history ? history.data : null}
-              historyMonth={historyMonth}
+              historyFires={fire.history ? filteredHistory : null}
+              historyMonth={historyRangeLabel}
               forecast={model.data}
               weeklyForecast={weekly.data}
               onClear={() => {
@@ -1562,4 +1691,30 @@ function WeeklyRiskModal({
       </div>
     </div>
   );
+}
+
+/** Abre una vista limpia lista para imprimir con los focos históricos de la fecha o mes seleccionado. */
+function printHistoricalReport(fires: NasaFire[], label: string): void {
+  const win = window.open("", "_blank", "width=900,height=700");
+  if (!win) return;
+  const maxFrp = fires.length > 0 ? Math.max(...fires.map((f) => f.frpMw)).toFixed(1) : "0";
+  const avgFrp = fires.length > 0 ? (fires.reduce((s, f) => s + f.frpMw, 0) / fires.length).toFixed(1) : "0";
+  const inCalCount = fires.filter((f) => f.inCalendar).length;
+  const rowsHtml = fires
+    .slice(0, 500)
+    .map(
+      (f) =>
+        `<tr><td>${f.date}</td><td>${f.lat.toFixed(4)}</td><td>${f.lon.toFixed(4)}</td><td>${f.frpMw}</td><td>${f.brightnessK ?? "—"}</td><td>${f.brightT31K ?? "—"}</td><td>${f.satellite || "—"}</td><td>${f.confidence}</td><td>${f.inCalendar ? "1" : "0"}</td></tr>`
+    )
+    .join("");
+  win.document.write(`<!doctype html><html><head><title>FuegoData · ${label}</title>
+    <style>body{font-family:system-ui,sans-serif;padding:24px;color:#111}h1{font-size:18px;margin:0 0 6px}p{margin:0 0 14px;font-size:13px;color:#444}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #ccc;padding:4px 6px;text-align:left}th{background:#f4f4f5}</style>
+    </head><body>
+    <h1>FuegoData · Harmonized Fire Detections (${label})</h1>
+    <p>Total rows: <b>${fires.length}</b> · in_calendar = 1: <b>${inCalCount}</b> · Mean FRP: <b>${avgFrp} MW</b> · Max FRP: <b>${maxFrp} MW</b>${fires.length > 500 ? " (showing first 500 rows)" : ""}</p>
+    <table><thead><tr><th>Date</th><th>Lat</th><th>Lon</th><th>FRP (MW)</th><th>Bright (K)</th><th>T31 (K)</th><th>Satellite</th><th>Conf</th><th>in_calendar</th></tr></thead><tbody>${rowsHtml}</tbody></table>
+    </body></html>`);
+  win.document.close();
+  win.focus();
+  win.print();
 }
