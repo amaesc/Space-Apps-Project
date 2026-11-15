@@ -97,14 +97,15 @@ bun run dev
 
 Open `http://localhost:3000` in your browser.
 
-### Estación IoT ESP32 (DHT11 + Luminosidad + Sonido)
+### Estación IoT ESP32 (DHT11 + Sonido + Flama + Presión)
 
 El sketch `esp32/dht11_wifi/dht11_wifi.ino` está incluido en `.gitignore` porque guarda credenciales estáticas directamente en el archivo (`WIFI_SSID`, `WIFI_PASSWORD`, `SERVER_URL`, `STATION_TOKEN`).
 
 - **Conexiones (ESP32-WROOM-32)**:
   - `DHT11` (`DATA`) → `GPIO 4`
-  - Sensor de luz (`AO`) → `GPIO 34` (o `GPIO 7` en ESP32-S3/S2)
   - Sensor de sonido `KY-037 / KY-038` (`A0`) → `GPIO 35`
+  - Sensor de flama IR `KY-026` (`A0`) → `GPIO 32`
+  - Barómetro `BMP280` (I2C) → `GPIO 21` (`SDA`), `GPIO 22` (`SCL`)
 - **Referencia de credenciales**: toma como plantilla [secrets.example.h](esp32/dht11_wifi/secrets.example.h) para configurar `WIFI_SSID`, `WIFI_PASSWORD`, `SERVER_URL` (`https://raspi.taile2c6bf.ts.net/api/iot/telemetry` o `http://<IP-local>:8000/api/iot/telemetry`) y `STATION_TOKEN`.
 - **Backend local**:
   ```bash

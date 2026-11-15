@@ -20,10 +20,6 @@ const char *STATION_NAME = "ESP32 DHT11 Prueba";
 
 #define DHTPIN 4
 #define DHTTYPE DHT11
-// En ESP32-S3/S2, GPIO 7 es ADC1_CH6 (compatible con WiFi).
-// En ESP32 clásico (WROOM/DevKit), GPIO 7 es flash SPI interno: usa GPIO 34,
-// 35, 32 o 33.
-#define LDR_PIN 7
 // KY-037 / KY-038 salida analógica A0 conectada a GPIO 35 (ADC1_CH7)
 #define SOUND_PIN 35
 // KY-026 sensor de flama IR salida analógica A0 conectada a GPIO 32 (ADC1_CH4)
@@ -99,8 +95,6 @@ void loop() {
 
   float humidity = dht.readHumidity();
   float tempC = dht.readTemperature();
-  int lightRaw = analogRead(LDR_PIN);
-  float luminosityPct = (lightRaw / 4095.0f) * 100.0f;
   float noiseDb = readNoiseDb(SOUND_PIN);
   int flameRaw = analogRead(FLAME_PIN);
   float flameIntensityPct = ((4095 - flameRaw) / 4095.0f) * 100.0f;
@@ -120,8 +114,8 @@ void loop() {
   }
 
   Serial.printf("Lectura -> Temp: %.1f °C | Humedad: %.1f %% | Presion: %s hPa | "
-                "Luz: %.1f %% (raw %d) | Ruido: %.1f dB | Flama: %s (%.1f %%, raw %d)\n",
-                tempC, humidity, pressureField, luminosityPct, lightRaw, noiseDb,
+                "Ruido: %.1f dB | Flama: %s (%.1f %%, raw %d)\n",
+                tempC, humidity, pressureField, noiseDb,
                 flameDetected ? "SI" : "NO", flameIntensityPct, flameRaw);
 
   if (WiFi.status() != WL_CONNECTED) {
@@ -149,11 +143,11 @@ void loop() {
   char payload[512];
   snprintf(payload, sizeof(payload),
            "{\"station_id\":\"%s\",\"name\":\"%s\",\"temperature_c\":%.2f,"
-           "\"humidity_pct\":%.2f,\"pressure_hpa\":%s,\"luminosity_pct\":%.2f,"
+           "\"humidity_pct\":%.2f,\"pressure_hpa\":%s,"
            "\"noise_db\":%.1f,\"flame_detected\":%s,\"flame_intensity_pct\":%.1f,"
            "\"rssi_dbm\":%d,\"link_type\":\"wifi\"}",
            STATION_ID, STATION_NAME, tempC, humidity, pressureField,
-           luminosityPct, noiseDb, flameDetected ? "true" : "false",
+           noiseDb, flameDetected ? "true" : "false",
            flameIntensityPct, (int)WiFi.RSSI());
 
   int httpCode = http.POST((uint8_t *)payload, strlen(payload));
