@@ -1,99 +1,112 @@
-# UNDEFINED — Calendario Armonizado de Quema y Riesgo de Incendio
+# FuegoData — Wildfire Hotspot Map & Burn Calendar
 
-> **NASA Space Apps Challenge 2026** · Caso piloto: **Sierra de Chihuahua, México**
+> **NASA Space Apps Challenge 2026** · Team **UNDEFINED** · Pilot region: **Sierra de Chihuahua, Mexico**
 
-Plataforma web geoespacial que unifica más de dos décadas de puntos calientes satelitales **MODIS** (1 km) y **VIIRS** (375 m) en un **calendario consistente de actividad de quema**, acoplado con telemetría **IoT en campo** y estimación probabilística del **origen probable** de los incendios.
-
----
-
-## 1. El Problema
-
-Los sensores satelitales **MODIS** (a bordo de Terra y Aqua, desde el año 2000) y **VIIRS** (desde 2012, con mayor resolución espacial y sensibilidad) no son comparables de forma directa: difieren en tamaño de píxel, sensibilidad térmica y horarios de paso. Esto impide a brigadistas, científicos y gestores territoriales comparar el mes actual contra la mediana histórica o detectar anomalías reales sin sesgo de sensor.
-
-## 2. Propuesta de Solución (**UNDEFINED**)
-
-Nuestra arquitectura acopla **tres módulos**:
-
-1. **Armonización MODIS → VIIRS ($k_m$)**:
-   - Calibración mensual mediante un factor $k_m$ en la ventana de traslape (2012–2026) con intervalos de confianza por _bootstrap_ y validación _leave-year-out_.
-   - Permite visualizar una serie temporal continua (2000–2026) donde el sensor de origen deja de distorsionar las tendencias y anomalías.
-2. **Estación IoT en campo + Fallback automático**:
-   - Nodo autónomo con **ESP32 (WiFi / LoRa)**, **BME280** (temperatura y humedad relativa), sensores de viento y lluvia, detector de rayos **AS3935**, pantalla local con 5 LEDs de alerta y panel solar.
-   - Si no hay cobertura IoT en una zona, el sistema cambia automáticamente a respaldo satelital/meteorológico (**Open-Meteo** + **GOES-GLM**).
-3. **Estimación de origen probable**:
-   - Clasificación probabilística por zona (`Humano`, `Rayo`, `Forestal`, `Indeterminado`) cruzando detecciones térmicas con descargas eléctricas (**GOES-GLM**), registros de **CONAFOR** y polígonos de **CONANP**.
-   - _Nota: Estimaciones orientadas a priorizar inspecciones preventivas; no constituyen prueba legal._
+**FuegoData** is a geospatial wildfire intelligence platform that harmonizes **MODIS** (1 km) and **VIIRS** (375 m) satellite hotspots from NASA FIRMS into a consistent **burn calendar**, integrates field **IoT telemetry** (with automatic meteorological fallback), and estimates the **probable origin** of fire detections (*Human*, *Lightning*, *Wildland*, *Undetermined*).
 
 ---
 
-## 3. Estado Actual Implementado (`web/`)
+## 1. The Problem
 
-Stack: **Next.js 16 (App Router)** · **React 19** · **TypeScript** · **Tailwind CSS v4** · **Leaflet + OpenStreetMap** · **Bun**.
-
-| Ruta          | Descripción                                                                                                                                                                                                                                                         |
-| :------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `/`           | Landing principal con demo interactiva de armonización (`Sin armonizar` vs `Armonizado` + matriz años × meses), arquitectura de 3 módulos, roadmap de 6 vistas y sección de equipo.                                                                                 |
-| `/login`      | Acceso con pestañas **Iniciar sesión / Crear cuenta** y flujo real de **Google OAuth 2.0** con cookies HTTP-only firmadas (HMAC-SHA256).                                                                                                                            |
-| `/dashboard`  | Centro de mando geoespacial: mapa oscuro de **OpenStreetMap** centrado en Sierra de Chihuahua, feed de detecciones sincronizado, filtros por origen probable, KPIs de 28 días, gráfica de distribución por origen, serie diaria armonizada y **descarga CSV** real. |
-| `/api/auth/*` | Endpoints de autenticación (`/api/auth/google`, `/api/auth/google/callback`, `/api/auth/session`, `/api/auth/logout`).                                                                                                                                              |
+Satellite sensors **MODIS** (active since 2000) and **VIIRS** (active since 2012) differ in spatial resolution, thermal sensitivity, and overpass schedules. Comparing raw counts directly introduces artificial jumps across multi-decade records, making it difficult for brigades, researchers, and local communities to separate real wildfire anomalies from sensor changes—or to distinguish natural lightning fires from human-caused ignitions.
 
 ---
 
-## 4. Cómo ejecutar en local
+## 2. Solution Architecture
+
+FuegoData couples satellite harmonization, edge IoT hardware, and probabilistic origin modeling:
+
+1. **MODIS → VIIRS Harmonization ($k_m$)**
+   - Monthly calibration using a $k_m$ factor across the overlap window, with confidence intervals and cross-validation.
+   - Enables a continuous historical burn calendar (`Años × Meses`) without sensor distortion.
+2. **Field IoT Stations + Automatic Fallback**
+   - Autonomous solar-powered **ESP32** nodes (WiFi / LoRa) with **BME280** (temperature & relative humidity), wind/rain sensors, **AS3935** lightning detector, local screen, and a 5-LED risk semaphore.
+   - In areas without IoT coverage, the platform falls back to gridded weather and satellite data (**Open-Meteo** & **GOES-GLM**).
+3. **Probable Origin & Risk Estimation**
+   - Combines thermal detections, lightning proximity, weather conditions (FWI), and land context to classify probable origin (`Human`, `Lightning`, `Wildland`, `Undetermined`) and flag potential irregular fire use for preventive inspection.
+   - *Note: Probabilistic estimates are intended to prioritize preventive inspections and do not constitute legal proof.*
+
+---
+
+## 3. Current Implementation (`web/`)
+
+The frontend is a **static Next.js export** (`output: "export"`) ready for **GitHub Pages**, connected to a live **Raspberry Pi API** exposed via **Tailscale Funnel** (with automatic fallback to built-in demo data if the API is unreachable).
+
+### Tech Stack
+- **Framework:** Next.js 16 (`16.4.6`, Turbopack, static export) · React 19 (`19.3.0`) · TypeScript 5
+- **Styling:** Tailwind CSS v4 (`@tailwindcss/turbopack`)
+- **Maps:** Leaflet (`1.9.4`) + OpenStreetMap / Satellite basemaps
+- **Package Manager / Runtime:** Bun (`bun@1.4.2`)
+- **Edge Backend:** Raspberry Pi API via Tailscale Funnel (`NEXT_PUBLIC_API_URL`) with a `/lite` mode for slow rural connections
+
+### Routes
+
+| Route | Purpose |
+| :--- | :--- |
+| `/` | **Live Wildfire Map (`FireMapPage`)**: Satellite/street basemap, time filters (`24HRS`, `7DAYS`, `ALL`), origin filters, on-demand layers (NASA FIRMS, historical monthly fires, model forecast probability, weather grid, IoT stations), burn calendar modal, CSV export, and slow-connection `/lite` detection. |
+| `/data` | Open data & CSV download center (`DataDownloads`). |
+| `/challenge` | Background on the MODIS/VIIRS discontinuity and wildfire detection challenge. |
+| `/how-it-works` | Detailed architecture, harmonization pipeline, and IoT + fallback design. |
+| `/about` | Platform overview and module breakdown (`AboutTabs`). |
+| `/team` | Team **UNDEFINED** and NASA Space Apps Challenge 2026 context. |
+
+### Project Structure
+
+```text
+Space-Apps-Project/
+├── Imagen/                     # Source illustrations & visual assets
+└── web/                        # Next.js static web application
+    ├── app/
+    │   ├── page.tsx            # Main interactive wildfire map (/)
+    │   ├── data/page.tsx       # Data & CSV downloads (/data)
+    │   ├── (landing)/          # Informational pages (/about, /challenge, /how-it-works, /team)
+    │   ├── layout.tsx          # Root metadata & Titillium Web font
+    │   └── globals.css         # Tailwind v4 & map/animation styles
+    ├── components/
+    │   ├── ChihuahuaOsmMap.tsx # Leaflet interactive map
+    │   ├── LazyMap.tsx         # Client-side lazy map wrapper
+    │   ├── SiteHeader.tsx      # Top navigation bar
+    │   ├── HeroHarmonizationPreview.tsx
+    │   ├── DataDownloads.tsx
+    │   ├── AboutTabs.tsx
+    │   └── ModelCard.tsx
+    ├── lib/
+    │   ├── api.ts              # Live Raspberry Pi API hooks + demo fallback
+    │   ├── fire-data.ts        # Types, risk scales, CSV export & demo datasets
+    │   ├── layers.ts           # Satellite, weather & historical layer definitions
+    │   └── asset.ts            # Base-path helper for GitHub Pages
+    └── next.config.ts          # output: "export", PAGES_BASE_PATH, unoptimized images
+```
+
+---
+
+## 4. Local Development
+
+### Prerequisites
+- [Bun](https://bun.sh/) (`1.4.2+`) or Node.js (`20+`)
+
+### Run locally
 
 ```bash
 cd web
 bun install
-cp .env.example .env.local
-# Configura GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET y AUTH_SECRET en web/.env.local
 bun run dev
 ```
 
-Abre `http://localhost:3000` en tu navegador.
-*(En Google Cloud Console configura como Redirect URI autorizado: `http://localhost:3000/api/auth/google/callback`.)*
+Open `http://localhost:3000` in your browser.
 
----
+### Environment Variables (`web/.env.local`)
 
-## 5. Mejoras propuestas sobre `web/` (alineadas al documento de proyecto)
+| Variable | Description | Default |
+| :--- | :--- | :--- |
+| `NEXT_PUBLIC_API_URL` | Base URL of the Raspberry Pi API (Tailscale Funnel) | `https://raspi.taile2c6bf.ts.net` |
+| `PAGES_BASE_PATH` | Optional base path when deploying to GitHub Pages (e.g. `/Space-Apps-Project`) | `""` |
 
-Para cubrir al 100 % la propuesta técnica de **UNDEFINED** y los objetivos del reto NASA Space Apps:
+### Available Scripts (inside `web/`)
 
-1. **Ficha explicable + alerta de posible uso irregular**:
-   - Mostrar las razones principales de cada predicción (ej. *sin rayos GOES-GLM en 5 días, a 400 m de un camino, sábado 15:00 h, terreno forestal, FWI alto*).
-   - Etiquetar con **"Posible uso de fuego irregular, requiere verificación"** cuando coincida origen humano probable con áreas naturales protegidas (**CONANP**), terreno forestal o riesgo muy alto/extremo (referencia **NOM-015-SEMARNAT/SAGARPA**).
-2. **Pestañas con las 6 vistas en `/dashboard`**:
-   - **Mapa y Resumen 28d**: Vista geoespacial actual con detecciones recientes y KPIs.
-   - **Calendario 2000–2026**: Matriz completa años × meses filtrable por **Total / Natural / Humano**, comparando el **mes actual contra la mediana histórica** ($\Delta\%$).
-   - **Estación IoT y Metodología**: Telemetría en campo (BME280, viento/lluvia, AS3935, 5 niveles de riesgo, fallback Open-Meteo), validación *leave-year-out* y curvas de calibración (Regresión Logística / LightGBM).
-3. **Capas en OpenStreetMap (Leaflet)**:
-   - Mostrar nodos de estaciones **ESP32** con su semáforo de riesgo y toggle para polígonos **CONANP** / áreas de interés (AOI por polígono o `lat, lon` + radio).
-4. **Exportación CSV enriquecida y rampas accesibles**:
-   - Incluir `sensor_origen`, `conteo_armonizado_km`, `origen_probable`, `probabilidad_pct`, `razones` y `alerta_uso_irregular`, además de paletas accesibles (*Viridis / Cividis*).
-5. **Conexión con datos reales de NASA FIRMS**:
-   - Ingestar históricos y recientes de **MODIS C6.1** y **VIIRS (S-NPP, NOAA-20, NOAA-21)** junto con registros de **CONAFOR** y **GOES-GLM**.
-
----
-
-## 6. Guion de Demostración (3 minutos)
-
-1. **El reto (`/`)**: Mostrar en `#preview` la diferencia entre las series **Sin armonizar** y **Armonizado ($k_m$)** en Sierra de Chihuahua.
-2. **Acceso (`/login`)**: Iniciar sesión con **Google OAuth 2.0** hacia el centro de mando.
-3. **Operación (`/dashboard`)**: Filtrar puntos por origen probable en **OpenStreetMap**, inspeccionar un punto humano con sus razones y alerta de verificación, revisar la telemetría **ESP32** y descargar el **CSV**.
-
----
-
-## 7. Plan de Trabajo por Fases
-
-- **Fase 1 (MVP Hackathon — Actual)**: Landing explicativa + demo interactiva, autenticación Google OAuth, dashboard geoespacial con OpenStreetMap, filtros por origen y descarga CSV con datos piloto de Sierra de Chihuahua.
-- **Fase 2 (Integración de Datos y Hardware)**: Calendario completo 2000–2026 con datos reales de NASA FIRMS, entrenamiento de modelo de origen con histórico CONAFOR + GOES-GLM y conexión en vivo de la estación **ESP32**.
-
----
-
-## 8. Alcances y Limitaciones
-
-- La atribución de origen es una **probabilidad estadística** para priorizar inspecciones preventivas; en ningún caso señala predios ni personas ni constituye prueba legal.
-- Fuera del radio de cobertura de la estación IoT en campo, el sistema utiliza respaldo modelado de **Open-Meteo** y **GOES-GLM**.
-- El modelo de riesgo estima peligro según condiciones meteorológicas y estacionales; no predice el punto ni la hora exacta de inicio de un incendio.
-
-
-//.
+```bash
+bun run dev     # Start local development server
+bun run build   # Generate static export (out/)
+bun run start   # Serve production build
+bun run lint    # Run ESLint
+```
