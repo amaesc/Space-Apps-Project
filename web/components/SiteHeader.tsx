@@ -47,9 +47,8 @@ export default function SiteHeader() {
                   href={href}
                   aria-label={label}
                   aria-current={active ? "page" : undefined}
-                  className={`flex items-center gap-1.5 rounded px-2.5 py-2 text-[15px] font-semibold sm:px-3 sm:py-1.5 ${
-                    active ? "bg-black/25 text-fd-gold" : "text-white hover:bg-black/20 hover:text-fd-gold"
-                  }`}
+                  className={`flex items-center gap-1.5 rounded px-2.5 py-2 text-[15px] font-semibold sm:px-3 sm:py-1.5 ${active ? "bg-black/25 text-fd-gold" : "text-white hover:bg-black/20 hover:text-fd-gold"
+                    }`}
                 >
                   <Icon className="h-[18px] w-[18px]" />
                   <span className="hidden sm:inline">{label}</span>
