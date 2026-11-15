@@ -15,50 +15,108 @@ Changes to existing fields (MODIS rows only, except the date):
                fire signal (mid-IR minus thermal-IR) onto the SNPP one, fitted on Aqua<->SNPP pairs (same place, <=15 min),
                separately for day and night. Result is capped at 367 K (VIIRS ceiling) and never below bright_t31.
 Everything else (bright_t31, frp, scan, track, version, instrument, type) is exactly as in the source.
-Usage: python3 -I build_harmonized_dataset.py <modis.csv> <snpp.csv> <out.csv>
+An optional `region` column (added by clean_inputs.py) is passed through unchanged.
+
+Usage: python3 -I build_harmonized_dataset.py <modis.csv> <snpp.csv> <out.csv> [--grid lcc|legacy] [--frp-threshold 15]
+                                              [--thresholds calibration/thresholds.json]
+  --thresholds   per-region thresholds from calibrate_threshold.py (cell -> region of its strongest pixel).
+  --grid lcc     (default) km coordinates from Mexico ITRF2008 / LCC (EPSG:6372, INEGI's projection): valid for any
+                 region in Mexico.
+  --grid legacy  the original N. Chihuahua grid (equirectangular around 28.6 N, origin -109.5 / 25.5); reproduces the
+                 published 55,902-row result exactly on the raw bbox archives.
 """
-import sys, csv, collections
+import argparse, csv, collections, json
 import numpy as np
+import pandas as pd
+from pandas.api.types import union_categoricals
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-MODIS_F, VIIRS_F, OUT = sys.argv[1], sys.argv[2], sys.argv[3]
+ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+ap.add_argument("modis"); ap.add_argument("snpp"); ap.add_argument("out")
+ap.add_argument("--grid", choices=("lcc", "legacy"), default="lcc")
+ap.add_argument("--frp-threshold", type=float, default=15.0, help="cell FRP threshold (MW); fallback with --thresholds")
+ap.add_argument("--thresholds", help="JSON {region: MW} from calibrate_threshold.py; a cell uses the threshold of the "
+                                     "region of its strongest pixel (needs the `region` column)")
+args = ap.parse_args()
+MODIS_F, VIIRS_F, OUT = args.modis, args.snpp, args.out
 FIG = OUT.rsplit(".", 1)[0] + "_brightness_mapping.png"
-FRP_THRESHOLD, GK, CAP_K, SEAM = 15.0, 1.4, 367.0, 20120120
+FRP_THRESHOLD, GK, CAP_K, SEAM = args.frp_threshold, 1.4, 367.0, 20120120
 COLS = ["latitude","longitude","brightness","scan","track","acq_date","acq_time","satellite","instrument",
         "confidence","version","bright_t31","frp","daynight","type"]
 
-recs, seen = [], set()
-for f in (MODIS_F, VIIRS_F):
-    for r in csv.DictReader(open(f)):
-        k = (r["latitude"], r["longitude"], r["acq_date"], r["acq_time"], r["satellite"])
-        if k in seen: continue
-        seen.add(k); r.setdefault("type", ""); recs.append(r)
+# ---- read: every value kept as text, stored as categoricals (each distinct value once) so national runs fit in RAM ----
+def read_text(path):
+    parts = []
+    for d in pd.read_csv(path, dtype=str, keep_default_na=False, chunksize=1_000_000):
+        parts.append(d.astype("category"))
+    return parts
+
+parts = read_text(MODIS_F) + read_text(VIIRS_F)                 # MODIS first: on duplicate keys the first row wins
+if "region" in parts[0].columns: COLS = COLS + ["region"]
+recs = pd.DataFrame(index=pd.RangeIndex(sum(len(d) for d in parts)))
+for c in COLS:
+    col = [d[c] if c in d.columns else pd.Series(pd.Categorical.from_codes(np.zeros(len(d), np.int8), [""])) for d in parts]
+    recs[c] = union_categoricals(col, sort_categories=True)
+del parts
+recs = recs[~recs.duplicated(subset=["latitude", "longitude", "acq_date", "acq_time", "satellite"], keep="first")]
+recs = recs.reset_index(drop=True)
 N = len(recs)
-is_m = np.array([r["satellite"] in ("Terra", "Aqua") for r in recs])
-low = np.array([(float(r["confidence"]) < 30) if is_m[i] else (r["confidence"] == "l") for i, r in enumerate(recs)])
-lat = np.array([float(r["latitude"]) for r in recs]); lon = np.array([float(r["longitude"]) for r in recs])
-date = np.array([int(r["acq_date"].replace("-", "")) for r in recs])
-mins = np.array([int(r["acq_time"][:2])*60 + int(r["acq_time"][2:]) for r in recs])
-sat = np.array([r["satellite"] for r in recs]); b = np.array([float(r["brightness"]) for r in recs])
-t31 = np.array([float(r["bright_t31"]) for r in recs]); frp = np.array([float(r["frp"]) for r in recs])
-scan = np.array([float(r["scan"]) for r in recs]); track = np.array([float(r["track"]) for r in recs])
-dn = np.array([r["daynight"] for r in recs])
-X = (lon + 109.5)*111.32*np.cos(np.radians(28.6)); Y = (lat - 25.5)*111.32
+
+def num(c, f=float):
+    """Column -> numpy array, converting each distinct text value once (same result as f(text) per row)."""
+    cat = recs[c].cat
+    return np.array([f(v) for v in cat.categories])[cat.codes.values]
+
+def text(c):
+    return np.asarray(recs[c].astype(object))
+
+sat = text("satellite"); dn = text("daynight")
+is_m = np.isin(sat, ("Terra", "Aqua"))
+conf_txt = text("confidence")
+low = np.zeros(N, bool)
+low[is_m] = np.array([float(v) < 30 for v in conf_txt[is_m]])
+low[~is_m] = conf_txt[~is_m] == "l"
+lat = num("latitude"); lon = num("longitude")
+date = num("acq_date", lambda v: int(v.replace("-", "")))
+mins = num("acq_time", lambda v: int(v[:2])*60 + int(v[2:]))
+b = num("brightness"); t31 = num("bright_t31"); frp = num("frp")
+scan = num("scan"); track = num("track")
+if args.grid == "legacy":
+    X = (lon + 109.5)*111.32*np.cos(np.radians(28.6)); Y = (lat - 25.5)*111.32
+else:
+    from pyproj import Transformer
+    X, Y = Transformer.from_crs(4326, 6372, always_xy=True).transform(lon, lat)
+    X, Y = np.asarray(X)/1000.0, np.asarray(Y)/1000.0                   # metres -> km
+print(f"grid: {args.grid}; FRP threshold: " + (f"per region from {args.thresholds} (fallback {FRP_THRESHOLD} MW)"
+                                                 if args.thresholds else f"{FRP_THRESHOLD} MW"))
 print(f"input rows {N}: MODIS {is_m.sum()}, SNPP {(~is_m).sum()}; low-confidence {low.sum()} (kept, flagged 0)")
 
 # ---- SNPP cells from non-low pixels ----
 vi = np.nonzero(~is_m & ~low)[0]
 cx, cy = np.floor(X[vi]/GK).astype(np.int64), np.floor(Y[vi]/GK).astype(np.int64)
-gkey = ((date[vi]*1000 + cx)*1000 + cy)*100 + mins[vi]//30
-ug, inv = np.unique(gkey, return_inverse=True)
-gfrp = np.bincount(inv, weights=frp[vi]); gn = np.bincount(inv)
+# group by (date, cell x, cell y, 30-min window) as separate columns: no packed integer key, so cell indices of any
+# size or sign (whole of Mexico, Baja California west of the old origin) can never collide
+ug, inv = np.unique(np.column_stack([date[vi], cx, cy, mins[vi]//30]), axis=0, return_inverse=True)
+inv = inv.ravel()
+# FRP comes with 0.01 MW precision: round the cell sum so float error (17.099999 vs 17.10) never decides a cell
+gfrp = np.round(np.bincount(inv, weights=frp[vi]), 2); gn = np.bincount(inv)
 gx = np.bincount(inv, weights=X[vi])/gn; gy = np.bincount(inv, weights=Y[vi])/gn; gt = np.bincount(inv, weights=mins[vi])/gn
 order = np.lexsort((-frp[vi], inv)); first = np.ones(len(order), bool); first[1:] = inv[order][1:] != inv[order][:-1]
 rep = vi[order[first]]
 g_date, g_b, g_t31, g_dn = date[rep], b[rep], t31[rep], dn[rep]
-print(f"SNPP non-low pixels {len(vi)} -> cells {len(ug)}; cells with summed FRP >= {FRP_THRESHOLD} MW: {(gfrp >= FRP_THRESHOLD).sum()}")
+g_thr = np.full(len(ug), FRP_THRESHOLD)                                  # per-cell threshold (MW)
+if args.thresholds:
+    if "region" not in COLS: raise SystemExit("--thresholds needs a `region` column (run clean_inputs.py first)")
+    thr = json.load(open(args.thresholds))
+    g_reg = text("region")[rep]
+    missing = sorted(set(g_reg) - set(thr))
+    if missing: print(f"! no fitted threshold for {missing}: using {FRP_THRESHOLD} MW there")
+    g_thr = np.array([thr.get(r, FRP_THRESHOLD) for r in g_reg], dtype=float)
+    for r in sorted(set(g_reg)):
+        m_ = g_reg == r; print(f"  {r}: {g_thr[m_][0]} MW -> {(gfrp[m_] >= g_thr[m_]).sum()} of {m_.sum()} cells")
+print(f"SNPP non-low pixels {len(vi)} -> cells {len(ug)}; cells with summed FRP >= threshold: {(gfrp >= g_thr).sum()}")
 
 # ---- matched Aqua <-> SNPP cell pairs ----
 bk = collections.defaultdict(list)
@@ -105,24 +163,28 @@ curves = {d: fit(mx[p_dn == d], vy[p_dn == d]) for d in ("D", "N")}
 # ---- flag + conversions ----
 flag = np.zeros(N, int)
 flag[(sat == "Aqua") & (date < SEAM) & ~low] = 1
-flag[rep[gfrp[np.arange(len(ug))] >= FRP_THRESHOLD]] = 1
+flag[rep[gfrp >= g_thr]] = 1
 bnew = b.copy()
 for d in ("D", "N"):
     m = is_m & (dn == d); bnew[m] = apply(curves[d], b[m], t31[m])
 
-out = []
-for i in range(N):
-    r = dict(recs[i]); dd = r["acq_date"]
-    if "-" not in dd: r["acq_date"] = f"{dd[:4]}-{dd[4:6]}-{dd[6:]}"
-    if is_m[i]:
-        v = float(r["confidence"]); r["confidence"] = "l" if v < 30 else ("h" if v >= 80 else "n")
-        r["brightness"] = f"{bnew[i]:.1f}"
-    r["in_calendar"] = int(flag[i]); out.append(r)
-out.sort(key=lambda r: (r["acq_date"], r["acq_time"], r["satellite"]))
-with open(OUT, "w", newline="") as fh:
-    w = csv.DictWriter(fh, fieldnames=COLS + ["in_calendar"], extrasaction="ignore"); w.writeheader(); w.writerows(out)
-print(f"\nwrote {OUT}: {len(out)} rows, {len(COLS)+1} columns; in_calendar=1 on {flag.sum()} rows (Aqua {(flag.astype(bool)&(sat=='Aqua')).sum()}, SNPP {(flag.astype(bool)&(sat=='SNPP')).sum()})")
-yc = collections.Counter(r["acq_date"][:4] for r in out if r["in_calendar"] == 1); print("calendar hotspots per year:", {y: yc[y] for y in sorted(yc)})
+# output: original text, except acq_date -> YYYY-MM-DD, MODIS confidence -> l/n/h and MODIS brightness -> mapped (.1f)
+dcat = recs["acq_date"].cat.categories
+iso = [v if "-" in v else f"{v[:4]}-{v[4:6]}-{v[6:]}" for v in dcat]
+recs["acq_date"] = pd.Categorical(np.array(iso, dtype=object)[recs["acq_date"].cat.codes.values])
+conf_out = conf_txt.copy()
+conf_out[is_m] = np.array(["l" if float(v) < 30 else ("h" if float(v) >= 80 else "n") for v in conf_txt[is_m]], dtype=object)
+recs["confidence"] = pd.Categorical(conf_out)
+b_out = text("brightness").copy()
+b_out[is_m] = np.array([f"{x:.1f}" for x in bnew[is_m]], dtype=object)
+recs["brightness"] = b_out
+recs["in_calendar"] = flag
+for c in ("acq_date", "acq_time", "satellite"):        # sort on text order, stable (same as Python's list.sort)
+    recs[c] = recs[c].cat.set_categories(sorted(recs[c].cat.categories), ordered=True)
+recs = recs.sort_values(["acq_date", "acq_time", "satellite"], kind="mergesort")
+recs[COLS + ["in_calendar"]].to_csv(OUT, index=False, lineterminator="\r\n", quoting=csv.QUOTE_MINIMAL)
+print(f"\nwrote {OUT}: {N} rows, {len(COLS)+1} columns; in_calendar=1 on {flag.sum()} rows (Aqua {(flag.astype(bool)&(sat=='Aqua')).sum()}, SNPP {(flag.astype(bool)&(sat=='SNPP')).sum()})")
+yc = collections.Counter(recs.loc[recs["in_calendar"] == 1, "acq_date"].astype(str).str[:4]); print("calendar hotspots per year:", {y: yc[y] for y in sorted(yc)})
 
 # ---- relationship checks on the result ----
 mm = is_m & ~low

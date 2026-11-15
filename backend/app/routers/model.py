@@ -13,6 +13,13 @@ from app.routers.iot import list_stations
 from app.services import fire_model
 
 router = APIRouter(prefix="/api/model", tags=["model"])
+
+# Ambos modelos se entrenaron SOLO con Chihuahua: fuera de ahí no hay pronóstico (no se extrapola).
+PILOT = {
+    "region": "Chihuahua",
+    "scope": "pilot",
+    "scope_note": "Trained and validated on Chihuahua only; no forecast is produced for other states.",
+}
 WEEKLY_DIR = Path(__file__).resolve().parents[3] / "risk_model_weekly" / "outputs"
 _WEEKLY_CACHE: dict | None = None
 
@@ -24,7 +31,7 @@ async def model_forecast():
     fc = await fire_model.forecast(stations)
     if fc is None:
         raise HTTPException(503, "Model not available")
-    return JSONResponse(fc, headers={"Cache-Control": "public, max-age=900"})
+    return JSONResponse({**fc, **PILOT}, headers={"Cache-Control": "public, max-age=900"})
 
 
 @router.get("/info")
@@ -33,7 +40,7 @@ async def model_info():
     if not fire_model.available():
         raise HTTPException(503, "Model not available")
     meta = fire_model._state["meta"]
-    return {k: meta[k] for k in ("version", "target", "training_period", "base_rate", "levels", "validation", "importance")}
+    return {**{k: meta[k] for k in ("version", "target", "training_period", "base_rate", "levels", "validation", "importance")}, **PILOT}
 
 
 @router.get("/weekly")
@@ -110,5 +117,6 @@ async def model_weekly():
         "top25": top25,
         "fields": ["cell_id", "lat", "lon", "probability", "climatology_probability", "ratio_vs_climatology"],
         "cells": cells,
+        **PILOT,
     }
     return JSONResponse(_WEEKLY_CACHE, headers={"Cache-Control": "public, max-age=3600"})

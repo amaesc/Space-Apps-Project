@@ -26,7 +26,7 @@ import numpy as np
 
 from app.ml.features import FEATURES, NDVI_LAG_DAYS, assemble, fires_matrix, ndvi_composite_dates, neighbors
 from app.services.gibs_raster import _sample_day
-from app.services.nasa_fires import VIIRS_N20, detections_for_day
+from app.services.nasa_fires import VIIRS_N20, detections_for_day, inside_chihuahua
 
 MODELS = Path(__file__).resolve().parents[2] / "models"
 TIMELINE_START = date(2020, 1, 1)
@@ -154,7 +154,9 @@ async def _fires(days: list[date]) -> np.ndarray:
         async def one(d: date):
             async with sem:
                 try:
-                    return d.isoformat(), await detections_for_day(client, VIIRS_N20, d)
+                    pts = await detections_for_day(client, VIIRS_N20, d)
+                    # piloto: mismo recorte al contorno de Chihuahua con el que se entrenó el modelo
+                    return d.isoformat(), [p for p in pts if inside_chihuahua(p["lon"], p["lat"])]
                 except httpx.HTTPError:
                     return d.isoformat(), []
 

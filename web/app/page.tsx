@@ -22,20 +22,16 @@ import { LITE_URL, type ModelForecast, useDashboardData, useHarmonizedArchive, u
 import { asset } from "../lib/asset";
 import {
   type BurnCalendar,
-  DEMO_CALENDAR,
   directionsUrl,
   downloadHistoricalCsv,
   downloadHotspotsCsv,
-  type FireOrigin,
   formatAgo,
   formatTime,
   HARMONIZATION_META,
   type HotspotEvent,
-  IS_DEMO_DATA,
   minutesSince,
   type NasaFire,
   ORIGIN_COLORS,
-  ORIGINS,
   RISK_SCALE,
   riskFor,
   type Station,
@@ -90,7 +86,6 @@ export default function FireMapPage() {
   const disclaimerSeen = useDisclaimerSeen();
 
   const [range, setRange] = useState<Range>("7d");
-  const [origin, setOrigin] = useState<"All" | FireOrigin>("All");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [basemap, setBasemap] = useState<Basemap>("satellite");
   const [showStations, setShowStations] = useState(true);
@@ -171,9 +166,7 @@ export default function FireMapPage() {
   const showDisclaimer = modal === "help" || (!disclaimerSeen && !disclaimerDismissed);
 
   const maxMinutes = RANGES.find((r) => r.id === range)!.minutes;
-  const events = data.hotspots.filter(
-    (e) => (origin === "All" || e.origin === origin) && (now === null || minutesSince(e.detectedAt, now) <= maxMinutes)
-  );
+  const events = data.hotspots.filter((e) => now === null || minutesSince(e.detectedAt, now) <= maxMinutes);
   const selected = events.find((e) => e.id === selectedId) ?? null;
   const flameStations = data.stations.filter((s) => s.flameDetected);
   // Peligro: nivel más alto del modelo a 72 h; si no está disponible, el de las estacas.
@@ -253,7 +246,7 @@ export default function FireMapPage() {
         {/* Avisos de conexión */}
         {(slow || data.status === "offline") && (
           <div className="absolute left-1/2 top-2 z-[1000] w-[min(92%,30rem)] -translate-x-1/2 rounded border border-black/40 bg-[#1f1f22]/95 px-3 py-2 text-center text-sm shadow-lg">
-            {data.status === "offline" ? "Live data unavailable — showing demo data. " : "Slow connection detected. "}
+            {data.status === "offline" ? "Live data unavailable right now. " : "Slow connection detected. "}
             <a href={LITE_URL} className="font-bold text-fd-gold underline">
               Switch to Lite mode (~3 KB)
             </a>
@@ -322,7 +315,6 @@ export default function FireMapPage() {
                   "Model unavailable: showing field station danger."
                 )}
               </p>
-              {IS_DEMO_DATA && <p className="mx-3 mb-3 rounded bg-fd-gold/15 px-2 py-1 text-sm text-fd-gold">Probable-cause hotspots are demo data; NASA layers and the model use real data.</p>}
             </Section>
 
             <Section title="Layers">
@@ -493,7 +485,7 @@ export default function FireMapPage() {
                       View Top-25 risk cells &amp; 7/14/28d metrics
                     </button>
                   </LayerCheck>
-                  <LayerCheck checked={fire.cause} onChange={() => toggleFire("cause")} label="Probable cause of active fires" hint="Human · lightning · wildland, with probability" swatch={<span className="h-3 w-3 rounded-full bg-[#f97316] ring-2 ring-[#38bdf8]" />} />
+                  <LayerCheck checked={fire.cause} onChange={() => toggleFire("cause")} label="Recent detections list (48 h)" hint="NASA VIIRS NOAA-20/21 · cause not determined" swatch={<span className="h-3 w-3 rounded-full bg-[#f97316] ring-2 ring-[#38bdf8]" />} />
                 </fieldset>
 
                 <fieldset className="border-t border-white/10 pt-2.5">
@@ -550,7 +542,7 @@ export default function FireMapPage() {
               </div>
             </Section>
 
-            <Section title={`Probable cause · hotspots (${events.length})`}>
+            <Section title={`Recent NASA detections (${events.length})`}>
               <div className="flex items-center justify-center gap-3 px-3 pt-3">
                 {RANGES.map((r) => (
                   <button
@@ -566,26 +558,14 @@ export default function FireMapPage() {
                   </button>
                 ))}
               </div>
-              <div role="group" aria-label="Filter by probable origin" className="grid grid-cols-5 gap-px px-3 pt-3 text-xs">
-                {(["All", ...ORIGINS] as const).map((o) => (
-                  <button
-                    key={o}
-                    type="button"
-                    aria-pressed={origin === o}
-                    onClick={() => setOrigin(o)}
-                    className={`flex min-h-9 cursor-pointer flex-col items-center justify-center gap-0.5 px-1 font-semibold ${
-                      origin === o ? "bg-white text-black" : "bg-white/10 text-white/85 hover:bg-white/20"
-                    }`}
-                  >
-                    {o !== "All" && <span aria-hidden="true" className="h-2 w-2 rounded-full" style={{ backgroundColor: ORIGIN_COLORS[o].hex }} />}
-                    {o === "Undetermined" ? "Undet." : o}
-                  </button>
-                ))}
-              </div>
               <p className="px-3 pt-2 text-xs text-white/60">Circle size = intensity (FRP) · pulsing = last hour · ■ = field station</p>
 
               <ol className="mt-2 divide-y divide-white/10 border-t border-white/10">
-                {events.length === 0 && <li className="px-3 py-4 text-sm text-white/70">No hotspots in this time range.</li>}
+                {events.length === 0 && (
+                  <li className="px-3 py-4 text-sm text-white/70">
+                    {data.status === "loading" ? "Loading NASA detections…" : data.status === "offline" ? "NASA detections unavailable right now." : "No detections in this time range."}
+                  </li>
+                )}
                 {events.map((ev) => {
                   const isSel = ev.id === selected?.id;
                   return (
@@ -599,31 +579,19 @@ export default function FireMapPage() {
                         <span aria-hidden="true" className="mt-1.5 h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: ORIGIN_COLORS[ev.origin].hex }} />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate font-semibold">
-                            {ev.municipality} · {ev.zone}
+                            {ev.state ?? "Mexico"} · {ev.lat.toFixed(3)}, {ev.lon.toFixed(3)}
                           </span>
                           <span className="block text-sm text-white/70">
-                            {formatAgo(ev.detectedAt, now)} · {ev.origin} {ev.probability}% · {ev.sensor}
+                            {formatAgo(ev.detectedAt, now)} · {ev.sensor}
+                            {ev.confidence ? ` · ${ev.confidence} confidence` : ""}
                           </span>
                         </span>
-                        {ev.irregularUseAlert && <WarnIcon className="mt-1 h-4 w-4 shrink-0 text-red-400" />}
                       </button>
                       {isSel && (
                         <div className="px-3 pb-3 pl-8 text-sm">
                           <p className="text-white/80">
-                            FRP {ev.frpMw} MW · {ev.lat.toFixed(3)}, {ev.lon.toFixed(3)}
+                            FRP {ev.frpMw} MW · cause not determined
                           </p>
-                          {ev.irregularUseAlert && (
-                            <p className="mt-1.5 rounded border border-red-400/50 bg-red-500/15 px-2 py-1 text-red-200">
-                              Possible irregular burn — requires field verification.
-                            </p>
-                          )}
-                          {ev.reasons.length > 0 && (
-                            <ul className="mt-1.5 list-disc space-y-0.5 pl-4 text-white/75">
-                              {ev.reasons.map((r) => (
-                                <li key={r}>{r}</li>
-                              ))}
-                            </ul>
-                          )}
                           <a
                             href={directionsUrl(ev)}
                             target="_blank"
@@ -766,11 +734,8 @@ export default function FireMapPage() {
               </li>
               <li className="flex gap-3">
                 <HelpIcon className="h-5 w-5 shrink-0 text-sky-300" />
-                The probable origin is a statistical estimate to prioritize inspections, not evidence.
+                The cause of a detection (human, lightning, wildland) is not determined by this system.
               </li>
-              {IS_DEMO_DATA && (
-                <li className="rounded bg-fd-gold/15 px-3 py-2 font-semibold text-fd-gold">This prototype currently shows demo data.</li>
-              )}
             </ul>
             <button
               type="button"
@@ -853,7 +818,7 @@ function exportCalendarCsv(calendar: BurnCalendar, scaleVal: (year: number, v: n
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `chihuahua_burn_calendar_${sourceTag}.csv`;
+  a.download = `burn_calendar_${sourceTag.replace(/\s+/g, "_").toLowerCase()}_in_calendar_1.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -868,21 +833,14 @@ function CalendarHeatmap({
   selectedMonth?: string;
   onSelectMonth?: (ym: string) => void;
 }) {
-  const [applyPost2012Offset, setApplyPost2012Offset] = useState(false);
   const [showCounts, setShowCounts] = useState(false);
-  const [sourceMode, setSourceMode] = useState<"harmonized" | "live">("harmonized");
   const m = HARMONIZATION_META;
-  const hasLiveServer = Boolean(calendar && calendar.dataSource === "nasa");
-  const activeSource: "harmonized" | "live" = hasLiveServer ? sourceMode : "harmonized";
-  const activeCalendar: BurnCalendar | null = activeSource === "live" ? calendar : DEMO_CALENDAR;
-
-  const scaleVal = (year: number, v: number | null) => {
-    if (v === null) return null;
-    return applyPost2012Offset && year >= 2012 ? Math.round(v / m.post2012OffsetDivisor) : v;
-  };
+  // El calendario de la API ya es la serie armonizada (in_calendar = 1): no hay otra fuente que elegir.
+  const activeCalendar = calendar;
+  const place = !calendar || calendar.region === "*" ? "Mexico" : calendar.region;
 
   const rows = activeCalendar ? [...activeCalendar.rows].reverse() : [];
-  const values = rows.flatMap((r) => r.months.map((v) => scaleVal(r.year, v))).filter((v): v is number => v !== null);
+  const values = rows.flatMap((r) => r.months).filter((v): v is number => v !== null);
   const max = Math.max(1, ...values);
   const shade = (v: number | null) => (v === null ? "transparent" : `rgba(245, 120, 30, ${(0.08 + 0.92 * (v / max)).toFixed(2)})`);
 
@@ -892,36 +850,10 @@ function CalendarHeatmap({
         <>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm text-white/80">
-              Monthly fire detections in Chihuahua, {rows[rows.length - 1]?.year}–{rows[0]?.year}. Darker = more activity.
+              Monthly fire detections in {place}, {rows[rows.length - 1]?.year}–{rows[0]?.year}. Darker = more activity.
               {onSelectMonth && <span className="ml-1.5 text-xs text-fd-gold/90">Click any cell to load that month on the map.</span>}
             </p>
             <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex rounded border border-white/20 bg-black/30 p-0.5 text-xs" role="group" aria-label="Calendar data source">
-                <button
-                  type="button"
-                  onClick={() => setSourceMode("harmonized")}
-                  className={`cursor-pointer rounded px-2 py-0.5 font-semibold transition ${
-                    activeSource === "harmonized" ? "bg-emerald-500/25 text-emerald-200" : "text-white/65 hover:text-white"
-                  }`}
-                >
-                  in_calendar = 1 (55,902)
-                </button>
-                <button
-                  type="button"
-                  disabled={!hasLiveServer}
-                  onClick={() => setSourceMode("live")}
-                  title={hasLiveServer ? "Switch to live Raspberry Pi GIBS counts" : "Live GIBS series unavailable from server"}
-                  className={`rounded px-2 py-0.5 font-semibold transition ${
-                    !hasLiveServer
-                      ? "cursor-not-allowed text-white/30"
-                      : activeSource === "live"
-                        ? "cursor-pointer bg-sky-500/25 text-sky-200"
-                        : "cursor-pointer text-white/65 hover:text-white"
-                  }`}
-                >
-                  Live API (GIBS)
-                </button>
-              </div>
               <label className="flex cursor-pointer items-center gap-1.5 rounded border border-white/20 bg-white/5 px-2.5 py-1 text-xs font-semibold text-white/85">
                 <input
                   type="checkbox"
@@ -931,22 +863,12 @@ function CalendarHeatmap({
                 />
                 Show counts
               </label>
-              <label className="flex cursor-pointer items-center gap-2 rounded border border-fd-gold/40 bg-fd-gold/10 px-2.5 py-1 text-xs font-semibold text-fd-gold">
-                <input
-                  type="checkbox"
-                  checked={applyPost2012Offset}
-                  onChange={(e) => setApplyPost2012Offset(e.target.checked)}
-                  className="accent-[#f5c518]"
-                />
-                Apply ÷{m.post2012OffsetDivisor} post-2012 S-NPP offset correction
-              </label>
             </div>
           </div>
 
-          <p className={`rounded px-2.5 py-1.5 text-sm ${activeSource === "harmonized" ? "bg-emerald-500/15 text-emerald-200" : "bg-sky-500/15 text-sky-200"}`}>
-            {activeSource === "harmonized"
-              ? "Source: detection-level harmonized series (in_calendar = 1, 55,902 rows, 2002–2026) — Aqua MODIS before 2012-01-20 + S-NPP VIIRS ≥ 15 MW / 1.4 km cell."
-              : "Source: live NASA FIRMS GIBS server detections (MODIS 2002–, VIIRS S-NPP/NOAA-20), harmonized with monthly factor kₘ."}
+          <p className="rounded bg-emerald-500/15 px-2.5 py-1.5 text-sm text-emerald-200">
+            Source: real NASA FIRMS detections — MODIS Aqua until 2012-01-20, then VIIRS S-NPP 1.4 km cells at or above each
+            state&apos;s fitted FRP threshold (<code>in_calendar = 1</code>).
           </p>
 
           <div className="overflow-x-auto">
@@ -962,16 +884,15 @@ function CalendarHeatmap({
               </thead>
               <tbody>
                 {rows.map((r) => {
-                  const rowTotal = r.months.reduce<number>((acc, rawV) => acc + (scaleVal(r.year, rawV) ?? 0), 0);
+                  const rowTotal = r.months.reduce<number>((acc, v) => acc + (v ?? 0), 0);
                   const cellHeight = showCounts ? "h-5" : "h-4";
                   return (
                     <tr key={r.year}>
                       <th scope="row" className="pr-1 text-right font-semibold text-white/80" title={r.source}>{r.year}</th>
-                      {r.months.map((rawV, i) => {
-                        const v = scaleVal(r.year, rawV);
+                      {r.months.map((v, i) => {
                         const ym = `${r.year}-${String(i + 1).padStart(2, "0")}`;
                         const isSelected = selectedMonth === ym;
-                        const label = v === null ? "no data" : `${activeCalendar.monthLabels[i]} ${r.year}: ${v}${applyPost2012Offset && r.year >= 2012 ? ` (raw ${rawV})` : ""}`;
+                        const label = v === null ? "no data" : `${activeCalendar.monthLabels[i]} ${r.year}: ${v}`;
                         const countText = showCounts && v !== null ? v : null;
                         return (
                           <td key={i} className={`${cellHeight} p-0`} style={{ backgroundColor: shade(v) }} title={label}>
@@ -1034,11 +955,10 @@ function CalendarHeatmap({
                 aria-hidden="true"
               />
               <span>{max.toLocaleString()} detections/mo</span>
-              {applyPost2012Offset && <span className="ml-2 text-fd-gold/90">÷{m.post2012OffsetDivisor} offset active for 2012–2026</span>}
             </div>
             <button
               type="button"
-              onClick={() => exportCalendarCsv(activeCalendar, scaleVal, activeSource === "harmonized" ? "in_calendar_1" : "live_gibs")}
+              onClick={() => exportCalendarCsv(activeCalendar, (_year, v) => v, activeCalendar.region === "*" ? "mexico" : activeCalendar.region)}
               className="cursor-pointer rounded border border-white/20 bg-white/5 px-2.5 py-1 font-semibold text-white/85 transition hover:border-fd-gold/50 hover:text-fd-gold"
             >
               Export CSV
@@ -1047,7 +967,7 @@ function CalendarHeatmap({
         </>
       ) : (
         <p className="rounded bg-white/5 px-3 py-2 text-sm text-white/75">
-          Live monthly matrix is currently offline — showing the detection-level harmonization archive summary below.
+          The monthly calendar is unavailable right now (the server did not respond). Below: the harmonization method summary.
         </p>
       )}
 
@@ -1351,12 +1271,10 @@ function MapLegend({
   if (fire.cause) {
     rows.push(
       <ul key="cause" className="flex flex-wrap gap-x-2">
-        {ORIGINS.map((o) => (
-          <li key={o} className="flex items-center gap-1">
-            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: ORIGIN_COLORS[o].hex }} />
-            {o}
-          </li>
-        ))}
+        <li className="flex items-center gap-1">
+          <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: ORIGIN_COLORS.Undetermined.hex }} />
+          Recent detection (cause not determined)
+        </li>
       </ul>
     );
   }
@@ -1491,10 +1409,7 @@ function AreaSummary({
   const areaHistoryInCal = areaHistory
     ? areaHistory.filter(
         (f) =>
-          f.inCalendar ??
-          (f.confidence !== "low" &&
-            f.confidence !== "l" &&
-            (f.date < HARMONIZATION_META.dateRange.seam || f.frpMw >= HARMONIZATION_META.frpThresholdMw))
+          f.inCalendar === true
       )
     : null;
   const areaCells = forecast ? forecast.cells.filter((c) => inBounds(c.lat, c.lon)) : null;
@@ -1510,7 +1425,6 @@ function AreaSummary({
   const areaKm2 = Math.round(heightKm * widthKm);
 
   const maxFrp = areaEvents.length > 0 ? Math.max(...areaEvents.map((e) => e.frpMw)) : 0;
-  const irregularCount = areaEvents.filter((e) => e.irregularUseAlert).length;
   const maxRiskLevel =
     areaCells && areaCells.length > 0
       ? Math.max(...areaCells.map((c) => c.level))
@@ -1544,7 +1458,7 @@ function AreaSummary({
           <p className="text-[11px] uppercase text-white/60">Active hotspots</p>
           <p className="mt-1 text-2xl font-bold tabular-nums text-white">{areaEvents.length}</p>
           <p className="mt-0.5 text-xs text-white/65">
-            {areaEvents.length > 0 ? `Max FRP ${maxFrp} MW · ${irregularCount} irregular` : "None in selected area"}
+            {areaEvents.length > 0 ? `Max FRP ${maxFrp} MW · cause not determined` : "None in selected area"}
           </p>
         </div>
 
@@ -1577,31 +1491,13 @@ function AreaSummary({
           </p>
           <p className="mt-0.5 text-xs text-white/65">
             {areaHistory !== null && areaHistoryInCal !== null
-              ? `${areaHistoryInCal.length} in_calendar=1 (≥15 MW) / ${areaHistory.length} total`
+              ? `${areaHistoryInCal.length} in_calendar=1 / ${areaHistory.length} total`
               : maxWeeklyProb !== null && areaWeeklyCells !== null
                 ? `7-day max ${(maxWeeklyProb * 100).toFixed(1)}% (${areaWeeklyCells.length} 0.1° cells)`
                 : "Enable History for harmonized count"}
           </p>
         </div>
       </div>
-
-      {areaEvents.length > 0 && (
-        <div>
-          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-white/70">Hotspots by probable cause</p>
-          <div className="flex flex-wrap gap-2">
-            {ORIGINS.map((o) => {
-              const count = areaEvents.filter((e) => e.origin === o).length;
-              if (count === 0) return null;
-              return (
-                <span key={o} className="inline-flex items-center gap-1.5 rounded border border-white/10 bg-white/5 px-2.5 py-1 text-xs">
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: ORIGIN_COLORS[o].hex }} />
-                  {o}: <strong>{count}</strong>
-                </span>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* Recorte del archivo armonizado 2002-2026 (harmonized_hotspots.csv) por área + rango de fechas */}
       <div className="rounded border border-sky-400/30 bg-sky-500/10 p-3">

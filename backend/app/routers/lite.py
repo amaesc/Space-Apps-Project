@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import math
 import os
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timezone
 from html import escape
 from zoneinfo import ZoneInfo
 
@@ -18,18 +18,15 @@ from fastapi.responses import HTMLResponse
 
 from app.routers.iot import list_stations
 from app.services.chihuahua_outline import CHIHUAHUA_OUTLINE
-from app.services.harmonizer import HOTSPOTS_DATA
-from app.services.nasa_fires import VIIRS_N20, VIIRS_N21, detections_for_range
+from app.services.hotspots import recent_hotspots
 
 router = APIRouter(tags=["lite"])
 
 LOCAL_TZ = ZoneInfo("America/Chihuahua")
 FULL_DASHBOARD_URL = os.getenv("FULL_DASHBOARD_URL", "/")
-IS_DEMO_DATA = os.getenv("DEMO_DATA", "1") == "1"
+LIST_MAX = 15  # focos numerados en la lista (los demás solo como puntos en el mapa)
 
-# La API conserva las etiquetas en español; la interfaz pública está en inglés.
-ORIGIN_EN = {"Humano": "Human", "Rayo": "Lightning", "Forestal": "Wildland"}
-ORIGIN_COLOR = {"Humano": "#f97316", "Rayo": "#38bdf8", "Forestal": "#34d399"}
+HOTSPOT_COLOR = "#f97316"
 RISK = {
     1: ("Low", "#16a34a", "#fff"),
     2: ("Moderate", "#2563eb", "#fff"),
@@ -86,9 +83,8 @@ def _svg(hotspots: list[dict], stations: list[dict], nasa: list[dict]) -> str:
         parts.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="3" fill="#ff2a00" stroke="#ffe066" stroke-width="1"/>')
     for i, h in enumerate(hotspots, 1):
         x, y = _xy(h["lon"], h["lat"])
-        color = ORIGIN_COLOR.get(h["origin"], "#a78bfa")
         parts.append(
-            f'<circle cx="{x:.1f}" cy="{y:.1f}" r="7" fill="{color}" stroke="#000" stroke-width="1.5"/>'
+            f'<circle cx="{x:.1f}" cy="{y:.1f}" r="7" fill="{HOTSPOT_COLOR}" stroke="#000" stroke-width="1.5"/>'
             f'<text x="{x:.1f}" y="{y + 3.5:.1f}" text-anchor="middle" font-size="9" font-weight="700">{i}</text>'
         )
     # Estaciones encima de los focos para que no queden tapadas.
@@ -124,29 +120,30 @@ CSS = (
 @router.get("/lite", response_class=HTMLResponse)
 async def lite_page() -> HTMLResponse:
     now = datetime.now(timezone.utc)
-    hotspots = sorted(HOTSPOTS_DATA, key=lambda h: h["timestamp"], reverse=True)
     stations = (await list_stations())["stations"]
     try:
-        nasa = await detections_for_range(date.today() - timedelta(days=1), date.today(), (VIIRS_N20, VIIRS_N21))
+        nasa = await recent_hotspots(2, "Chihuahua")  # la página ligera dibuja solo Chihuahua
+        nasa_ok = True
     except Exception:  # noqa: BLE001 - la página ligera nunca debe fallar por la NASA
-        nasa = []
+        nasa, nasa_ok = [], False
+    hotspots = nasa[:LIST_MAX]
 
-    level = max((int(s.get("risk_level", 1)) for s in stations), default=1)
-    risk_label, risk_bg, risk_fg = RISK[level]
+    level = max((int(s.get("risk_level", 1)) for s in stations), default=None)
+    risk_label, risk_bg, risk_fg = RISK[level] if level else ("no station data", "#555", "#fff")
     updated = now.astimezone(LOCAL_TZ).strftime("%H:%M")
 
     items = []
     for i, h in enumerate(hotspots, 1):
-        color = ORIGIN_COLOR.get(h["origin"], "#a78bfa")
-        origin = ORIGIN_EN.get(h["origin"], h["origin"])
-        alert = ' · <b style="color:#fca5a5">verify: possible irregular burn</b>' if h.get("irregular_use_alert") else ""
         items.append(
-            f'<li><span class="n" style="background:{color}">{i}</span>'
-            f'<span class="g"><b>{escape(h["municipality"])}</b> · {escape(h["zone"])}<br>'
-            f'<span class="s">{_ago(h["timestamp"], now)} · {origin} {h["probability"]}% · '
-            f'FRP {h["frp_mw"]} MW{alert}</span></span>'
+            f'<li><span class="n" style="background:{HOTSPOT_COLOR}">{i}</span>'
+            f'<span class="g"><b>{h["lat"]:.3f}, {h["lon"]:.3f}</b> · {escape(h["sensor"])}<br>'
+            f'<span class="s">{_ago(h["timestamp"], now)} · confidence {escape(str(h["confidence"]))} · '
+            f'FRP {h["frp_mw"]} MW</span></span>'
             f'<a class="go" href="https://www.google.com/maps/dir/?api=1&amp;destination={h["lat"]},{h["lon"]}">Go</a></li>'
         )
+    if not items:
+        items.append('<li><span class="g s">' + ("No NASA detections in Chihuahua in the last 48 h."
+                     if nasa_ok else "NASA detections unavailable right now.") + "</span></li>")
 
     station_items = []
     for s in stations:
@@ -160,7 +157,8 @@ async def lite_page() -> HTMLResponse:
             f'{_ago(str(s.get("timestamp", "")), now)} · {src}</span></span></li>'
         )
 
-    demo = '<p class="w">Demo data — not for operational use.</p>' if IS_DEMO_DATA else ""
+    if not station_items:
+        station_items.append('<li><span class="g s">No field station readings yet.</span></li>')
 
     html = (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
@@ -171,14 +169,13 @@ async def lite_page() -> HTMLResponse:
         f'<header><h1>FuegoData <span style="font-weight:400;font-size:15px">Lite</span></h1>'
         f'<a href="{escape(FULL_DASHBOARD_URL)}">Full fire map</a></header><main>'
         f'<p>Fire danger <span class="b" style="background:{risk_bg};color:{risk_fg}">{risk_label}</span>'
-        f' · <b>{len(hotspots)}</b> hotspots · updated {updated}</p>'
-        f"{demo}"
+        f' · <b>{len(nasa)}</b> NASA detections (48 h) · updated {updated}</p>'
         f"{_svg(hotspots, stations, nasa)}"
-        f'<p class="s">Numbers match the list. ■ = field station. '
+        f'<p class="s">Numbers match the list (the {len(hotspots)} most recent). ■ = field station. '
         f'<span style="color:#ff6b4a">●</span> = NASA satellite fire detection, last 48 h ({len(nasa)}).</p>'
-        f"<h2>Hotspots</h2><ol>{''.join(items)}</ol>"
+        f"<h2>Recent NASA detections</h2><ol>{''.join(items)}</ol>"
         f"<h2>Field stations</h2><ul>{''.join(station_items)}</ul>"
-        '<p class="s">Origin is a probability to prioritize inspections, not evidence. '
+        '<p class="s">The cause of each detection (human, lightning, wildland) is not determined. '
         "NASA detections arrive up to ~3 h after the satellite pass. "
         "We acknowledge the use of data and/or imagery from NASA's Fire Information for Resource "
         "Management System (FIRMS). Weather: Open-Meteo. Map outline © OpenStreetMap. "
