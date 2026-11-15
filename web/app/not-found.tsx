@@ -39,7 +39,7 @@ export default function NotFound() {
 
           <p className="mt-2 text-sm leading-relaxed text-slate-200">
             This coordinate froze or does not exist. Head back to the{" "}
-            <strong className="text-white">FuegoData</strong> map.
+            <strong className="text-white">FireData</strong> map.
           </p>
 
           <div className="mt-6">

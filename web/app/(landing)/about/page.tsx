@@ -57,9 +57,9 @@ const TEAM_ROLES = [
 ];
 
 export const metadata: Metadata = {
-  title: "About — FuegoData",
+  title: "About — FireData",
   description:
-    "FuegoData by Team UNDEFINED: harmonized MODIS/VIIRS burn calendar, field IoT stations and probable fire origin for the Sierra de Chihuahua. NASA Space Apps Challenge 2026.",
+    "FireData by Team UNDEFINED: harmonized MODIS/VIIRS burn calendar, field IoT stations and probable fire origin for the Sierra de Chihuahua. NASA Space Apps Challenge 2026.",
 };
 
 export default function AboutPage() {
@@ -143,7 +143,7 @@ export default function AboutPage() {
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
                 <span className="inline-block rounded-full border border-orange-400/30 bg-[#f97316]/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-[#fb923c]">
-                  The FuegoData system
+                  The FireData system
                 </span>
                 <h2 className="mt-3 text-balance text-3xl font-bold uppercase leading-[1.08] tracking-[-0.02em] text-white sm:text-4xl">
                   Three{" "}

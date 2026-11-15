@@ -32,7 +32,7 @@ const METRICS = [
 ];
 
 export const metadata: Metadata = {
-  title: "The challenge — FuegoData",
+  title: "The challenge — FireData",
   description: "Why harmonize MODIS and VIIRS fire data into a single calendar for the Sierra de Chihuahua.",
 };
 

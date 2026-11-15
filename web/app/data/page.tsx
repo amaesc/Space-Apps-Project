@@ -5,7 +5,7 @@ import SiteHeader from "../../components/SiteHeader";
 import { IS_DEMO_DATA } from "../../lib/fire-data";
 
 export const metadata: Metadata = {
-  title: "Data & methodology — FuegoData",
+  title: "Data & methodology — FireData",
   description:
     "Download harmonized MODIS/VIIRS hotspot data for the Sierra de Chihuahua (CSV, GeoJSON), field definitions, sources, methodology and limitations.",
 };
@@ -203,7 +203,7 @@ export default function DataPage() {
         <section className="mt-10">
           <h2 className="border-b border-white/15 pb-1 text-xl font-bold text-white">How to cite</h2>
           <p className="mt-3 rounded-lg border border-white/15 bg-white/5 px-4 py-3 font-mono text-sm">
-            Team UNDEFINED (2026). FuegoData: harmonized MODIS–VIIRS burn calendar and probable
+            Team UNDEFINED (2026). FireData: harmonized MODIS–VIIRS burn calendar and probable
             fire origin for the Sierra de Chihuahua. NASA Space Apps Challenge 2026.
           </p>
           <p className="mt-3 text-sm text-white/75">

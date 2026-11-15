@@ -23,7 +23,7 @@ export default function ModelCard() {
   if (!info) return <p className="text-white/70">Loading model metrics…</p>;
   const ov = info.validation.overall;
   const rows: [string, any][] = [
-    ["FuegoData model (LightGBM)", ov.model],
+    ["FireData model (LightGBM)", ov.model],
     ["Persistence (fire last 7 days)", ov.persistence_7d],
     ["Climatology of the cell", ov.climatology],
     ["Hot-Dry-Windy weather index", ov.hdw_index],

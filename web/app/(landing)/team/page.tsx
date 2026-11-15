@@ -29,7 +29,7 @@ const DATA_SOURCES = [
 ];
 
 export const metadata: Metadata = {
-  title: "Team — FuegoData",
+  title: "Team — FireData",
   description: "Team UNDEFINED, NASA Space Apps Challenge 2026, Chihuahua.",
 };
 

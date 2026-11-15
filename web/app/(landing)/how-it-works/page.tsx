@@ -50,7 +50,7 @@ const PIPELINE = [
 ];
 
 export const metadata: Metadata = {
-  title: "How it works — FuegoData",
+  title: "How it works — FireData",
   description: "Satellite harmonization, field IoT stations and probable-origin estimation.",
 };
 
@@ -83,7 +83,7 @@ export default function HowItWorksPage() {
                   <h1 className="mt-4 max-w-3xl text-balance text-3xl font-bold uppercase leading-[1.06] tracking-[-0.02em] text-white sm:text-5xl">
                     HOW{" "}
                     <span className="bg-gradient-to-r from-[#fb923c] to-violet-400 bg-clip-text text-transparent">
-                      FUEGODATA
+                      FIREDATA
                     </span>{" "}
                     WORKS
                   </h1>
@@ -188,7 +188,7 @@ export default function HowItWorksPage() {
                 <div className="relative aspect-video w-full overflow-hidden rounded-2xl border border-white/10">
                   <Image
                     src={asset("/images/processing-data.jpg")}
-                    alt="The FuegoData mascot processing sensor and satellite data streams"
+                    alt="The FireData mascot processing sensor and satellite data streams"
                     fill
                     sizes="(max-width: 1024px) 90vw, 520px"
                     className="object-cover"

@@ -119,7 +119,7 @@ export default function FuegoHero() {
             <div className="hero-art-mask relative mx-auto aspect-3/2 w-full max-w-2xl lg:-mr-12 lg:-mt-6 lg:w-[calc(100%+3rem)] lg:max-w-none">
               <Image
                 src={asset("/images/hero-fuegodata.jpg")}
-                alt="Laptop showing a thermal activity map of Mexico, a satellite, an IoT weather station and the FuegoData mascot"
+                alt="Laptop showing a thermal activity map of Mexico, a satellite, an IoT weather station and the FireData mascot"
                 fill
                 priority
                 sizes="(max-width: 1024px) 100vw, 50vw"

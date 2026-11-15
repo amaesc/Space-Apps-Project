@@ -11,7 +11,7 @@ const titillium = Titillium_Web({
 });
 
 export const metadata: Metadata = {
-  title: "FuegoData — Wildfire hotspot map · Sierra de Chihuahua",
+  title: "FireData — Wildfire hotspot map · Sierra de Chihuahua",
   description:
     "Platform that harmonizes MODIS and VIIRS (FIRMS) hotspots, adds field IoT telemetry and estimates the probable origin of fires. NASA Space Apps Challenge 2026.",
 };
