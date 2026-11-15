@@ -800,17 +800,42 @@ function Tool({ label, icon, onClick, active, disabled }: { label: string; icon:
 function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: ReactNode; wide?: boolean }) {
   return (
     <div className="absolute inset-0 z-[1200] flex items-center justify-center bg-black/55 p-3" role="dialog" aria-modal="true" aria-label={title}>
-      <div className={`max-h-full w-full overflow-y-auto rounded border border-black bg-[#141416] shadow-2xl ${wide ? "max-w-4xl" : "max-w-lg"}`}>
-        <div className="flex items-center justify-between bg-gradient-to-b from-fd-red to-fd-red-dark px-4 py-2.5">
+      <div className={`flex max-h-full w-full flex-col overflow-hidden rounded border border-black bg-[#141416] shadow-2xl ${wide ? "max-w-4xl" : "max-w-lg"}`}>
+        <div className="flex shrink-0 items-center justify-between bg-gradient-to-b from-fd-red to-fd-red-dark px-4 py-2.5">
           <h2 className="text-xl font-semibold uppercase tracking-wide text-white">{title}</h2>
           <button type="button" onClick={onClose} aria-label="Close" className="cursor-pointer rounded p-1 text-white hover:bg-black/25">
             <CloseIcon />
           </button>
         </div>
-        <div className="p-4">{children}</div>
+        <div className="overflow-y-auto p-4">{children}</div>
       </div>
     </div>
   );
+}
+
+/** Exporta la matriz mensual del calendario (2002–2026), medianas y factores k_m a CSV. */
+function exportCalendarCsv(calendar: BurnCalendar, scaleVal: (year: number, v: number | null) => number | null, sourceTag: string) {
+  const esc = (s: string | number) => {
+    const str = String(s);
+    return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+  };
+  const header = ["year", "sensor_source", ...calendar.monthLabels, "total"].join(",");
+  const yearLines = calendar.rows.map((r) => {
+    const vals = r.months.map((v) => scaleVal(r.year, v));
+    const total = vals.reduce<number>((acc, v) => acc + (v ?? 0), 0);
+    return [r.year, esc(r.source), ...vals.map((v) => (v === null ? "" : v)), total].join(",");
+  });
+  const medianTotal = Math.round(calendar.monthlyMedians.reduce((a, b) => a + b, 0));
+  const medianLine = ["Median", esc(sourceTag), ...calendar.monthlyMedians.map((v) => Math.round(v)), medianTotal].join(",");
+  const kmLine = ["k_m", esc(sourceTag), ...calendar.kmFactors.map((k) => k.toFixed(2)), ""].join(",");
+  const csv = [header, ...yearLines, medianLine, kmLine].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `chihuahua_burn_calendar_${sourceTag}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 /** Calendario de quema armonizado + documentación y límites de harmonization/ (MODIS ↔ VIIRS). */
@@ -989,8 +1014,15 @@ function CalendarHeatmap({
                 aria-hidden="true"
               />
               <span>{max.toLocaleString()} detections/mo</span>
+              {applyPost2012Offset && <span className="ml-2 text-fd-gold/90">÷{m.post2012OffsetDivisor} offset active for 2012–2026</span>}
             </div>
-            {applyPost2012Offset && <span className="text-fd-gold/90">÷{m.post2012OffsetDivisor} offset active for 2012–2026</span>}
+            <button
+              type="button"
+              onClick={() => exportCalendarCsv(activeCalendar, scaleVal, activeSource === "harmonized" ? "in_calendar_1" : "live_gibs")}
+              className="cursor-pointer rounded border border-white/20 bg-white/5 px-2.5 py-1 font-semibold text-white/85 transition hover:border-fd-gold/50 hover:text-fd-gold"
+            >
+              Export CSV
+            </button>
           </div>
         </>
       ) : (
