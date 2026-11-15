@@ -129,3 +129,23 @@ bun run build   # Generate static export (out/)
 bun run start   # Serve production build
 bun run lint    # Run ESLint
 ```
+
+---
+
+## 5. Harmonized hotspot series and weekly risk model
+
+> Added with AI assistance (see [`AI_DISCLOSURE.md`](AI_DISCLOSURE.md)). Uses NASA FIRMS data only.
+
+**`harmonization/`** builds one consistent hotspot series from the MODIS (Terra + Aqua) and VIIRS (Suomi-NPP) FIRMS archives for northern Chihuahua (2002 to 2026-07).
+All 481,029 rows are kept and one flag column, `in_calendar`, marks the 55,902 rows that form the consistent series for counts and the burn calendar
+(Aqua before 2012-01-20, then Suomi-NPP cells of at least 15 MW, which is about where MODIS detects half the fires).
+`confidence` and `acq_date` get the same type for both sensors, and MODIS `brightness` is mapped onto VIIRS (capped at 367 K).
+Validation: S-NPP monthly counts go from 11.7x Aqua to 0.91x (correlation 0.967 to 0.984), and the rule holds on held-out years (threshold fitted on 2012 to 2019, tested on 2020 to 2026).
+Known limits: about 10 % residual offset after 2012, the series ends 2026-07-31, parameters were fitted in this region only, night brightness is approximate.
+Details, validation tables and the check notebook: [`harmonization/README.md`](harmonization/README.md).
+The 40 MB output CSV is not stored in git; rebuild it with the script or fetch it from the S3 bucket (`harmonization/s3_io.py`).
+
+**`risk_model_weekly/`** predicts the probability of at least one hotspot per 0.1 degree cell in the next 7, 14 or 28 days from that series (LightGBM, calibrated, time-based validation).
+On 2023-01 to 2026-07 (held out), the 7-day model reaches precision-recall AUC 0.118 against 0.070 for cell climatology, and finds 47 % of the burning cells in its top 5 % (climatology: 37 %);
+it beat climatology in all 18 yearly backtests. The 28-day model is only slightly better than climatology and the model over-predicts by about 18 % on 2023 to 2026.
+It is separate from `ml/` (72 h, weather and NDVI) and is not connected to the backend or the web app. See [`risk_model_weekly/README.md`](risk_model_weekly/README.md).

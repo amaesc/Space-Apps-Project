@@ -13,3 +13,10 @@ esp32/dht11_wifi/dht11_wifi.ino
 ml/data/
 ml/.venv/
 .pytest_cache/
+
+# Harmonization / weekly risk model: large files are rebuilt or kept in the S3 bucket
+harmonization/*.csv
+harmonization/data/
+risk_model_weekly/.venv/
+risk_model_weekly/outputs/**/test_predictions.parquet
+risk_model_weekly/outputs/**/calibrators.pkl
