@@ -13,7 +13,7 @@ import {
   type Station,
   type WeatherCell,
 } from "../lib/fire-data";
-import type { ModelForecast } from "../lib/api";
+import type { ModelForecast, WeeklyForecast } from "../lib/api";
 import { RISK_SCALE } from "../lib/fire-data";
 import { type ConditionDef, gibsTileUrl, probabilityColor, type SatelliteLayer } from "../lib/layers";
 
@@ -29,6 +29,7 @@ export interface AreaBounds {
 export interface MapApi {
   reset: () => void;
   locate: () => void;
+  focus: (lat: number, lon: number, zoom?: number) => void;
 }
 
 interface Props {
@@ -45,6 +46,9 @@ interface Props {
   showProbability: boolean;
   /** Pronóstico del modelo (72 h); si existe, reemplaza al índice heurístico en la capa de probabilidad. */
   forecast: ModelForecast | null;
+  /** Modelo semanal LightGBM (7 días, malla de 0.1°, entrenado sobre in_calendar = 1). */
+  weeklyForecast?: WeeklyForecast | null;
+  showWeekly?: boolean;
   nasaFires: NasaFire[] | null;
   historyFires: NasaFire[] | null;
   historyOnlyInCalendar?: boolean;
@@ -79,14 +83,14 @@ const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
 
 export default function ChihuahuaOsmMap(props: Props) {
   const { events, stations, showStations, basemap, selectedId, onSelect, onReady } = props;
-  const { condition, grid, showProbability, forecast, nasaFires, historyFires, showCause, satellite } = props;
+  const { condition, grid, showProbability, forecast, weeklyForecast = null, showWeekly = false, nasaFires, historyFires, showCause, satellite } = props;
   const { historyOnlyInCalendar = true, showHarmonizationZone = false } = props;
   const { selectAreaMode = false, selectedBounds = null, onAreaSelected } = props;
 
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const rendererRef = useRef<L.Canvas | null>(null);
-  const layers = useRef<Record<"base" | "sat" | "grid" | "history" | "nasa" | "stations" | "hotspots" | "selection", L.LayerGroup> | null>(null);
+  const layers = useRef<Record<"base" | "sat" | "grid" | "weekly" | "history" | "nasa" | "stations" | "hotspots" | "selection", L.LayerGroup> | null>(null);
   const meRef = useRef<L.CircleMarker | null>(null);
   const onAreaSelectedRef = useRef(onAreaSelected);
 
@@ -105,6 +109,7 @@ export default function ChihuahuaOsmMap(props: Props) {
       base: L.layerGroup().addTo(map),
       sat: L.layerGroup().addTo(map),
       grid: L.layerGroup().addTo(map),
+      weekly: L.layerGroup().addTo(map),
       history: L.layerGroup().addTo(map),
       nasa: L.layerGroup().addTo(map),
       stations: L.layerGroup().addTo(map),
@@ -120,7 +125,11 @@ export default function ChihuahuaOsmMap(props: Props) {
         .addTo(map);
     });
 
-    onReady?.({ reset: () => map.setView(CENTER, ZOOM), locate: () => map.locate({ setView: true, maxZoom: 11 }) });
+    onReady?.({
+      reset: () => map.setView(CENTER, ZOOM),
+      locate: () => map.locate({ setView: true, maxZoom: 11 }),
+      focus: (lat, lon, zoom = 10) => map.setView([lat, lon], zoom),
+    });
     return () => {
       map.remove();
       mapRef.current = null;
@@ -192,6 +201,36 @@ export default function ChihuahuaOsmMap(props: Props) {
         .addTo(g);
     }
   }, [grid, condition, showProbability, forecast]);
+
+  // Modelo semanal LightGBM (7 días a 0.1°, entrenado sobre in_calendar = 1)
+  useEffect(() => {
+    const g = layers.current?.weekly;
+    if (!g) return;
+    g.clearLayers();
+    if (!showWeekly || !weeklyForecast) return;
+    const h = weeklyForecast.cellDeg / 2;
+    for (const c of weeklyForecast.cells) {
+      const pct = c.probability * 100;
+      if (pct < 0.15) continue;
+      const fillColor =
+        pct >= 5 ? "#dc2626" : pct >= 2 ? "#f97316" : pct >= 0.7 ? "#facc15" : "#16a34a";
+      const fillOpacity = pct >= 5 ? 0.68 : pct >= 2 ? 0.55 : pct >= 0.7 ? 0.42 : 0.24;
+      L.rectangle(
+        [
+          [c.lat - h, c.lon - h],
+          [c.lat + h, c.lon + h],
+        ],
+        { renderer: rendererRef.current!, stroke: pct >= 3.5, color: "#fde047", weight: 0.8, fillColor, fillOpacity }
+      )
+        .bindTooltip(
+          `<strong>Weekly 7-day risk · Cell #${c.cellId} (0.1° ≈ 11 km)</strong><br>` +
+            `Probability: <b>${pct.toFixed(2)}%</b> (climatology ${(c.climatologyProbability * 100).toFixed(2)}%)<br>` +
+            `Ratio vs climatology: <b>${c.ratioVsClimatology}×</b> · Week ${weeklyForecast.weekStart}`,
+          { sticky: true }
+        )
+        .addTo(g);
+    }
+  }, [weeklyForecast, showWeekly]);
 
   // Histórico NASA armonizado (MODIS Aqua pre-2012-01-20 + VIIRS S-NPP celdas >= 15 MW, coloreado/escalado por FRP)
   useEffect(() => {

@@ -6,7 +6,8 @@ export type ConditionLayer = "temperature" | "humidity" | "pressure" | "noise" |
 export interface FireLayers {
   nasa: boolean; // NASA FIRMS, activos (48 h)
   history: boolean; // NASA FIRMS, histórico mensual
-  probability: boolean; // nuestro modelo de probabilidad de incendio (HDW)
+  probability: boolean; // nuestro modelo de probabilidad de incendio (72 h)
+  weekly: boolean; // modelo semanal LightGBM (7 días, 0.1°, in_calendar = 1)
   cause: boolean; // causa probable de los incendios activos
 }
 

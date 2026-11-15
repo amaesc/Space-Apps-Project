@@ -18,7 +18,7 @@ import {
 } from "../components/Icons";
 import LazyMap from "../components/LazyMap";
 import SiteHeader from "../components/SiteHeader";
-import { LITE_URL, type ModelForecast, useDashboardData, useHarmonizedArchive, useHistoricalFires, useModelForecast, useNasaFires, useNow, useSlowConnection, useWeatherGrid } from "../lib/api";
+import { LITE_URL, type ModelForecast, useDashboardData, useHarmonizedArchive, useHistoricalFires, useModelForecast, useNasaFires, useNow, useSlowConnection, useWeatherGrid, useWeeklyForecast, type WeeklyForecast } from "../lib/api";
 import { asset } from "../lib/asset";
 import {
   type BurnCalendar,
@@ -95,13 +95,13 @@ export default function FireMapPage() {
   const [showStations, setShowStations] = useState(true);
   const [conditionId, setConditionId] = useState<ConditionLayer | null>(null);
   const [satellite, setSatellite] = useState<SatelliteLayer | null>(null);
-  const [fire, setFire] = useState<FireLayers>({ nasa: true, history: false, probability: false, cause: true });
+  const [fire, setFire] = useState<FireLayers>({ nasa: true, history: false, probability: false, weekly: false, cause: true });
   const months = historyMonths();
   const [historyMonth, setHistoryMonth] = useState(months.find((m) => m.endsWith("-05")) ?? months[0]);
   const [historyOnlyInCalendar, setHistoryOnlyInCalendar] = useState(true);
   const [showHarmonizationZone, setShowHarmonizationZone] = useState(false);
   const [panelPref, setPanelPref] = useState<boolean | null>(null);
-  const [modal, setModal] = useState<"help" | "calendar" | "area" | null>(null);
+  const [modal, setModal] = useState<"help" | "calendar" | "area" | "weekly" | null>(null);
   const [selectAreaMode, setSelectAreaMode] = useState(false);
   const [selectedBounds, setSelectedBounds] = useState<AreaBounds | null>(null);
   const [disclaimerDismissed, setDisclaimerDismissed] = useState(false);
@@ -129,6 +129,7 @@ export default function FireMapPage() {
   const history = useHistoricalFires(fire.history ? historyMonth : null);
   // El modelo se carga siempre (alimenta el panel de peligro); la cuadrícula de clima, solo si hace falta.
   const model = useModelForecast(true);
+  const weekly = useWeeklyForecast(fire.weekly || modal === "weekly" || modal === "area");
   const grid = useWeatherGrid((fire.probability && !model.data) || Boolean(condition?.grid));
   const toggleFire = (k: keyof FireLayers) => setFire((f) => ({ ...f, [k]: !f[k] }));
 
@@ -174,6 +175,8 @@ export default function FireMapPage() {
           grid={grid.data}
           showProbability={fire.probability}
           forecast={model.data}
+          weeklyForecast={weekly.data}
+          showWeekly={fire.weekly}
           nasaFires={fire.nasa ? nasa.data?.fires ?? null : null}
           historyFires={fire.history ? history.data : null}
           historyOnlyInCalendar={historyOnlyInCalendar}
@@ -191,7 +194,7 @@ export default function FireMapPage() {
           </div>
         )}
 
-        <MapLegend condition={condition} fire={fire} historyMonth={historyMonth} satellite={satellite} forecast={model.data} />
+        <MapLegend condition={condition} fire={fire} historyMonth={historyMonth} satellite={satellite} forecast={model.data} weeklyForecast={weekly.data} />
 
         {/* Avisos de conexión */}
         {(slow || data.status === "offline") && (
@@ -321,6 +324,25 @@ export default function FireMapPage() {
                     </label>
                   </LayerCheck>
                   <LayerCheck checked={fire.probability} onChange={() => toggleFire("probability")} label="Fire probability, next 72 h (our model)" hint={model.data ? `Trained on 6 years of NASA data · AUC ${model.data.auc.toFixed(2)} · corrected by IoT stations` : layerHint(grid.status, "Model unavailable: weather index shown instead")} swatch={<span className="h-3 w-3 bg-gradient-to-r from-[#16a34a] via-[#facc15] to-[#dc2626]" />} />
+                  <LayerCheck
+                    checked={fire.weekly}
+                    onChange={() => toggleFire("weekly")}
+                    label="Weekly fire risk, next 7 days (0.1° · LightGBM)"
+                    hint={
+                      weekly.data
+                        ? `Trained on in_calendar = 1 · PR-AUC ${weekly.data.prAuc} · Top-5% capture ${Math.round(weekly.data.topCapture * 100)}% (${weekly.data.cells.length.toLocaleString()} cells)`
+                        : layerHint(weekly.status, "0.1° (~11 km) LightGBM model trained on harmonized series")
+                    }
+                    swatch={<span className="h-3 w-3 border border-[#fde047] bg-gradient-to-r from-[#16a34a] via-[#facc15] to-[#dc2626]" />}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setModal("weekly")}
+                      className="mt-1 cursor-pointer text-xs font-semibold text-fd-gold underline hover:brightness-110"
+                    >
+                      View Top-25 risk cells &amp; 7/14/28d metrics
+                    </button>
+                  </LayerCheck>
                   <LayerCheck checked={fire.cause} onChange={() => toggleFire("cause")} label="Probable cause of active fires" hint="Human · lightning · wildland, with probability" swatch={<span className="h-3 w-3 rounded-full bg-[#f97316] ring-2 ring-[#38bdf8]" />} />
                 </fieldset>
 
@@ -531,6 +553,19 @@ export default function FireMapPage() {
           </Modal>
         )}
 
+        {modal === "weekly" && (
+          <Modal title="Weekly Fire-Risk Model (0.1° · LightGBM on in_calendar = 1)" onClose={() => setModal(null)} wide>
+            <WeeklyRiskModal
+              weekly={weekly.data}
+              onLocateCell={(lat, lon) => {
+                setFire((f) => ({ ...f, weekly: true }));
+                setModal(null);
+                mapApi.current?.focus(lat, lon, 10);
+              }}
+            />
+          </Modal>
+        )}
+
         {modal === "area" && selectedBounds && (
           <Modal title="Selected area data" onClose={() => setModal(null)} wide>
             <AreaSummary
@@ -541,6 +576,7 @@ export default function FireMapPage() {
               historyFires={fire.history ? history.data : null}
               historyMonth={historyMonth}
               forecast={model.data}
+              weeklyForecast={weekly.data}
               onClear={() => {
                 setSelectedBounds(null);
                 setModal(null);
@@ -922,12 +958,14 @@ function MapLegend({
   historyMonth,
   satellite,
   forecast,
+  weeklyForecast,
 }: {
   condition: ConditionDef | null;
   fire: FireLayers;
   historyMonth: string;
   satellite: SatelliteLayer | null;
   forecast: ModelForecast | null;
+  weeklyForecast: WeeklyForecast | null;
 }) {
   const rows: ReactNode[] = [];
   const sat = SATELLITE_LAYERS.find((s) => s.id === satellite);
@@ -962,6 +1000,24 @@ function MapLegend({
         {forecast && (
           <p className="mt-1 text-[11px] leading-snug text-white/70">
             Data as of: fires {forecast.dataAsOf.fires}, weather {forecast.dataAsOf.weather}. Hover a cell to see why.
+          </p>
+        )}
+      </div>
+    );
+  }
+  if (fire.weekly) {
+    rows.push(
+      <div key="weekly">
+        <p className="font-semibold">Weekly risk, 7 days (0.1° · LightGBM)</p>
+        <ul className="mt-0.5 grid grid-cols-2 gap-x-2 gap-y-0.5 text-[11px]">
+          <li className="flex items-center gap-1"><span className="h-2.5 w-3 bg-[#dc2626]" /> ≥ 5.0%</li>
+          <li className="flex items-center gap-1"><span className="h-2.5 w-3 bg-[#f97316]" /> 2.0–5.0%</li>
+          <li className="flex items-center gap-1"><span className="h-2.5 w-3 bg-[#facc15]" /> 0.7–2.0%</li>
+          <li className="flex items-center gap-1"><span className="h-2.5 w-3 bg-[#16a34a]" /> 0.15–0.7%</li>
+        </ul>
+        {weeklyForecast && (
+          <p className="mt-0.5 text-[10px] text-white/65">
+            Week {weeklyForecast.weekStart} · PR-AUC {weeklyForecast.prAuc}
           </p>
         )}
       </div>
@@ -1102,6 +1158,7 @@ function AreaSummary({
   historyFires,
   historyMonth,
   forecast,
+  weeklyForecast,
   onClear,
   onReselect,
 }: {
@@ -1112,6 +1169,7 @@ function AreaSummary({
   historyFires: NasaFire[] | null;
   historyMonth: string;
   forecast: ModelForecast | null;
+  weeklyForecast: WeeklyForecast | null;
   onClear: () => void;
   onReselect: () => void;
 }) {
@@ -1159,6 +1217,11 @@ function AreaSummary({
       )
     : null;
   const areaCells = forecast ? forecast.cells.filter((c) => inBounds(c.lat, c.lon)) : null;
+  const areaWeeklyCells = weeklyForecast ? weeklyForecast.cells.filter((c) => inBounds(c.lat, c.lon)) : null;
+  const maxWeeklyProb =
+    areaWeeklyCells && areaWeeklyCells.length > 0
+      ? Math.max(...areaWeeklyCells.map((c) => c.probability))
+      : null;
 
   const midLatRad = (((bounds.north + bounds.south) / 2) * Math.PI) / 180;
   const heightKm = Math.abs(bounds.north - bounds.south) * 111.32;
@@ -1234,7 +1297,9 @@ function AreaSummary({
           <p className="mt-0.5 text-xs text-white/65">
             {areaHistory !== null && areaHistoryInCal !== null
               ? `${areaHistoryInCal.length} in_calendar=1 (≥15 MW) / ${areaHistory.length} total`
-              : "Enable History for harmonized count"}
+              : maxWeeklyProb !== null && areaWeeklyCells !== null
+                ? `7-day max ${(maxWeeklyProb * 100).toFixed(1)}% (${areaWeeklyCells.length} 0.1° cells)`
+                : "Enable History for harmonized count"}
           </p>
         </div>
       </div>
@@ -1363,6 +1428,137 @@ function AreaSummary({
         >
           Download area CSV ({areaEvents.length})
         </button>
+      </div>
+    </div>
+  );
+}
+
+/** Modal del modelo semanal LightGBM (7, 14 y 28 días a 0.1° sobre in_calendar = 1). */
+function WeeklyRiskModal({
+  weekly,
+  onLocateCell,
+}: {
+  weekly: WeeklyForecast | null;
+  onLocateCell: (lat: number, lon: number) => void;
+}) {
+  if (!weekly) {
+    return <p className="text-sm text-white/75">Loading weekly LightGBM forecast…</p>;
+  }
+  return (
+    <div className="space-y-4 text-xs text-white/85">
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded border border-white/10 bg-white/5 p-2.5">
+          <p className="text-[10px] uppercase text-white/55">Forecast week (7 d)</p>
+          <p className="mt-0.5 text-lg font-bold tabular-nums text-white">{weekly.weekStart}</p>
+          <p className="text-[11px] text-white/65">{weekly.cells.length.toLocaleString()} active 0.1° (~11 km) cells</p>
+        </div>
+        <div className="rounded border border-white/10 bg-white/5 p-2.5">
+          <p className="text-[10px] uppercase text-white/55">Held-out PR-AUC (2023–26)</p>
+          <p className="mt-0.5 text-lg font-bold tabular-nums text-emerald-300">{weekly.prAuc}</p>
+          <p className="text-[11px] text-white/65">ROC-AUC {weekly.rocAuc} · base rate {(weekly.baseRate * 100).toFixed(2)}%</p>
+        </div>
+        <div className="rounded border border-white/10 bg-white/5 p-2.5">
+          <p className="text-[10px] uppercase text-white/55">Top-5% cells capture</p>
+          <p className="mt-0.5 text-lg font-bold tabular-nums text-fd-gold">{(weekly.topCapture * 100).toFixed(1)}%</p>
+          <p className="text-[11px] text-white/65">Beats climatology in all 18 backtest years (2009–2026)</p>
+        </div>
+        <div className="rounded border border-white/10 bg-white/5 p-2.5">
+          <p className="text-[10px] uppercase text-white/55">Training source</p>
+          <p className="mt-0.5 text-lg font-bold text-sky-300">FIRMS only</p>
+          <p className="text-[11px] text-white/65">22 spatiotemporal features from in_calendar = 1</p>
+        </div>
+      </div>
+
+      {weekly.horizons.length > 0 && (
+        <div className="rounded border border-white/10 bg-black/25 p-3">
+          <p className="font-semibold text-white">Multi-horizon test results (2023-01 → 2026-07)</p>
+          <div className="mt-2 overflow-x-auto">
+            <table className="w-full text-left text-[11px] tabular-nums">
+              <thead>
+                <tr className="border-b border-white/10 text-white/60">
+                  <th className="py-1 pr-2">Horizon</th>
+                  <th className="py-1 pr-2 text-right">LightGBM PR-AUC</th>
+                  <th className="py-1 pr-2 text-right">Climatology (B1)</th>
+                  <th className="py-1 pr-2 text-right">Persistence (B2)</th>
+                  <th className="py-1 pr-2 text-right">Brier</th>
+                  <th className="py-1 text-right">Top-5% capture</th>
+                </tr>
+              </thead>
+              <tbody>
+                {weekly.horizons.map((h) => (
+                  <tr key={h.horizonDays} className="border-b border-white/5">
+                    <td className="py-1 pr-2 font-semibold text-white">{h.horizonDays} days</td>
+                    <td className="py-1 pr-2 text-right font-semibold text-emerald-300">{h.lgbmPrAuc.toFixed(3)}</td>
+                    <td className="py-1 pr-2 text-right">{h.b1PrAuc.toFixed(3)}</td>
+                    <td className="py-1 pr-2 text-right">{h.b2PrAuc.toFixed(3)}</td>
+                    <td className="py-1 pr-2 text-right">{h.lgbmBrier.toFixed(5)}</td>
+                    <td className="py-1 text-right font-semibold text-fd-gold">
+                      {(h.lgbmTopCapture * 100).toFixed(1)}% <span className="text-white/50">(vs {(h.b1TopCapture * 100).toFixed(1)}%)</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      <div className="grid gap-3 lg:grid-cols-2">
+        <div className="rounded border border-white/10 bg-black/25 p-3">
+          <p className="font-semibold text-white">Top-25 highest-risk 0.1° cells (click to locate on map)</p>
+          <div className="mt-2 max-h-60 overflow-y-auto">
+            <table className="w-full text-left text-[11px] tabular-nums">
+              <thead className="sticky top-0 bg-[#141416]">
+                <tr className="border-b border-white/10 text-white/60">
+                  <th className="py-1 pr-2">#</th>
+                  <th className="py-1 pr-2">Cell</th>
+                  <th className="py-1 pr-2">Lat / Lon</th>
+                  <th className="py-1 pr-2 text-right">7d Prob</th>
+                  <th className="py-1 text-right">vs Clim</th>
+                </tr>
+              </thead>
+              <tbody>
+                {weekly.top25.map((c, idx) => (
+                  <tr
+                    key={c.cellId}
+                    onClick={() => onLocateCell(c.lat, c.lon)}
+                    className="cursor-pointer border-b border-white/5 hover:bg-white/10"
+                  >
+                    <td className="py-1 pr-2 text-white/55">{idx + 1}</td>
+                    <td className="py-1 pr-2 font-mono text-sky-300">#{c.cellId}</td>
+                    <td className="py-1 pr-2">{c.lat.toFixed(2)}°, {c.lon.toFixed(2)}°</td>
+                    <td className="py-1 pr-2 text-right font-semibold text-fd-gold">{(c.probability * 100).toFixed(2)}%</td>
+                    <td className="py-1 text-right">{c.ratioVsClimatology.toFixed(2)}×</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <div className="rounded border border-amber-400/30 bg-amber-500/10 p-3">
+            <p className="font-semibold text-fd-gold">Model limits &amp; calibration notes</p>
+            <ul className="mt-1.5 list-disc space-y-1 pl-4 text-[11px] leading-snug text-white/85">
+              <li><strong>No weather or NDVI:</strong> Uses FIRMS hotspot history only; unusually dry or wet anomalies are not anticipated (use the 72 h model for weather).</li>
+              <li><strong>~18% over-prediction (2023–26):</strong> Predicted 3,318 vs 2,780 observed cell-weeks at 7 days.</li>
+              <li><strong>Latest week:</strong> Series ends 2026-07-31, so the forecast covers the week starting {weekly.weekStart}.</li>
+            </ul>
+          </div>
+          <details className="rounded border border-white/10 bg-black/25 p-2.5">
+            <summary className="cursor-pointer font-semibold text-white hover:text-fd-gold">
+              View 7-day backtest &amp; calibration summary plot
+            </summary>
+            <div className="mt-2 overflow-hidden rounded bg-white p-1">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={asset("/images/weekly_risk_h7_summary.png")}
+                alt="Weekly 7-day LightGBM fire-risk model validation summary"
+                className="h-auto w-full"
+              />
+            </div>
+          </details>
+        </div>
       </div>
     </div>
   );

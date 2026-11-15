@@ -423,4 +423,105 @@ export function useModelForecast(enabled: boolean) {
     })),
   }));
 }
+
+// --- Modelo semanal (7/14/28 días a 0.1°, LightGBM sobre in_calendar = 1) ---------
+
+export interface WeeklyCell {
+  cellId: number;
+  lat: number;
+  lon: number;
+  probability: number;
+  climatologyProbability: number;
+  ratioVsClimatology: number;
+}
+
+export interface WeeklyHorizonSummary {
+  horizonDays: number;
+  lgbmPrAuc: number;
+  b1PrAuc: number;
+  b2PrAuc: number;
+  lgbmBrier: number;
+  lgbmTopCapture: number;
+  b1TopCapture: number;
+}
+
+export interface WeeklyForecast {
+  weekStart: string;
+  horizonDays: number;
+  cellDeg: number;
+  rocAuc: number;
+  prAuc: number;
+  topCapture: number;
+  baseRate: number;
+  horizons: WeeklyHorizonSummary[];
+  top25: WeeklyCell[];
+  cells: WeeklyCell[];
+}
+
+function parseWeeklyForecast(j: any): WeeklyForecast {
+  return {
+    weekStart: j.week_start,
+    horizonDays: j.horizon_days,
+    cellDeg: j.cell_deg,
+    rocAuc: j.roc_auc,
+    prAuc: j.pr_auc,
+    topCapture: j.top_capture,
+    baseRate: j.base_rate,
+    horizons: (j.horizons ?? []).map((h: any) => ({
+      horizonDays: h.horizon_days,
+      lgbmPrAuc: h.lgbm_pr_auc,
+      b1PrAuc: h.b1_pr_auc,
+      b2PrAuc: h.b2_pr_auc,
+      lgbmBrier: h.lgbm_brier,
+      lgbmTopCapture: h.lgbm_top_capture,
+      b1TopCapture: h.b1_top_capture,
+    })),
+    top25: (j.top25 ?? []).map((c: any) => ({
+      cellId: c.cell_id,
+      lat: c.lat,
+      lon: c.lon,
+      probability: c.probability,
+      climatologyProbability: c.climatology_probability,
+      ratioVsClimatology: c.ratio_vs_climatology,
+    })),
+    cells: (j.cells ?? []).map((c: any[]) => ({
+      cellId: c[0],
+      lat: c[1],
+      lon: c[2],
+      probability: c[3],
+      climatologyProbability: c[4],
+      ratioVsClimatology: c[5],
+    })),
+  };
+}
+
+export function useWeeklyForecast(enabled: boolean): Remote<WeeklyForecast> {
+  const [state, setState] = useState<Remote<WeeklyForecast>>({ status: "idle", data: null });
+  useEffect(() => {
+    if (!enabled || state.status === "ready") return;
+    let alive = true;
+    const load = async () => {
+      try {
+        const j = await getJson<any>("/api/model/weekly", 8000);
+        if (alive) setState({ status: "ready", data: parseWeeklyForecast(j) });
+      } catch {
+        try {
+          const res = await fetch(asset("/data/weekly_risk_h7.json"));
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const j = await res.json();
+          if (alive) setState({ status: "ready", data: parseWeeklyForecast(j) });
+        } catch {
+          if (alive) setState({ status: "error", data: null });
+        }
+      }
+    };
+    void load();
+    return () => {
+      alive = false;
+    };
+  }, [enabled, state.status]);
+  if (!enabled) return { status: "idle", data: null };
+  if (state.status === "idle") return { status: "loading", data: null };
+  return state;
+}
 /* eslint-enable @typescript-eslint/no-explicit-any */
