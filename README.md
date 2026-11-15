@@ -144,7 +144,7 @@ All 481,029 rows are kept and one flag column, `in_calendar`, marks the 55,902 r
 Validation: S-NPP monthly counts go from 11.7x Aqua to 0.91x (correlation 0.967 to 0.984), and the rule holds on held-out years (threshold fitted on 2012 to 2019, tested on 2020 to 2026).
 Known limits: about 10 % residual offset after 2012, the series ends 2026-07-31, parameters were fitted in this region only, night brightness is approximate.
 Details, validation tables and the check notebook: [`harmonization/README.md`](harmonization/README.md).
-The 40 MB output CSV is not stored in git; rebuild it with the script or fetch it from the S3 bucket (`harmonization/s3_io.py`).
+The 40 MB output CSV (`harmonization/harmonized_hotspots.csv`) is stored in git; it can also be rebuilt with the script, and `harmonization/s3_io.py` can move files to the S3 bucket.
 
 **`risk_model_weekly/`** predicts the probability of at least one hotspot per 0.1 degree cell in the next 7, 14 or 28 days from that series (LightGBM, calibrated, time-based validation).
 On 2023-01 to 2026-07 (held out), the 7-day model reaches precision-recall AUC 0.118 against 0.070 for cell climatology, and finds 47 % of the burning cells in its top 5 % (climatology: 37 %);
