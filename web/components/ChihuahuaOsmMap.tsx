@@ -352,19 +352,61 @@ export default function ChihuahuaOsmMap(props: Props) {
         : '<span class="station-marker" style="cursor:pointer;"></span>';
       
       const popupHtml = `
-        <div style="font-family: inherit; min-width: 200px;">
-          <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: ${isAgora ? '#10b981' : '#f59e0b'}; font-weight: bold;">
-            ${isAgora ? '● ESTACIÓN REAL (EN VIVO)' : '○ Estación Demostración'}
+        <div style="font-family: inherit; min-width: 260px; padding: 2px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
+            <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: ${isAgora ? '#10b981' : '#f59e0b'}; font-weight: 800; display: flex; align-items: center; gap: 4px;">
+              <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${isAgora ? '#10b981' : '#f59e0b'};"></span>
+              ${isAgora ? 'ESTACIÓN REAL (EN VIVO)' : 'Estación Demo'}
+            </span>
+            <span style="font-size: 10px; background: rgba(0,0,0,0.06); padding: 2px 6px; border-radius: 4px; font-weight: bold; color: #555;">
+              ${esc(s.id)}
+            </span>
           </div>
-          <strong style="font-size: 14px; display: block; margin: 2px 0 6px 0;">${esc(s.name)}</strong>
-          <div style="font-size: 12px; line-height: 1.5; color: #333;">
-            <strong>Temp:</strong> ${s.temperatureC} °C<br>
-            <strong>Humedad:</strong> ${s.humidityPct} %<br>
-            ${s.luminosityPct !== null ? `<strong>Luz:</strong> ${s.luminosityPct} %<br>` : ''}
-            ${s.pressureHpa !== null ? `<strong>Presión:</strong> ${s.pressureHpa} hPa<br>` : ''}
-            ${s.noiseDb !== null ? `<strong>Ruido:</strong> ${s.noiseDb} dB<br>` : ''}
-            <strong>Riesgo:</strong> Nivel ${s.riskLevel} / 5<br>
-            <span style="font-size: 10px; color: #777; margin-top: 4px; display: block;">ID: ${esc(s.id)} · ${isAgora ? 'Auditorio Menlo, Tec de Monterrey' : 'Sierra de Chihuahua'}</span>
+
+          <div style="font-size: 15px; font-weight: 800; color: #111; line-height: 1.25; margin-bottom: 8px;">
+            ${esc(s.name)}
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px; margin-bottom: 8px;">
+            <div style="background: white; border: 1px solid #edf2f7; border-radius: 6px; padding: 6px; text-align: center;">
+              <div style="font-size: 10px; text-transform: uppercase; color: #64748b; font-weight: 700;">Temperatura</div>
+              <div style="font-size: 18px; font-weight: 900; color: #d97706; line-height: 1.2; margin-top: 2px;">
+                ${s.temperatureC} <span style="font-size: 12px; font-weight: 600;">°C</span>
+              </div>
+            </div>
+
+            <div style="background: white; border: 1px solid #edf2f7; border-radius: 6px; padding: 6px; text-align: center;">
+              <div style="font-size: 10px; text-transform: uppercase; color: #64748b; font-weight: 700;">Humedad</div>
+              <div style="font-size: 18px; font-weight: 900; color: #0284c7; line-height: 1.2; margin-top: 2px;">
+                ${s.humidityPct} <span style="font-size: 12px; font-weight: 600;">%</span>
+              </div>
+            </div>
+
+            ${s.pressureHpa !== null ? `
+            <div style="background: white; border: 1px solid #edf2f7; border-radius: 6px; padding: 6px; text-align: center;">
+              <div style="font-size: 10px; text-transform: uppercase; color: #64748b; font-weight: 700;">Presión</div>
+              <div style="font-size: 15px; font-weight: 800; color: #4f46e5; line-height: 1.2; margin-top: 2px;">
+                ${s.pressureHpa} <span style="font-size: 10px; font-weight: 600;">hPa</span>
+              </div>
+            </div>
+            ` : ''}
+
+            ${s.luminosityPct !== null ? `
+            <div style="background: white; border: 1px solid #edf2f7; border-radius: 6px; padding: 6px; text-align: center;">
+              <div style="font-size: 10px; text-transform: uppercase; color: #64748b; font-weight: 700;">Luz / Solar</div>
+              <div style="font-size: 15px; font-weight: 800; color: #ca8a04; line-height: 1.2; margin-top: 2px;">
+                ${s.luminosityPct} <span style="font-size: 10px; font-weight: 600;">%</span>
+              </div>
+            </div>
+            ` : ''}
+          </div>
+
+          <div style="font-size: 11px; color: #475569; display: flex; flex-direction: column; gap: 2px; padding: 0 2px;">
+            ${s.noiseDb !== null ? `<div>🔊 <strong>Ruido ambiental:</strong> ${s.noiseDb} dB</div>` : ''}
+            <div>🛡️ <strong>Nivel de Riesgo Fuego:</strong> <strong style="color: ${s.riskLevel >= 4 ? '#dc2626' : s.riskLevel === 3 ? '#d97706' : '#16a34a'};">${s.riskLevel} / 5</strong></div>
+            <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #cbd5e1; font-size: 10px; color: #94a3b8;">
+              📍 ${isAgora ? 'Auditorio Menlo, Tec de Monterrey Campus Chihuahua' : 'Sierra de Chihuahua'}
+            </div>
           </div>
         </div>
       `;
