@@ -4,10 +4,6 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { asset } from "./asset";
 import {
   type BurnCalendar,
-  DEMO_CALENDAR,
-  DEMO_HOTSPOTS,
-  DEMO_STATIONS,
-  ensureInCalendarFlags,
   type FireOrigin,
   type HotspotEvent,
   type NasaFire,
@@ -43,12 +39,12 @@ async function getJson<T>(path: string, timeoutMs = 8000): Promise<T> {
 function toHotspot(h: any): HotspotEvent {
   return {
     id: h.id,
-    municipality: h.municipality,
-    zone: h.zone,
+    state: h.state ?? null,
     detectedAt: h.timestamp,
     sensor: h.sensor,
+    confidence: h.confidence ?? null,
     origin: ORIGIN_EN[h.origin] ?? "Undetermined",
-    probability: h.probability,
+    probability: typeof h.probability === "number" ? h.probability : null,
     frpMw: h.frp_mw,
     lat: h.lat,
     lon: h.lon,
@@ -97,22 +93,23 @@ function toCalendar(c: any, realCoverage: number | null): BurnCalendar {
     rows: c.rows.map((r: any) => ({ year: r.year, months: r.months, source: r.sensor_source })),
     kmFactors: c.km_factors,
     kmCi95: c.km_ci95 ?? null,
-    dataSource: c.data_source === "nasa-firms-gibs" ? "nasa" : "illustrative",
+    dataSource: "nasa",
     realCoverage,
+    region: c.region ?? "*",
   };
 }
 
 /** Calendario real de la NASA: si el servidor aún no terminó el backfill de GIBS, usa la serie real de harmonized_hotspots.csv. */
-async function loadCalendar(): Promise<BurnCalendar> {
-  let coverage: number | null = null;
+async function loadCalendar(): Promise<BurnCalendar | null> {
+  // Solo el calendario real del servidor; si no está completo o no responde: null (la interfaz lo indica).
   try {
     const real = await getJson<any>("/api/nasa/calendar");
-    coverage = real.coverage ?? null;
-    if ((coverage ?? 0) >= 0.9) return toCalendar(real, coverage);
+    const coverage = real.coverage ?? null;
+    if (real.data_source && (coverage ?? 0) >= 0.9) return toCalendar(real, coverage);
   } catch {
-    // usar respaldo local de harmonized_hotspots.csv
+    // sin calendario
   }
-  return { ...DEMO_CALENDAR, realCoverage: coverage ?? DEMO_CALENDAR.realCoverage };
+  return null;
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
@@ -127,13 +124,13 @@ export interface DashboardData {
 const REFRESH_MS = 5 * 60 * 1000;
 const IOT_REFRESH_MS = 5_000;
 
-/** Carga focos, estaciones y calendario; si la API falla usa el respaldo de demostración. */
+/** Carga focos, estaciones y calendario reales; si la API falla conserva lo último real (o nada) y marca "offline". */
 export function useDashboardData(): DashboardData {
   const [data, setData] = useState<DashboardData>({
     status: "loading",
-    hotspots: DEMO_HOTSPOTS,
-    stations: DEMO_STATIONS,
-    calendar: DEMO_CALENDAR,
+    hotspots: [],
+    stations: [],
+    calendar: null,
     fetchedAt: null,
   });
 
@@ -328,7 +325,7 @@ export function useHistoricalFires(month: string | null): Remote<NasaFire[]> {
 
       try {
         const j = await getJson<any>(`/api/nasa/fires/history?month=${month}`, 20000);
-        const apiFires: NasaFire[] = ensureInCalendarFlags(
+        const apiFires: NasaFire[] = (
           j.fires.map((f: any[]) => ({
             lat: f[0],
             lon: f[1],

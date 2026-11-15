@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timezone
 from typing import Any
 
@@ -47,22 +48,46 @@ def compute_fire_risk_level(
     return level, RISK_LABELS[level], hdw_score
 
 
+class WeatherUnavailable(RuntimeError):
+    """Open-Meteo no respondió o faltan variables: no se inventan valores."""
+
+
+_REQUIRED = ("temperature_2m", "relative_humidity_2m", "wind_speed_10m", "precipitation")
+
+
+def _required_values(cur: dict[str, Any], keys: tuple[str, ...] = _REQUIRED) -> list[float]:
+    missing = [k for k in keys if cur.get(k) is None]
+    if missing:
+        raise WeatherUnavailable(f"Open-Meteo response is missing {missing}")
+    return [float(cur[k]) for k in keys]
+
+
 # Caché de 10 min por punto: el clima no cambia tan rápido y así las páginas
 # no esperan a un servicio externo en cada visita.
 _CACHE: dict[tuple[float, float], tuple[float, dict[str, Any]]] = {}
 _CACHE_TTL_S = 600.0
+# Si Open-Meteo falla, se sirve la última lectura REAL (marcada "stale" con su hora original) hasta 6 h.
+_STALE_MAX_S = 6 * 3600
+
+
+def _err(exc: Exception) -> str:
+    return f"{type(exc).__name__}: {exc}" if str(exc) else type(exc).__name__
 
 
 async def fetch_open_meteo_risk(lat: float, lon: float) -> dict[str, Any]:
-    """Consulta clima actual en Open-Meteo (sin API key) con fallback seguro."""
+    """Clima actual de Open-Meteo (sin API key). Lanza WeatherUnavailable si el servicio falla: sin valores inventados."""
     key = (round(lat, 2), round(lon, 2))
     now_ts = datetime.now(timezone.utc).timestamp()
     cached = _CACHE.get(key)
     if cached and now_ts - cached[0] < _CACHE_TTL_S:
         return cached[1]
-    result = await _fetch_open_meteo_risk(lat, lon)
-    if result["source"] == "open-meteo-live":
-        _CACHE[key] = (now_ts, result)
+    try:
+        result = await _fetch_open_meteo_risk(lat, lon)
+    except WeatherUnavailable:
+        if cached and now_ts - cached[0] < _STALE_MAX_S:
+            return {**cached[1], "stale": True}
+        raise
+    _CACHE[key] = (now_ts, result)
     return result
 
 
@@ -81,16 +106,10 @@ async def _fetch_open_meteo_risk(lat: float, lon: float) -> dict[str, Any]:
             res.raise_for_status()
             payload = res.json()
 
-        current = payload.get("current", {})
-        temp = float(current.get("temperature_2m", 24.0))
-        humidity = float(current.get("relative_humidity_2m", 32.0))
-        wind = float(current.get("wind_speed_10m", 18.0))
-        rain = float(current.get("precipitation", 0.0))
-        source = "open-meteo-live"
-    except Exception:
-        # Respaldo determinista para demostración sin red
-        temp, humidity, wind, rain = 26.5, 24.0, 21.0, 0.0
-        source = "open-meteo-fallback"
+    except (httpx.HTTPError, ValueError) as exc:
+        raise WeatherUnavailable(f"Open-Meteo request failed: {_err(exc)}") from exc
+    temp, humidity, wind, rain = _required_values(payload.get("current") or {})
+    source = "open-meteo-live"
 
     level, label, hdw_score = compute_fire_risk_level(temp, humidity, wind, rain)
 
@@ -169,35 +188,45 @@ async def fetch_weather_grid() -> dict[str, Any]:
     now_ts = datetime.now(timezone.utc).timestamp()
     if _GRID_CACHE and now_ts - _GRID_CACHE[0] < _GRID_TTL_S:
         return _GRID_CACHE[1]
-
-    pts = _grid_points()
-    params = {
-        "latitude": ",".join(str(p[0]) for p in pts),
-        "longitude": ",".join(str(p[1]) for p in pts),
-        "current": "temperature_2m,relative_humidity_2m,surface_pressure,wind_speed_10m,precipitation",
-        "timezone": "auto",
-    }
-    source = "open-meteo-live"
     try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
+        result = await _fetch_weather_grid()
+    except WeatherUnavailable:
+        if _GRID_CACHE and now_ts - _GRID_CACHE[0] < _STALE_MAX_S:
+            return {**_GRID_CACHE[1], "stale": True}
+        raise
+    _GRID_CACHE = (now_ts, result)
+    return result
+
+
+GRID_CHUNK = 50  # Open-Meteo responde mucho más lento a una sola petición con ~100 puntos
+
+
+async def _fetch_currents(pts: list[tuple[float, float]]) -> list[dict[str, Any]]:
+    fields = "temperature_2m,relative_humidity_2m,surface_pressure,wind_speed_10m,precipitation"
+    async with httpx.AsyncClient(timeout=45.0) as client:
+
+        async def one(sub: list[tuple[float, float]]) -> list[dict[str, Any]]:
+            params = {"latitude": ",".join(str(p[0]) for p in sub), "longitude": ",".join(str(p[1]) for p in sub),
+                      "current": fields, "timezone": "auto"}
             res = await client.get("https://api.open-meteo.com/v1/forecast", params=params)
             res.raise_for_status()
             payload = res.json()
-        rows = payload if isinstance(payload, list) else [payload]
-        currents = [r.get("current", {}) for r in rows]
-    except Exception:
-        # Respaldo determinista: gradiente suave (más caliente y seco al este/norte).
-        source = "open-meteo-fallback"
-        currents = [
-            {
-                "temperature_2m": 18 + (lat - 25.5) * 0.6 + (lon + 109) * 0.9,
-                "relative_humidity_2m": max(8.0, 60 - (lon + 109) * 6),
-                "surface_pressure": 880 - (31.8 - lat) * 4 + (lon + 109) * 6,
-                "wind_speed_10m": 12 + (lat - 25.5) * 1.5,
-                "precipitation": 0.0,
-            }
-            for lat, lon in pts
-        ]
+            rows = payload if isinstance(payload, list) else [payload]
+            if len(rows) != len(sub):
+                raise WeatherUnavailable(f"Open-Meteo returned {len(rows)} locations for {len(sub)} requested")
+            return [r.get("current") or {} for r in rows]
+
+        try:
+            chunks = await asyncio.gather(*(one(pts[i:i + GRID_CHUNK]) for i in range(0, len(pts), GRID_CHUNK)))
+        except (httpx.HTTPError, ValueError) as exc:
+            raise WeatherUnavailable(f"Open-Meteo request failed: {_err(exc)}") from exc
+    return [c for chunk in chunks for c in chunk]
+
+
+async def _fetch_weather_grid() -> dict[str, Any]:
+    pts = _grid_points()
+    source = "open-meteo-live"
+    currents = await _fetch_currents(pts)
 
     # Datos de NASA GIBS para el modelo (si fallan, el modelo usa solo el clima).
     try:
@@ -207,12 +236,13 @@ async def fetch_weather_grid() -> dict[str, Any]:
     except Exception:  # noqa: BLE001
         sat = {"ndvi": [None] * len(pts), "lst_c": [None] * len(pts)}
 
-    cells = []
+    cells, skipped = [], 0
     for i, ((lat, lon), cur) in enumerate(zip(pts, currents)):
-        temp = float(cur.get("temperature_2m", 24.0))
-        rh = float(cur.get("relative_humidity_2m", 30.0))
-        wind = float(cur.get("wind_speed_10m", 15.0))
-        rain = float(cur.get("precipitation", 0.0))
+        try:
+            temp, rh, wind, rain = _required_values(cur)
+        except WeatherUnavailable:
+            skipped += 1  # celda sin datos: se omite en lugar de rellenarla
+            continue
         level, label, hdw = compute_fire_risk_level(temp, rh, wind, rain)
         ndvi, lst_c = sat["ndvi"][i], sat["lst_c"][i]
         p_level, p_score, p_factors = fire_probability(hdw, ndvi, lst_c)
@@ -222,7 +252,7 @@ async def fetch_weather_grid() -> dict[str, Any]:
                 "lon": lon,
                 "temperature_c": round(temp, 1),
                 "humidity_pct": round(rh),
-                "pressure_hpa": round(float(cur.get("surface_pressure", 0.0)), 1),
+                "pressure_hpa": round(float(cur["surface_pressure"]), 1) if cur.get("surface_pressure") is not None else None,
                 "wind_kmh": round(wind, 1),
                 "hdw_score": hdw,
                 "risk_level": level,
@@ -240,7 +270,8 @@ async def fetch_weather_grid() -> dict[str, Any]:
         "step_deg": GRID_STEP,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "cells": cells,
+        "cells_without_data": skipped,
     }
-    if source == "open-meteo-live":
-        _GRID_CACHE = (now_ts, result)
+    if not cells:
+        raise WeatherUnavailable("Open-Meteo returned no usable cells")
     return result

@@ -30,7 +30,7 @@ FuegoData couples satellite harmonization, edge IoT hardware, and probabilistic 
 
 ## 3. Current Implementation (`web/`)
 
-The frontend is a **static Next.js export** (`output: "export"`) ready for **GitHub Pages**, connected to a live **Raspberry Pi API** exposed via **Tailscale Funnel** (with automatic fallback to built-in demo data if the API is unreachable).
+The frontend is a **static Next.js export** (`output: "export"`) ready for **GitHub Pages**, connected to a live **Raspberry Pi API** exposed via **Tailscale Funnel** (no built-in demo data: if the API is unreachable, the site says so instead of showing invented values).
 
 ### Tech Stack
 
@@ -73,7 +73,7 @@ Space-Apps-Project/
     │   └── ModelCard.tsx
     ├── lib/
     │   ├── api.ts              # Live Raspberry Pi API hooks + demo fallback
-    │   ├── fire-data.ts        # Types, risk scales, CSV export & demo datasets
+    │   ├── fire-data.ts        # Types, risk scales, CSV/GeoJSON export
     │   ├── layers.ts           # Satellite, weather & historical layer definitions
     │   └── asset.ts            # Base-path helper for GitHub Pages
     └── next.config.ts          # output: "export", PAGES_BASE_PATH, unoptimized images

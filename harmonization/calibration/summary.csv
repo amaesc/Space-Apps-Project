@@ -1,0 +1,33 @@
+region,fit_on,aqua_train,aqua_test,T_star_MW,T_p05,T_p95,test_ratio_T_star,test_ratio_15MW,test_monthly_corr_T_star,low_sample
+Aguascalientes,Aguascalientes + Jalisco,320,403,16.11,15.34,16.85,1.05,1.149,0.7,False
+Baja California,own,3468,3102,16.02,14.71,17.6,0.954,0.994,0.964,False
+Baja California Sur,all regions,390,342,14.96,14.71,15.21,0.865,0.857,0.638,False
+Campeche,own,31337,27538,14.39,13.88,14.98,0.984,0.946,0.98,False
+Chiapas,own,25820,15457,15.37,15.1,15.6,0.966,0.995,0.975,False
+Chihuahua,own,11009,8841,17.06,15.6,18.2,1.001,1.12,0.979,False
+Ciudad de México,own,139,109,23.44,21.16,29.37,1.055,1.624,0.84,True
+Coahuila de Zaragoza,own,1148,1059,14.53,12.25,17.33,0.914,0.894,0.974,False
+Colima,own,1343,1043,13.51,12.48,14.87,1.017,0.888,0.97,False
+Durango,own,8748,4720,18.23,17.44,18.86,0.942,1.162,0.989,False
+Guanajuato,own,3208,2412,13.78,13.24,14.24,0.928,0.845,0.889,False
+Guerrero,own,27817,19762,14.23,14.04,14.46,0.987,0.932,0.996,False
+Hidalgo,own,1071,642,14.49,13.6,15.32,1.087,1.033,0.809,False
+Jalisco,own,19116,15300,16.18,15.41,16.95,0.924,0.998,0.989,False
+Michoacán de Ocampo,own,16990,12485,15.84,15.23,16.53,1.002,1.064,0.991,False
+Morelos,own,1185,1213,15.43,14.92,16.08,0.955,0.988,0.923,False
+México,own,2460,2364,16.78,15.78,17.58,1.005,1.135,0.953,False
+Nayarit,own,6885,6340,15.97,15.43,16.38,0.923,0.993,0.981,False
+Nuevo León,own,1074,1611,12.06,11.5,12.68,1.12,0.906,0.896,False
+Oaxaca,own,19784,12187,13.5,13.16,13.81,1.0,0.89,0.987,False
+Puebla,own,2078,1766,15.43,14.64,16.18,0.996,1.029,0.949,False
+Querétaro,own,624,481,12.61,11.75,14.34,0.96,0.794,0.834,False
+Quintana Roo,own,7982,6411,14.4,13.5,15.63,0.832,0.799,0.98,False
+San Luis Potosí,own,3054,1987,13.68,12.73,14.62,1.025,0.94,0.89,False
+Sinaloa,own,9633,6936,15.05,14.33,15.85,0.885,0.89,0.987,False
+Sonora,own,7550,4062,17.46,16.68,18.24,0.904,1.042,0.904,False
+Tabasco,own,8104,6466,14.82,13.81,15.53,0.838,0.826,0.954,False
+Tamaulipas,own,5849,5222,13.1,12.41,13.8,0.976,0.837,0.902,False
+Tlaxcala,Tlaxcala + Puebla,312,315,15.17,14.51,15.95,1.117,1.127,0.9,False
+Veracruz de Ignacio de la Llave,own,12358,8640,13.37,13.09,13.66,0.954,0.824,0.98,False
+Yucatán,own,17773,10755,14.49,13.58,15.83,0.911,0.88,0.969,False
+Zacatecas,own,1681,2048,14.8,13.99,15.76,1.079,1.067,0.92,False

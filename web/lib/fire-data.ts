@@ -1,19 +1,17 @@
-// Modelo de datos del frontend + respaldo de demostración.
-// Los datos en vivo vienen de la API de la Raspberry Pi (ver lib/api.ts).
-
-/** Los datos actuales son ilustrativos; cambiar a false al conectar NASA FIRMS. */
-export const IS_DEMO_DATA = true;
+// Modelo de datos del frontend. Todos los datos vienen de la API de la Raspberry Pi (ver lib/api.ts):
+// no hay respaldo inventado; si la API no responde, la interfaz lo dice.
 
 export type FireOrigin = "Human" | "Lightning" | "Wildland" | "Undetermined";
 
+/** Detección reciente real (NASA FIRMS VIIRS NOAA-20/21). El origen aún no se calcula: siempre "Undetermined". */
 export interface HotspotEvent {
   id: string;
-  municipality: string;
-  zone: string;
-  detectedAt: string; // ISO 8601
+  state: string | null; // estado INEGI
+  detectedAt: string; // ISO 8601 (UTC)
   sensor: string;
+  confidence: string | null;
   origin: FireOrigin;
-  probability: number;
+  probability: number | null;
   frpMw: number;
   lat: number;
   lon: number;
@@ -85,10 +83,12 @@ export interface BurnCalendar {
   rows: { year: number; months: (number | null)[]; source: string }[];
   kmFactors: number[];
   kmCi95: ([number, number] | null)[] | null;
-  /** "nasa" = conteos reales de FIRMS; "illustrative" = serie de demostración. */
-  dataSource: "nasa" | "illustrative";
+  /** Siempre conteos reales de FIRMS (ya no existe serie de demostración). */
+  dataSource: "nasa";
   /** Avance de la construcción del calendario real (0-1), si está en curso. */
   realCoverage: number | null;
+  /** Estado INEGI del calendario, o "*" = todo México. */
+  region: string;
 }
 
 /** Metadatos y métricas de validación extraídos de harmonization/ (MODIS C6.1 ↔ VIIRS S-NPP). */
@@ -207,129 +207,20 @@ export function directionsUrl(ev: { lat: number; lon: number }): string {
   return `https://www.google.com/maps/dir/?api=1&destination=${ev.lat},${ev.lon}`;
 }
 
-// --- Respaldo de demostración (si la API no responde) ---------------------------
-
-const DEMO_DAY = "2026-11-14";
-const demo = (
-  id: string, municipality: string, zone: string, time: string, sensor: string,
-  origin: FireOrigin, probability: number, frpMw: number, lat: number, lon: number,
-): HotspotEvent => ({
-  id, municipality, zone, detectedAt: `${DEMO_DAY}T${time}:00-06:00`, sensor, origin,
-  probability, frpMw, lat, lon, reasons: [], irregularUseAlert: false,
-});
-
-export const DEMO_HOTSPOTS: HotspotEvent[] = [
-  demo("CHIH-2841", "Bocoyna", "Ejido San Juanito · Km 14", "14:28", "VIIRS 375m", "Human", 86, 24.6, 27.97, -107.58),
-  demo("CHIH-2840", "Madera", "Mesa de Arturo · Farmland edge", "13:45", "VIIRS 375m", "Human", 81, 19.2, 29.19, -108.14),
-  demo("CHIH-2839", "Guachochi", "Sinforosa Canyon · North", "13:10", "MODIS 1km", "Lightning", 74, 31.4, 26.82, -107.07),
-  demo("CHIH-2838", "Temósachic", "Sierra El Nido · West slope", "12:32", "VIIRS 375m", "Wildland", 68, 14.8, 28.95, -107.83),
-  demo("CHIH-2837", "Ocampo", "Basaseachi Corridor", "12:16", "VIIRS 375m", "Human", 79, 22.1, 28.18, -108.21),
-  demo("CHIH-2836", "Guadalupe y Calvo", "Cerro Mohinora · High mountain", "11:42", "MODIS 1km", "Lightning", 83, 37.5, 25.96, -107.04),
-];
-
-export const DEMO_STATIONS: Station[] = [
-  { id: "ESP32-CHIH-04", name: "Bocoyna · San Juanito", lat: 27.97, lon: -107.58, temperatureC: 27.4, humidityPct: 22, windKmh: 24.5, lightningStrikes: 0, riskLevel: 4, recordedAt: `${DEMO_DAY}T14:30:00-06:00`, fallbackActive: false, batteryV: 4.12, pressureHpa: 781.4, noiseDb: 38, rssiDbm: -67, linkType: "wifi", luminosityPct: 72, flameDetected: false, flameIntensityPct: 0 },
-  { id: "ESP32-CHIH-07", name: "Guachochi · Sinforosa", lat: 26.82, lon: -107.07, temperatureC: 22.8, humidityPct: 41, windKmh: 14, lightningStrikes: 3, riskLevel: 2, recordedAt: `${DEMO_DAY}T14:30:00-06:00`, fallbackActive: false, batteryV: 3.98, pressureHpa: 802.9, noiseDb: 44, rssiDbm: -98, linkType: "lora", luminosityPct: 64, flameDetected: false, flameIntensityPct: 0 },
-];
-
-/** Calendario real 2002–2026 calculado directamente de harmonization/harmonized_hotspots.csv (in_calendar = 1, 55,902 filas). */
-export const DEMO_CALENDAR: BurnCalendar = {
-  monthLabels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-  monthlyMedians: [116, 83, 108, 287, 586, 452, 71, 13, 7, 17, 31, 73],
-  current: { year: 2026, month: "Jul", value: 22, median: 71, anomalyPct: -69.0 },
-  rows: [
-    { year: 2002, months: [null, null, null, null, null, null, 109, 21, 7, 11, 38, 35], source: "MODIS Aqua (13:30 · from Jul 4)" },
-    { year: 2003, months: [52, 17, 46, 46, 467, 384, 98, 9, 3, 6, 14, 96], source: "MODIS Aqua (13:30)" },
-    { year: 2004, months: [43, 37, 38, 23, 161, 312, 65, 11, 2, 5, 18, 125], source: "MODIS Aqua (13:30)" },
-    { year: 2005, months: [98, 27, 47, 20, 108, 231, 100, 16, 20, 21, 77, 53], source: "MODIS Aqua (13:30)" },
-    { year: 2006, months: [90, 58, 83, 292, 734, 336, 50, 12, 16, 13, 45, 70], source: "MODIS Aqua (13:30)" },
-    { year: 2007, months: [27, 130, 109, 134, 603, 276, 88, 10, 3, 28, 65, 138], source: "MODIS Aqua (13:30)" },
-    { year: 2008, months: [144, 95, 108, 308, 584, 476, 52, 15, 7, 16, 55, 90], source: "MODIS Aqua (13:30)" },
-    { year: 2009, months: [116, 150, 116, 221, 559, 452, 71, 11, 6, 16, 60, 150], source: "MODIS Aqua (13:30)" },
-    { year: 2010, months: [146, 138, 123, 86, 543, 363, 89, 22, 7, 23, 182, 225], source: "MODIS Aqua (13:30)" },
-    { year: 2011, months: [123, 211, 290, 1214, 3081, 2179, 118, 80, 29, 48, 31, 48], source: "MODIS Aqua (2011 Extreme · 7,452 total)" },
-    { year: 2012, months: [100, 32, 116, 613, 1865, 1494, 101, 17, 23, 14, 9, 10], source: "MODIS Aqua + VIIRS S-NPP (seam 2012-01-20)" },
-    { year: 2013, months: [30, 55, 125, 411, 914, 975, 84, 22, 10, 24, 14, 109], source: "VIIRS S-NPP (1.4 km ≥ 15 MW)" },
-    { year: 2014, months: [183, 100, 49, 117, 396, 654, 25, 9, 4, 66, 50, 96], source: "VIIRS S-NPP (1.4 km ≥ 15 MW)" },
-    { year: 2015, months: [106, 120, 26, 19, 173, 301, 43, 11, 8, 13, 31, 73], source: "VIIRS S-NPP (1.4 km ≥ 15 MW)" },
-    { year: 2016, months: [324, 178, 109, 127, 602, 744, 109, 9, 13, 17, 90, 92], source: "VIIRS S-NPP (1.4 km ≥ 15 MW)" },
-    { year: 2017, months: [131, 60, 290, 307, 1061, 1702, 94, 18, 4, 25, 77, 23], source: "VIIRS S-NPP (1.4 km ≥ 15 MW)" },
-    { year: 2018, months: [155, 39, 93, 810, 1749, 951, 45, 20, 5, 6, 30, 38], source: "VIIRS S-NPP (1.4 km ≥ 15 MW)" },
-    { year: 2019, months: [151, 93, 43, 386, 323, 560, 76, 28, 4, 12, 10, 10], source: "VIIRS S-NPP (1.4 km ≥ 15 MW)" },
-    { year: 2020, months: [159, 83, 26, 49, 203, 218, 57, 41, 8, 24, 30, 29], source: "VIIRS S-NPP (held-out val)" },
-    { year: 2021, months: [20, 22, 160, 401, 786, 1291, 65, 9, 7, 18, 26, 38], source: "VIIRS S-NPP (held-out val)" },
-    { year: 2022, months: [135, 96, 174, 317, 1156, 380, 47, 5, 7, 19, 54, 161], source: "VIIRS S-NPP (held-out val)" },
-    { year: 2023, months: [327, 93, 84, 132, 510, 787, 94, 27, 25, 11, 14, 25], source: "VIIRS S-NPP (held-out val)" },
-    { year: 2024, months: [43, 31, 44, 287, 586, 428, 25, 13, 9, 19, 24, 58], source: "VIIRS S-NPP (held-out val)" },
-    { year: 2025, months: [34, 42, 605, 686, 1867, 273, 24, 11, 3, 9, 23, 121], source: "VIIRS S-NPP (held-out val)" },
-    { year: 2026, months: [94, 72, 92, 36, 215, 169, 22, null, null, null, null, null], source: "VIIRS S-NPP (through 2026-07-31)" },
-  ],
-  kmFactors: [0.68, 0.66, 1.04, 1.21, 1.26, 1.43, 1.42, 1.45, 0.9, 0.78, 0.6, 0.55],
-  kmCi95: null,
-  dataSource: "nasa",
-  realCoverage: 1.0,
-};
-
-const COS_LAT_28_6 = Math.cos((28.6 * Math.PI) / 180);
-
-/** Calcula `inCalendar` en cliente (regla de celda de 1.4 km y suma de FRP >= 15 MW) si la API no lo incluyó. */
-export function ensureInCalendarFlags(fires: NasaFire[]): NasaFire[] {
-  if (fires.length === 0 || fires.every((f) => typeof f.inCalendar === "boolean")) {
-    return fires;
-  }
-  const out = fires.map((f) => ({ ...f, inCalendar: false }));
-  const cells = new Map<string, number[]>();
-
-  for (let i = 0; i < out.length; i++) {
-    const f = out[i];
-    const conf = (f.confidence || "nominal").toLowerCase();
-    if (conf === "low" || conf === "l") continue;
-
-    if (f.date < HARMONIZATION_META.dateRange.seam || f.satellite.startsWith("MODIS")) {
-      if (!f.satellite.toLowerCase().includes("terra") && f.satellite !== "MODIS T") {
-        out[i].inCalendar = true;
-      }
-      continue;
-    }
-
-    const xKm = (f.lon + 109.5) * 111.32 * COS_LAT_28_6;
-    const yKm = (f.lat - 25.5) * 111.32;
-    const cx = Math.floor(xKm / HARMONIZATION_META.cellSizeKm);
-    const cy = Math.floor(yKm / HARMONIZATION_META.cellSizeKm);
-    const key = `${f.date}:${cx}:${cy}`;
-    const bucket = cells.get(key);
-    if (bucket) bucket.push(i);
-    else cells.set(key, [i]);
-  }
-
-  for (const indices of cells.values()) {
-    const sumFrp = indices.reduce((acc, idx) => acc + (out[idx].frpMw || 0), 0);
-    if (sumFrp >= HARMONIZATION_META.frpThresholdMw) {
-      let bestIdx = indices[0];
-      for (const idx of indices) {
-        if ((out[idx].frpMw || 0) > (out[bestIdx].frpMw || 0)) bestIdx = idx;
-      }
-      out[bestIdx].inCalendar = true;
-    }
-  }
-
-  return out;
-}
-
 // --- Descargas ------------------------------------------------------------------
 
 export function downloadHotspotsCsv(events: HotspotEvent[]): void {
-  const header = "id,municipality,zone,date_time,sensor,probable_origin,probability_pct,frp_mw,lat,lon,in_calendar";
-  const q = (s: string) => `"${s.replace(/"/g, '""')}"`;
-  const rows = events.map((ev) => {
-    const inCal = ev.frpMw >= HARMONIZATION_META.frpThresholdMw ? 1 : 0;
-    return [ev.id, q(ev.municipality), q(ev.zone), ev.detectedAt, q(ev.sensor), ev.origin, ev.probability, ev.frpMw, ev.lat, ev.lon, inCal].join(",");
-  });
-  saveFile([header, ...rows].join("\n"), "text/csv;charset=utf-8", "fuegodata-sierra-chihuahua.csv");
+  // Detecciones recientes NOAA-20/21: no forman parte de la serie armonizada, así que no llevan in_calendar.
+  const header = "id,state,date_time_utc,sensor,confidence,frp_mw,lat,lon";
+  const q = (s: string | null) => `"${(s ?? "").replace(/"/g, '""')}"`;
+  const rows = events.map((ev) =>
+    [ev.id, q(ev.state), ev.detectedAt, q(ev.sensor), ev.confidence ?? "", ev.frpMw, ev.lat, ev.lon].join(",")
+  );
+  saveFile([header, ...rows].join("\n"), "text/csv;charset=utf-8", "fuegodata-recent-detections.csv");
 }
 
 export function downloadHistoricalCsv(fires: NasaFire[], monthLabel = "selection"): void {
-  const normalized = ensureInCalendarFlags(fires);
+  const normalized = fires; // in_calendar viene del archivo armonizado; si falta se deja vacío (no se estima)
   const header =
     "latitude,longitude,brightness,bright_t31,delta_t_k,frp,frp_per_pixel_km2,pixel_area_km2,acq_date,satellite,confidence,daynight,in_calendar";
   const rows = normalized.map((f) => {
@@ -349,10 +240,10 @@ export function downloadHistoricalCsv(fires: NasaFire[], monthLabel = "selection
       frpDensity,
       f.pixelAreaKm2 ?? "",
       f.date,
-      f.satellite || (f.date < HARMONIZATION_META.dateRange.seam ? "Aqua" : "SNPP"),
+      f.satellite ?? "",
       f.confidence,
       f.daynight ?? "",
-      f.inCalendar ? 1 : 0,
+      f.inCalendar === undefined ? "" : f.inCalendar ? 1 : 0,
     ].join(",");
   });
   saveFile([header, ...rows].join("\n"), "text/csv;charset=utf-8", `fuegodata-harmonized-${monthLabel}.csv`);
@@ -366,18 +257,15 @@ export function downloadHotspotsGeoJson(events: HotspotEvent[]): void {
       geometry: { type: "Point", coordinates: [ev.lon, ev.lat] },
       properties: {
         id: ev.id,
-        municipality: ev.municipality,
-        zone: ev.zone,
-        date_time: ev.detectedAt,
+        state: ev.state,
+        date_time_utc: ev.detectedAt,
         sensor: ev.sensor,
-        probable_origin: ev.origin,
-        probability_pct: ev.probability,
+        confidence: ev.confidence,
         frp_mw: ev.frpMw,
-        in_calendar: ev.frpMw >= HARMONIZATION_META.frpThresholdMw ? 1 : 0,
       },
     })),
   };
-  saveFile(JSON.stringify(geojson, null, 2), "application/geo+json", "fuegodata-sierra-chihuahua.geojson");
+  saveFile(JSON.stringify(geojson, null, 2), "application/geo+json", "fuegodata-recent-detections.geojson");
 }
 
 function saveFile(content: string, type: string, filename: string): void {

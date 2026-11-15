@@ -261,21 +261,25 @@ export default function ChihuahuaOsmMap(props: Props) {
     }
     for (const f of historyFires ?? []) {
       const low = f.confidence === "low" || f.confidence === "l";
-      const isModisEra = f.date < HARMONIZATION_META.dateRange.seam;
-      const inCal = f.inCalendar ?? (!low && (isModisEra || f.frpMw >= HARMONIZATION_META.frpThresholdMw));
+      // in_calendar solo del archivo armonizado; si falta no se estima (se trata como 0)
+      const inCal = f.inCalendar === true;
       if (historyOnlyInCalendar && !inCal) continue;
 
       const radius = low ? 2 : Math.min(6.5, Math.max(2.5, 2 + Math.sqrt(Math.max(0, f.frpMw)) * 0.42));
       const fillColor = f.frpMw >= 50 ? "#ff2a00" : inCal ? "#ff9f1c" : "#fbbf24";
-      const satName = f.satellite || (isModisEra ? "Aqua" : "SNPP");
+      const satName = f.satellite || "Satellite not reported";
       const passLabel = f.daynight === "N" ? "Night (01:30)" : "Day (13:30)";
       const sensorLabel =
         satName === "Aqua" || satName === "Terra"
           ? `${satName} MODIS 1 km · ${passLabel}`
-          : `${satName} VIIRS 375 m · ${passLabel}`;
+          : satName === "SNPP" || satName.startsWith("VIIRS")
+            ? `${satName} VIIRS 375 m · ${passLabel}`
+            : satName;
       const calLabel = inCal
-        ? `in_calendar = 1 (strongest pixel in ≥ ${HARMONIZATION_META.frpThresholdMw} MW 1.4 km cell)`
-        : "in_calendar = 0 (detail row: sub-15 MW cell / neighbor pixel / low conf)";
+        ? "in_calendar = 1 (Aqua pixel before 2012-01-20, or strongest pixel of a 1.4 km S-NPP cell ≥ the state's threshold)"
+        : f.inCalendar === false
+          ? "in_calendar = 0 (detail row: Terra, cell below threshold, neighbor pixel or low confidence)"
+          : "in_calendar not available for this row";
       const brightLine =
         f.brightnessK !== undefined && f.brightT31K !== undefined
           ? `<br>Brightness <b>${f.brightnessK.toFixed(1)} K</b> (T31 ${f.brightT31K.toFixed(1)} K · ΔT +${(f.brightnessK - f.brightT31K).toFixed(1)} K)`
@@ -371,7 +375,7 @@ export default function ChihuahuaOsmMap(props: Props) {
           iconAnchor: [size / 2, size / 2],
           html: `<span class="hotspot${recent ? " hotspot--recent" : ""}${selected ? " hotspot--selected" : ""}" style="--c:${ORIGIN_COLORS[ev.origin].hex};width:${size}px;height:${size}px"></span>`,
         }),
-        title: `${ev.municipality} · probable cause ${ev.origin} ${ev.probability}%`,
+        title: `${ev.state ?? "Mexico"} · ${ev.sensor} · FRP ${ev.frpMw} MW`,
         zIndexOffset: selected ? 1000 : recent ? 500 : 0,
       })
         .on("click", () => onSelect(ev.id))
@@ -382,8 +386,8 @@ export default function ChihuahuaOsmMap(props: Props) {
       L.popup({ className: "fd-popup", offset: [0, -sizeFor(sel.frpMw) / 2], autoPan: true })
         .setLatLng([sel.lat, sel.lon])
         .setContent(
-          `<strong>${esc(sel.municipality)}</strong><br>${esc(sel.zone)}<br>` +
-            `Probable cause: <span style="color:${ORIGIN_COLORS[sel.origin].hex};font-weight:700">${sel.origin} ${sel.probability}%</span><br>` +
+          `<strong>${esc(sel.state ?? "Mexico")}</strong> · ${sel.lat.toFixed(3)}, ${sel.lon.toFixed(3)}<br>` +
+            `${esc(sel.sensor)}${sel.confidence ? ` · ${esc(sel.confidence)} confidence` : ""} · cause not determined<br>` +
             `FRP ${sel.frpMw} MW · <a href="${directionsUrl(sel)}" target="_blank" rel="noopener noreferrer">Directions ↗</a>`
         )
         .openOn(map);

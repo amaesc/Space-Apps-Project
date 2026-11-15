@@ -119,6 +119,53 @@ Needs Python 3, numpy and matplotlib. Inputs: FIRMS archive downloads for MODIS 
 (`acq_date` may be `YYYYMMDD` or `YYYY-MM-DD`). Parameters (15 MW threshold, 1.4 km cell, 367 K cap) are constants at the top of the script.
 `s3_io.py` has not been run against the real bucket yet.
 
+### Any region in Mexico (cleaning step + LCC grid)
+```
+python3 clean_inputs.py --boundary boundaries/chihuahua_state.geojson \
+    --modis data/fire_archive_M-C61_848902.csv [data/fire_nrt_M-C61_848902.csv] \
+    --snpp  data/fire_archive_SV-C2_842407.csv [data/fire_nrt_SV-C2_842407.csv] --out-dir clean/
+python3 build_harmonized_dataset.py clean/modis.csv clean/snpp.csv harmonized_hotspots.csv
+```
+Extra needs: pandas, shapely >= 2, pyproj (and geopandas for `boundaries/geojson_convert.py`).
+
+- `clean_inputs.py` clips to the boundary polygon(s), drops `type` 1-3 (volcano, static source, offshore) plus NRT rows in
+  archive static-source cells, removes archive/NRT overlap, and adds a `region` column (INEGI `NOMGEO`). Raw values are
+  copied as text. For N. Chihuahua the FIRMS box also covered Sonora, Sinaloa, Durango, Coahuila and the Permian Basin gas
+  flares (Texas/New Mexico): 40% of the rows.
+- `build_harmonized_dataset.py` now groups cells in km from **EPSG:6372** (INEGI's Mexico LCC, valid nationwide) by default.
+  The old grid (equirectangular at 28.6 N) is 10% too narrow near 15 N, and its packed cell key collides once a region
+  is wider than ~1,400 km or lies west of -109.5 (Baja California). `--grid legacy` keeps the old grid: on the raw
+  archives it reproduces this folder's `harmonized_hotspots.csv` byte for byte. `--frp-threshold` overrides 15 MW.
+- For all of Mexico: `python3 boundaries/geojson_convert.py <INEGI 00ent.shp> boundaries/mexico_states.geojson`, then
+  pass that file as `--boundary`. The 15 MW threshold was fitted on Chihuahua only: re-check it per region before trusting
+  national counts.
+
+**Per-region threshold:** `python3 calibrate_threshold.py clean/modis.csv clean/snpp.csv --out calibration/ [--split regions.geojson]`
+fits, per `region`, the cell-FRP threshold T* at which SNPP cells match Aqua pixel counts on 2012-2019, with a bootstrap
+90% interval, and checks the ratio on 2020-2025. Chihuahua (cleaned): **T* = 17.1 MW (15.6-18.3)**, held-out ratio
+**1.00** (vs 1.12 at 15 MW, the ~10% residual offset). Split at -106.5: Sierra 17.6 MW (16.1-18.8) vs plains/desert
+13.0 MW (11.8-14.2), so the threshold depends on the landscape and must be fitted per region nationwide.
+Apply them with `python3 build_harmonized_dataset.py clean/modis.csv clean/snpp.csv harmonized_hotspots.csv --thresholds calibration/thresholds.json`
+(each SNPP cell uses the threshold of its strongest pixel's region; regions without one fall back to `--frp-threshold`).
+Cell FRP sums are rounded to 0.01 MW (FIRMS precision) in both scripts, so float error never decides a cell that sits
+exactly on T* (e.g. 17.099999 vs 17.10); this changes no row of the legacy CSV.
+
+**Low-sample states (national run):** `--merge "Tlaxcala=Puebla" "Aguascalientes=Jalisco" "Baja California Sur=*"` fits
+each listed state on itself + its partner(s) (`*` = all of Mexico pooled, 14.96 MW); partners keep their own T*. Chosen by
+comparing own / 15 MW / national / neighbour-merge on 2020-2025 held-out ratios (so those test ratios are slightly
+optimistic): own-state T* overfit in all three (held-out ratio 1.19-1.28, 90% interval excluding 1.0). Ciudad de México
+keeps its own T* (23.4 MW, held-out 1.06) although it has only 139 Aqua train detections: every merge gives ~1.5.
+Baja California Sur stays low confidence (held-out 0.87, monthly correlation 0.64 under every option). These four
+states are ~0.5% of national detections.
+With fitted thresholds the SNPP/Aqua ratio is 1.00 on both train and held-out years, so the "divide by 1.1" correction
+in *Limits* is no longer needed for series built this way.
+
+| N. Chihuahua run | raw box, legacy grid (published) | raw box, LCC grid | cleaned, LCC grid |
+|---|---|---|---|
+| input rows | 481,029 | 481,029 | 282,428 |
+| `in_calendar = 1` | 55,902 | 55,674 | 33,355 |
+| Aqua-SNPP pairs | 7,028 | 7,018 | 4,344 |
+
 ## Relation to the monthly k_m factor in the main README
 The main README describes a monthly MODIS to VIIRS factor (k_m). This folder makes the two records comparable at the **detection level**
 instead (which VIIRS rows count as MODIS-equivalent), and keeps all rows. The two approaches have not been reconciled; on the `in_calendar` series
