@@ -18,14 +18,17 @@ import {
 } from "../components/Icons";
 import LazyMap from "../components/LazyMap";
 import SiteHeader from "../components/SiteHeader";
-import { LITE_URL, type ModelForecast, useDashboardData, useHistoricalFires, useModelForecast, useNasaFires, useNow, useSlowConnection, useWeatherGrid } from "../lib/api";
+import { LITE_URL, type ModelForecast, useDashboardData, useHarmonizedArchive, useHistoricalFires, useModelForecast, useNasaFires, useNow, useSlowConnection, useWeatherGrid } from "../lib/api";
+import { asset } from "../lib/asset";
 import {
   type BurnCalendar,
   directionsUrl,
+  downloadHistoricalCsv,
   downloadHotspotsCsv,
   type FireOrigin,
   formatAgo,
   formatTime,
+  HARMONIZATION_META,
   type HotspotEvent,
   IS_DEMO_DATA,
   minutesSince,
@@ -95,6 +98,8 @@ export default function FireMapPage() {
   const [fire, setFire] = useState<FireLayers>({ nasa: true, history: false, probability: false, cause: true });
   const months = historyMonths();
   const [historyMonth, setHistoryMonth] = useState(months.find((m) => m.endsWith("-05")) ?? months[0]);
+  const [historyOnlyInCalendar, setHistoryOnlyInCalendar] = useState(true);
+  const [showHarmonizationZone, setShowHarmonizationZone] = useState(false);
   const [panelPref, setPanelPref] = useState<boolean | null>(null);
   const [modal, setModal] = useState<"help" | "calendar" | "area" | null>(null);
   const [selectAreaMode, setSelectAreaMode] = useState(false);
@@ -171,6 +176,8 @@ export default function FireMapPage() {
           forecast={model.data}
           nasaFires={fire.nasa ? nasa.data?.fires ?? null : null}
           historyFires={fire.history ? history.data : null}
+          historyOnlyInCalendar={historyOnlyInCalendar}
+          showHarmonizationZone={fire.history && showHarmonizationZone}
           showCause={fire.cause}
           satellite={satellite}
           selectAreaMode={selectAreaMode}
@@ -266,7 +273,22 @@ export default function FireMapPage() {
                 <fieldset>
                   <legend className="mb-1 text-xs font-semibold uppercase tracking-wide text-fd-gold">Fire</legend>
                   <LayerCheck checked={fire.nasa} onChange={() => toggleFire("nasa")} label="NASA active fires" hint={fire.nasa ? layerHint(nasa.status, `VIIRS NOAA-20 + NOAA-21 · last 48 h · ${nasa.data?.fires.length ?? 0} in Chihuahua · up to ~3 h delay`) : "NASA FIRMS, VIIRS 375 m, last 48 h"} swatch={<span className="h-3 w-3 rounded-full border-2 border-[#ffe066] bg-[#ff2a00]" />} />
-                  <LayerCheck checked={fire.history} onChange={() => toggleFire("history")} label="Historical fires" hint={fire.history ? layerHint(history.status, `${history.data?.length ?? 0} detections in ${monthLabel(historyMonth)} · ${historyMonth < "2020-01" ? "MODIS 1 km" : "VIIRS 375 m"}`) : "NASA archive by month: MODIS 2002–, VIIRS 2020–"} swatch={<span className="h-2.5 w-2.5 rounded-full bg-[#ff9f1c]" />}>
+                  <LayerCheck
+                    checked={fire.history}
+                    onChange={() => toggleFire("history")}
+                    label="Historical fires (harmonized)"
+                    hint={
+                      fire.history
+                        ? layerHint(
+                            history.status,
+                            `${history.data?.filter((f) => f.inCalendar).length ?? 0} in_calendar=1 (${history.data?.length ?? 0} total) in ${monthLabel(historyMonth)} · ${
+                              historyMonth < "2012-01" ? "Aqua MODIS 1 km (13:30)" : "S-NPP/NOAA VIIRS 375 m (1.4 km cell ≥ 15 MW)"
+                            }`
+                          )
+                        : "Harmonized archive: Aqua MODIS (2002–2011) + S-NPP VIIRS ≥15 MW cells (2012–2026)"
+                    }
+                    swatch={<span className="h-2.5 w-2.5 rounded-full bg-[#ff9f1c]" />}
+                  >
                     <select
                       value={historyMonth}
                       onChange={(e) => setHistoryMonth(e.target.value)}
@@ -277,6 +299,26 @@ export default function FireMapPage() {
                         <option key={m} value={m}>{monthLabel(m)}</option>
                       ))}
                     </select>
+                    <label className="mt-1.5 flex cursor-pointer items-start gap-2 text-xs text-white/80">
+                      <input
+                        type="checkbox"
+                        checked={historyOnlyInCalendar}
+                        onChange={(e) => setHistoryOnlyInCalendar(e.target.checked)}
+                        className="mt-0.5 accent-[#f5c518]"
+                      />
+                      <span>
+                        <code className="text-fd-gold">in_calendar = 1</code> only (MODIS-eq ≥ 15 MW, 55,902 consistent series)
+                      </span>
+                    </label>
+                    <label className="mt-1 flex cursor-pointer items-start gap-2 text-xs text-white/80">
+                      <input
+                        type="checkbox"
+                        checked={showHarmonizationZone}
+                        onChange={(e) => setShowHarmonizationZone(e.target.checked)}
+                        className="mt-0.5 accent-[#f5c518]"
+                      />
+                      <span>Show calibration domain (25.5°–31.8° N, −109.5° to −103.3° E)</span>
+                    </label>
                   </LayerCheck>
                   <LayerCheck checked={fire.probability} onChange={() => toggleFire("probability")} label="Fire probability, next 72 h (our model)" hint={model.data ? `Trained on 6 years of NASA data · AUC ${model.data.auc.toFixed(2)} · corrected by IoT stations` : layerHint(grid.status, "Model unavailable: weather index shown instead")} swatch={<span className="h-3 w-3 bg-gradient-to-r from-[#16a34a] via-[#facc15] to-[#dc2626]" />} />
                   <LayerCheck checked={fire.cause} onChange={() => toggleFire("cause")} label="Probable cause of active fires" hint="Human · lightning · wildland, with probability" swatch={<span className="h-3 w-3 rounded-full bg-[#f97316] ring-2 ring-[#38bdf8]" />} />
@@ -471,7 +513,7 @@ export default function FireMapPage() {
             />
             <Tool label="Location" onClick={() => mapApi.current?.locate()} icon={<LocateIcon />} />
             <Tool label="Reset" onClick={() => mapApi.current?.reset()} icon={<ResetIcon />} />
-            <Tool label="Calendar" onClick={() => setModal("calendar")} icon={<CalendarIcon />} disabled={!data.calendar} />
+            <Tool label="Calendar" onClick={() => setModal("calendar")} icon={<CalendarIcon />} />
             <Tool label="Download" onClick={() => downloadHotspotsCsv(events)} icon={<DownloadIcon />} />
             <li>
               <a href={LITE_URL} className="flex h-14 w-[3.35rem] flex-col items-center sm:w-[4.5rem] justify-center gap-0.5 text-[10px] font-semibold uppercase text-white/85 hover:bg-white/10 hover:text-fd-gold sm:text-[11px]">
@@ -483,8 +525,8 @@ export default function FireMapPage() {
           </ul>
         </nav>
 
-        {modal === "calendar" && data.calendar && (
-          <Modal title="Harmonized burn calendar" onClose={() => setModal(null)} wide>
+        {modal === "calendar" && (
+          <Modal title="Harmonized burn calendar & MODIS ↔ VIIRS calibration" onClose={() => setModal(null)} wide>
             <CalendarHeatmap calendar={data.calendar} />
           </Modal>
         )}
@@ -497,6 +539,7 @@ export default function FireMapPage() {
               stations={data.stations}
               nasaFires={fire.nasa ? nasa.data?.fires ?? null : null}
               historyFires={fire.history ? history.data : null}
+              historyMonth={historyMonth}
               forecast={model.data}
               onClear={() => {
                 setSelectedBounds(null);
@@ -594,66 +637,247 @@ function Modal({ title, onClose, children, wide }: { title: string; onClose: () 
   );
 }
 
-/** Calendario de quema armonizado: años × meses (MODIS → VIIRS con kₘ). */
-function CalendarHeatmap({ calendar }: { calendar: BurnCalendar }) {
-  const values = calendar.rows.flatMap((r) => r.months).filter((v): v is number => v !== null);
+/** Calendario de quema armonizado + documentación y límites de harmonization/ (MODIS ↔ VIIRS). */
+function CalendarHeatmap({ calendar }: { calendar: BurnCalendar | null }) {
+  const [applyPost2012Offset, setApplyPost2012Offset] = useState(false);
+  const m = HARMONIZATION_META;
+
+  const scaleVal = (year: number, v: number | null) => {
+    if (v === null) return null;
+    return applyPost2012Offset && year >= 2012 ? Math.round(v / m.post2012OffsetDivisor) : v;
+  };
+
+  const rows = calendar ? [...calendar.rows].reverse() : [];
+  const values = rows.flatMap((r) => r.months.map((v) => scaleVal(r.year, v))).filter((v): v is number => v !== null);
   const max = Math.max(1, ...values);
   const shade = (v: number | null) => (v === null ? "transparent" : `rgba(245, 120, 30, ${(0.08 + 0.92 * (v / max)).toFixed(2)})`);
-  const rows = [...calendar.rows].reverse();
-  const real = calendar.dataSource === "nasa";
+  const real = calendar?.dataSource === "nasa";
+
   return (
-    <>
-      <p className="text-sm text-white/80">
-        Monthly fire detections in Chihuahua, {rows[rows.length - 1].year}–{rows[0].year}. MODIS counts are scaled to VIIRS-equivalent with
-        a monthly factor kₘ. Darker = more activity.
-      </p>
-      <p className={`mt-2 rounded px-2 py-1 text-sm ${real ? "bg-emerald-500/15 text-emerald-200" : "bg-fd-gold/15 text-fd-gold"}`}>
-        {real
-          ? "Source: real NASA FIRMS detections (MODIS 2002–, VIIRS NOAA-20 2020–), kₘ fitted on the overlap with 95% bootstrap CI."
-          : `Illustrative series. The real NASA calendar is being built on our server${
-              calendar.realCoverage !== null ? ` (${Math.round(calendar.realCoverage * 100)}% done)` : ""
-            }.`}
-      </p>
-      <div className="mt-3 overflow-x-auto">
-        <table className="w-full min-w-[560px] border-separate border-spacing-0.5 text-center text-xs tabular-nums">
-          <thead>
-            <tr>
-              <th className="w-14" />
-              {calendar.monthLabels.map((m) => (
-                <th key={m} scope="col" className="font-semibold text-white/80">{m}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.year}>
-                <th scope="row" className="pr-1 text-right font-semibold text-white/80" title={r.source}>{r.year}</th>
-                {r.months.map((v, i) => (
-                  <td key={i} title={v === null ? "no data" : `${calendar.monthLabels[i]} ${r.year}: ${v}`} className="h-4" style={{ backgroundColor: shade(v) }} />
+    <div className="space-y-4">
+      {calendar ? (
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm text-white/80">
+              Monthly fire detections in Chihuahua, {rows[rows.length - 1]?.year}–{rows[0]?.year}. Darker = more activity.
+            </p>
+            <label className="flex cursor-pointer items-center gap-2 rounded border border-fd-gold/40 bg-fd-gold/10 px-2.5 py-1 text-xs font-semibold text-fd-gold">
+              <input
+                type="checkbox"
+                checked={applyPost2012Offset}
+                onChange={(e) => setApplyPost2012Offset(e.target.checked)}
+                className="accent-[#f5c518]"
+              />
+              Apply ÷{m.post2012OffsetDivisor} post-2012 S-NPP offset correction
+            </label>
+          </div>
+
+          <p className={`rounded px-2.5 py-1.5 text-sm ${real ? "bg-emerald-500/15 text-emerald-200" : "bg-fd-gold/15 text-fd-gold"}`}>
+            {real
+              ? "Source: real NASA FIRMS detections (MODIS 2002–, VIIRS S-NPP/NOAA-20), harmonized with monthly factor kₘ and detection-level cell filtering."
+              : `Illustrative series. The real NASA calendar is being built on our server${
+                  calendar.realCoverage !== null ? ` (${Math.round(calendar.realCoverage * 100)}% done)` : ""
+                }.`}
+          </p>
+
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[560px] border-separate border-spacing-0.5 text-center text-xs tabular-nums">
+              <thead>
+                <tr>
+                  <th className="w-14" />
+                  {calendar.monthLabels.map((lbl) => (
+                    <th key={lbl} scope="col" className="font-semibold text-white/80">{lbl}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.year}>
+                    <th scope="row" className="pr-1 text-right font-semibold text-white/80" title={r.source}>{r.year}</th>
+                    {r.months.map((rawV, i) => {
+                      const v = scaleVal(r.year, rawV);
+                      return (
+                        <td
+                          key={i}
+                          title={v === null ? "no data" : `${calendar.monthLabels[i]} ${r.year}: ${v}${applyPost2012Offset && r.year >= 2012 ? ` (raw ${rawV})` : ""}`}
+                          className="h-4"
+                          style={{ backgroundColor: shade(v) }}
+                        />
+                      );
+                    })}
+                  </tr>
                 ))}
-              </tr>
-            ))}
-            <tr>
-              <th scope="row" className="pr-1 pt-1 text-right font-semibold text-sky-300">Median</th>
-              {calendar.monthlyMedians.map((v, i) => (
-                <td key={i} className="pt-1 text-sky-300">{Math.round(v)}</td>
+                <tr>
+                  <th scope="row" className="pr-1 pt-1 text-right font-semibold text-sky-300">Median</th>
+                  {calendar.monthlyMedians.map((v, i) => (
+                    <td key={i} className="pt-1 text-sky-300">{Math.round(v)}</td>
+                  ))}
+                </tr>
+                <tr>
+                  <th scope="row" className="pr-1 text-right font-semibold text-fd-gold">kₘ</th>
+                  {calendar.kmFactors.map((k, i) => {
+                    const ci = calendar.kmCi95?.[i];
+                    return (
+                      <td key={i} className="text-fd-gold" title={ci ? `95% CI ${ci[0]}–${ci[1]}` : undefined}>
+                        {k.toFixed(2)}
+                      </td>
+                    );
+                  })}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </>
+      ) : (
+        <p className="rounded bg-white/5 px-3 py-2 text-sm text-white/75">
+          Live monthly matrix is currently offline — showing the detection-level harmonization archive summary below.
+        </p>
+      )}
+
+      {/* Resumen técnico extraído de harmonization/ */}
+      <div className="space-y-3 border-t border-white/15 pt-3 text-xs text-white/80">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-fd-gold">
+            Detection-level Harmonization (MODIS C6.1 ↔ VIIRS S-NPP · <code>in_calendar = 1</code>)
+          </h3>
+          <span className="font-mono text-[11px] text-white/60">
+            N. Chihuahua ({m.bounds.south}°–{m.bounds.north}° N, {m.bounds.west}° to {m.bounds.east}° E) · {m.dateRange.start} → {m.dateRange.snppEnd}
+          </span>
+        </div>
+
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded border border-white/10 bg-white/5 p-2.5">
+            <p className="text-[10px] uppercase text-white/55">Consistent series (in_calendar = 1)</p>
+            <p className="mt-0.5 text-lg font-bold tabular-nums text-white">{m.inCalendarRows.toLocaleString()} rows</p>
+            <p className="text-[11px] text-white/65">
+              Aqua {m.aquaInCalendarRows.toLocaleString()} + S-NPP {m.snppInCalendarRows.toLocaleString()} (of {m.totalRows.toLocaleString()} total)
+            </p>
+          </div>
+          <div className="rounded border border-white/10 bg-white/5 p-2.5">
+            <p className="text-[10px] uppercase text-white/55">13:30 overpass & 15 MW cell rule</p>
+            <p className="mt-0.5 text-lg font-bold tabular-nums text-white">≥ {m.frpThresholdMw} MW / {m.cellSizeKm} km</p>
+            <p className="text-[11px] text-white/65">
+              Aqua before {m.dateRange.seam}; strongest pixel per {m.cellSizeKm} km × {m.cellTimeWindowMin} min S-NPP cell
+            </p>
+          </div>
+          <div className="rounded border border-white/10 bg-white/5 p-2.5">
+            <p className="text-[10px] uppercase text-white/55">Monthly count validation</p>
+            <p className="mt-0.5 text-lg font-bold tabular-nums text-emerald-300">
+              r = {m.validation.harmonizedCorrelation} · {m.validation.harmonizedRatioToAqua}×
+            </p>
+            <p className="text-[11px] text-white/65">
+              Raw S-NPP/Aqua was {m.validation.rawRatioToAqua}×; held-out 2020–2026 r = {m.validation.heldOutCorrelation}
+            </p>
+          </div>
+          <div className="rounded border border-white/10 bg-white/5 p-2.5">
+            <p className="text-[10px] uppercase text-white/55">Brightness quantile mapping</p>
+            <p className="mt-0.5 text-lg font-bold tabular-nums text-sky-300">
+              {m.validation.brightnessDayGapBeforeK} K → {m.validation.brightnessDayGapAfterK} K
+            </p>
+            <p className="text-[11px] text-white/65">
+              {m.matchedPairsTotal.toLocaleString()} Aqua↔S-NPP pairs (≤15 min) · capped at {m.brightnessCapK} K
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-3 lg:grid-cols-2">
+          <div className="rounded border border-white/10 bg-black/25 p-3">
+            <p className="font-semibold text-white">P(Aqua detects | summed VIIRS FRP in 1.4 km cell)</p>
+            <div className="mt-2 grid grid-cols-4 gap-1.5 text-center tabular-nums">
+              {m.validation.aquaDetectionProbByFrp.map((b) => (
+                <div key={b.bin} className="rounded bg-white/5 px-2 py-1.5">
+                  <span className="block text-[10px] text-white/60">{b.bin}</span>
+                  <strong className="text-sm text-fd-gold">{b.probPct}%</strong>
+                </div>
               ))}
-            </tr>
-            <tr>
-              <th scope="row" className="pr-1 text-right font-semibold text-fd-gold">kₘ</th>
-              {calendar.kmFactors.map((k, i) => {
-                const ci = calendar.kmCi95?.[i];
-                return (
-                  <td key={i} className="text-fd-gold" title={ci ? `95% CI ${ci[0]}–${ci[1]}` : undefined}>
-                    {k.toFixed(2)}
-                  </td>
-                );
-              })}
-            </tr>
-          </tbody>
-        </table>
+            </div>
+            <p className="mt-2 text-[11px] text-white/70">
+              The 50% detection efficiency point is ≈ <strong>15 MW</strong>. Era S-NPP/Aqua ratios:{" "}
+              {m.validation.eraRatios.map((e) => `${e.era}: ${e.ratio}×`).join(" · ")}.
+            </p>
+            <p className="mt-1 text-[11px] text-white/65">
+              <strong>Planck radiance &amp; quantile physics:</strong> Upscaling VIIRS ({m.mirWavelengthViirsUm} µm) to the Aqua-MODIS footprint ({m.mirWavelengthModisUm} µm) raises brightness correlation from {m.planckUpscaleCorrBefore} → {m.planckUpscaleCorrAfter}; empirical quantile mapping reaches daytime MAE {m.validation.brightnessDayMaeAfterK} K (KS {m.validation.brightnessDayKsBefore} → {m.validation.brightnessDayKsAfter}) and nighttime MAE {m.validation.brightnessNightMaeAfterK} K (KS {m.validation.brightnessNightKsBefore} → {m.validation.brightnessNightKsAfter}).
+            </p>
+          </div>
+
+          <div className="rounded border border-amber-400/30 bg-amber-500/10 p-3">
+            <p className="font-semibold text-fd-gold">Methodological limits (required for interpretation)</p>
+            <ul className="mt-1.5 list-disc space-y-1 pl-4 text-[11px] leading-snug text-white/85">
+              <li>
+                <strong>MODIS-equivalent counts:</strong> <code>in_calendar = 1</code> excludes small VIIRS fires (&lt;15 MW cell). Do not use this series for early warning of small ignitions.
+              </li>
+              <li>
+                <strong>≈10% post-2012 offset:</strong> S-NPP reads ~10% above Aqua; use the <code>÷1.1</code> toggle above when comparing 2012+ against pre-2012 history.
+              </li>
+              <li>
+                <strong>Use FRP (MW) for intensity:</strong> Mapped MODIS brightness is capped at {m.brightnessCapK} K ({m.modisAtCapPct}% of MODIS rows sit at cap; {m.modisBrightT31UncappedRows} rows with <code>bright_t31 = {m.modisBrightT31UncappedK} K</code> remain uncapped).
+              </li>
+              <li>
+                <strong>2011 fire anomaly:</strong> 2011 recorded <strong>{m.anomaly2011Hotspots.toLocaleString()}</strong> hotspots (vs ≈{m.pre2011AnnualMean.toLocaleString()}/yr before), verified in both Terra and Aqua and peaking in Apr–Jun.
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="rounded border border-white/10 bg-black/25 p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="font-semibold text-white">
+              Platform Attributes &amp; Area-Normalized FRP Density (<code>harmonized_hotspots.csv</code> · 16 cols)
+            </p>
+            <span className="text-[11px] text-white/60">
+              Mean footprint (scan × track): MODIS <strong>{m.meanPixelAreaKm2.modis} km²</strong> vs S-NPP <strong>{m.meanPixelAreaKm2.snpp} km²</strong> · Median FRP/area: MODIS <strong>{m.medianFrpPerPixelKm2.modis}</strong> vs S-NPP <strong>{m.medianFrpPerPixelKm2.snpp} MW/km²</strong>
+            </span>
+          </div>
+          <div className="mt-2 overflow-x-auto">
+            <table className="w-full text-left text-[11px] tabular-nums">
+              <thead>
+                <tr className="border-b border-white/10 text-white/60">
+                  <th className="py-1 pr-2">Platform</th>
+                  <th className="py-1 pr-2">Sensor</th>
+                  <th className="py-1 pr-2">Local pass (D / N)</th>
+                  <th className="py-1 pr-2 text-right">Rows</th>
+                  <th className="py-1 pr-2 text-right">Med Bright (K)</th>
+                  <th className="py-1 pr-2 text-right">Med T31 (K)</th>
+                  <th className="py-1 pr-2 text-right">Med ΔT (K)</th>
+                  <th className="py-1 text-right">Med FRP (MW)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {m.platformStats.map((p) => (
+                  <tr key={p.platform} className="border-b border-white/5">
+                    <td className="py-1 pr-2 font-semibold text-white">{p.platform}</td>
+                    <td className="py-1 pr-2 text-white/75">{p.sensor}</td>
+                    <td className="py-1 pr-2 text-white/75">{p.dayPass} / {p.nightPass}</td>
+                    <td className="py-1 pr-2 text-right">{p.rows.toLocaleString()}</td>
+                    <td className="py-1 pr-2 text-right text-sky-300">{p.medBrightK.toFixed(1)}</td>
+                    <td className="py-1 pr-2 text-right">{p.medT31K.toFixed(1)}</td>
+                    <td className="py-1 pr-2 text-right text-amber-300">+{p.medDtK.toFixed(1)}</td>
+                    <td className="py-1 text-right font-semibold text-fd-gold">{p.medFrpMw.toFixed(1)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-1.5 text-[11px] text-white/60">
+            Unified confidence classes across all {m.totalRows.toLocaleString()} rows: <code>l</code> = {m.confidenceCounts.low.toLocaleString()}, <code>n</code> = {m.confidenceCounts.nominal.toLocaleString()}, <code>h</code> = {m.confidenceCounts.high.toLocaleString()}.
+          </p>
+        </div>
+
+        <details className="rounded border border-white/10 bg-black/25 p-2.5">
+          <summary className="cursor-pointer font-semibold text-white hover:text-fd-gold">
+            View held-out 2020–2026 brightness quantile mapping validation plot
+          </summary>
+          <div className="mt-2 overflow-hidden rounded bg-white p-1">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={asset("/images/harmonized_hotspots_brightness_mapping.png")}
+              alt="Held-out 2020-2026 MODIS to Suomi-NPP brightness quantile mapping curves for day and night"
+              className="h-auto w-full"
+            />
+          </div>
+        </details>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -768,7 +992,11 @@ function MapLegend({
   }
   const points: [boolean, string, string][] = [
     [fire.nasa, "NASA active fire (48 h) · faded = low confidence", "h-2.5 w-2.5 rounded-full border-2 border-[#ffe066] bg-[#ff2a00]"],
-    [fire.history, `Historical · ${monthLabel(historyMonth)}`, "h-2 w-2 rounded-full bg-[#ff9f1c]"],
+    [
+      fire.history,
+      `Historical · ${monthLabel(historyMonth)} · sized by FRP (≥15 MW = MODIS-eq)`,
+      "h-2.5 w-2.5 rounded-full bg-[#ff9f1c]",
+    ],
   ];
   const active = points.filter(([on]) => on);
   if (active.length) {
@@ -872,6 +1100,7 @@ function AreaSummary({
   stations,
   nasaFires,
   historyFires,
+  historyMonth,
   forecast,
   onClear,
   onReselect,
@@ -881,17 +1110,54 @@ function AreaSummary({
   stations: Station[];
   nasaFires: NasaFire[] | null;
   historyFires: NasaFire[] | null;
+  historyMonth: string;
   forecast: ModelForecast | null;
   onClear: () => void;
   onReselect: () => void;
 }) {
+  const [boxStartDate, setBoxStartDate] = useState("2020-01-01");
+  const [boxEndDate, setBoxEndDate] = useState("2026-07-31");
+  const archive = useHarmonizedArchive(true);
+
   const inBounds = (lat: number, lon: number) =>
     lat >= bounds.south && lat <= bounds.north && lon >= bounds.west && lon <= bounds.east;
+
+  const archiveBoxFires = archive.data
+    ? Object.entries(archive.data)
+        .filter(([ym]) => ym >= boxStartDate.slice(0, 7) && ym <= boxEndDate.slice(0, 7))
+        .flatMap(([, rows]) =>
+          rows.filter((f) => f.date >= boxStartDate && f.date <= boxEndDate && inBounds(f.lat, f.lon))
+        )
+    : null;
+  const archiveAvgBright =
+    archiveBoxFires && archiveBoxFires.length > 0
+      ? (
+          archiveBoxFires.reduce((s, f) => s + (f.brightnessK ?? 0), 0) / archiveBoxFires.length
+        ).toFixed(1)
+      : null;
+  const archiveAvgFrpDensity =
+    archiveBoxFires && archiveBoxFires.length > 0
+      ? (
+          archiveBoxFires.reduce(
+            (s, f) => s + (f.pixelAreaKm2 && f.pixelAreaKm2 > 0 ? f.frpMw / f.pixelAreaKm2 : 0),
+            0
+          ) / archiveBoxFires.length
+        ).toFixed(1)
+      : null;
 
   const areaEvents = events.filter((e) => inBounds(e.lat, e.lon));
   const areaStations = stations.filter((s) => inBounds(s.lat, s.lon));
   const areaNasa = nasaFires ? nasaFires.filter((f) => inBounds(f.lat, f.lon)) : null;
   const areaHistory = historyFires ? historyFires.filter((f) => inBounds(f.lat, f.lon)) : null;
+  const areaHistoryInCal = areaHistory
+    ? areaHistory.filter(
+        (f) =>
+          f.inCalendar ??
+          (f.confidence !== "low" &&
+            f.confidence !== "l" &&
+            (f.date < HARMONIZATION_META.dateRange.seam || f.frpMw >= HARMONIZATION_META.frpThresholdMw))
+      )
+    : null;
   const areaCells = forecast ? forecast.cells.filter((c) => inBounds(c.lat, c.lon)) : null;
 
   const midLatRad = (((bounds.north + bounds.south) / 2) * Math.PI) / 180;
@@ -966,7 +1232,9 @@ function AreaSummary({
             )}
           </p>
           <p className="mt-0.5 text-xs text-white/65">
-            {areaHistory !== null ? `${areaHistory.length} historical fires` : "Enable History for past count"}
+            {areaHistory !== null && areaHistoryInCal !== null
+              ? `${areaHistoryInCal.length} in_calendar=1 (≥15 MW) / ${areaHistory.length} total`
+              : "Enable History for harmonized count"}
           </p>
         </div>
       </div>
@@ -989,6 +1257,80 @@ function AreaSummary({
         </div>
       )}
 
+      {/* Recorte del archivo armonizado 2002-2026 (harmonized_hotspots.csv) por área + rango de fechas */}
+      <div className="rounded border border-sky-400/30 bg-sky-500/10 p-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-sky-300">
+              Harmonized Archive Box Query (<code>harmonized_hotspots.csv</code> · <code>in_calendar = 1</code>)
+            </p>
+            <p className="text-[11px] text-white/70">
+              Filter the 55,902 consistent series rows (2002-07-04 → 2026-07-31) inside this bounding box by date range:
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5 text-xs">
+            <input
+              type="date"
+              value={boxStartDate}
+              min="2002-07-04"
+              max="2026-07-31"
+              onChange={(e) => setBoxStartDate(e.target.value)}
+              aria-label="Start date"
+              className="rounded border border-white/20 bg-[#141416] px-2 py-1 text-xs text-white"
+            />
+            <span className="text-white/60">to</span>
+            <input
+              type="date"
+              value={boxEndDate}
+              min="2002-07-04"
+              max="2026-07-31"
+              onChange={(e) => setBoxEndDate(e.target.value)}
+              aria-label="End date"
+              className="rounded border border-white/20 bg-[#141416] px-2 py-1 text-xs text-white"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                setBoxStartDate("2002-07-04");
+                setBoxEndDate("2026-07-31");
+              }}
+              className="cursor-pointer rounded border border-white/20 bg-white/10 px-2 py-1 text-[11px] font-semibold text-white hover:bg-white/20"
+            >
+              Full 2002–2026
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-2 text-xs">
+          <div className="flex flex-wrap gap-4 tabular-nums">
+            <span>
+              Matches: <strong className="text-white">{archiveBoxFires ? archiveBoxFires.length.toLocaleString() : "Loading…"}</strong> rows
+            </span>
+            {archiveAvgBright && (
+              <span>
+                Mean brightness: <strong className="text-sky-300">{archiveAvgBright} K</strong>
+              </span>
+            )}
+            {archiveAvgFrpDensity && (
+              <span>
+                Mean FRP/pixel: <strong className="text-fd-gold">{archiveAvgFrpDensity} MW/km²</strong>
+              </span>
+            )}
+          </div>
+          <button
+            type="button"
+            disabled={!archiveBoxFires || archiveBoxFires.length === 0}
+            onClick={() =>
+              archiveBoxFires &&
+              downloadHistoricalCsv(archiveBoxFires, `${boxStartDate}_to_${boxEndDate}`)
+            }
+            className="cursor-pointer rounded bg-sky-400 px-3 py-1 text-xs font-bold text-black hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Download selection.csv ({archiveBoxFires ? archiveBoxFires.length.toLocaleString() : 0})
+          </button>
+        </div>
+      </div>
+
       <div className="flex flex-wrap items-center justify-end gap-2 border-t border-white/10 pt-3">
         <button
           type="button"
@@ -1004,6 +1346,15 @@ function AreaSummary({
         >
           Select another area
         </button>
+        {areaHistory && areaHistory.length > 0 && (
+          <button
+            type="button"
+            onClick={() => downloadHistoricalCsv(areaHistory, historyMonth)}
+            className="cursor-pointer rounded border border-emerald-400/40 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-200 hover:bg-emerald-500/25"
+          >
+            Download history CSV ({areaHistory.length} · in_calendar)
+          </button>
+        )}
         <button
           type="button"
           disabled={areaEvents.length === 0}

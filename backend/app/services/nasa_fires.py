@@ -17,8 +17,11 @@ Días pasados se guardan en disco (no cambian); hoy y ayer se refrescan cada 30 
 from __future__ import annotations
 
 import asyncio
+import csv
 import gzip
+import io
 import json
+import math
 import time
 from dataclasses import dataclass
 from datetime import date, timedelta
@@ -174,3 +177,139 @@ def history_sources(month_start: date) -> tuple[FireSource, ...]:
     if month_start >= VIIRS_N20.first_day:
         return (VIIRS_N20,)
     return (MODIS,)
+
+
+SEAM_DATE = "2012-01-20"
+CELL_KM = 1.4
+FRP_THRESHOLD_MW = 15.0
+_COS_LAT = math.cos(math.radians(28.6))
+
+
+def _time_to_mins(raw_time: Any) -> int:
+    if raw_time is None:
+        return 0
+    s = str(raw_time).strip().replace(":", "").zfill(4)
+    if len(s) >= 4 and s[:4].isdigit():
+        return int(s[:2]) * 60 + int(s[2:4])
+    return 0
+
+
+def mark_in_calendar(fires: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Marca cada detección con `in_calendar` (1 ó 0) según `harmonization/build_harmonized_dataset.py`.
+
+    - MODIS / antes de 2012-01-20: detecciones Aqua de confianza nominal/alta (excluye Terra 10:30).
+    - VIIRS / desde 2012-01-20: agrupa píxeles de confianza nominal/alta en celdas de 1.4 km × 30 min;
+      si la suma de FRP en la celda es >= 15.0 MW, conserva únicamente el píxel de mayor FRP como `in_calendar = 1`.
+    """
+    out = [dict(f, in_calendar=0) for f in fires]
+    cells: dict[tuple[str, int, int, int], list[int]] = {}
+
+    for idx, f in enumerate(out):
+        conf = str(f.get("confidence", "nominal")).lower()
+        if conf in ("low", "l"):
+            continue
+        sat = str(f.get("satellite") or "")
+        acq_date = str(f.get("date") or "")
+
+        if acq_date < SEAM_DATE or sat.startswith("MODIS"):
+            # Excluir Terra ("T" o "Terra"); conservar Aqua o MODIS sin etiqueta de Terra
+            if "terra" not in sat.lower() and sat != "MODIS T":
+                out[idx]["in_calendar"] = 1
+            continue
+
+        lat = float(f.get("lat") or 0.0)
+        lon = float(f.get("lon") or 0.0)
+        x_km = (lon + 109.5) * 111.32 * _COS_LAT
+        y_km = (lat - 25.5) * 111.32
+        cx = int(math.floor(x_km / CELL_KM))
+        cy = int(math.floor(y_km / CELL_KM))
+        tb = _time_to_mins(f.get("time")) // 30
+        key = (acq_date, cx, cy, tb)
+        cells.setdefault(key, []).append(idx)
+
+    for indices in cells.values():
+        total_frp = sum(float(out[i].get("frp_mw") or 0.0) for i in indices)
+        if total_frp >= FRP_THRESHOLD_MW:
+            best_idx = max(indices, key=lambda i: float(out[i].get("frp_mw") or 0.0))
+            out[best_idx]["in_calendar"] = 1
+
+    return out
+
+
+HARMONIZED_CSV = Path(__file__).resolve().parents[3] / "harmonization" / "harmonized_hotspots.csv"
+_HARMONIZED_BY_MONTH: dict[str, list[dict[str, Any]]] | None = None
+
+
+def _load_harmonized_by_month() -> dict[str, list[dict[str, Any]]] | None:
+    global _HARMONIZED_BY_MONTH
+    if _HARMONIZED_BY_MONTH is not None:
+        return _HARMONIZED_BY_MONTH
+    if not HARMONIZED_CSV.exists():
+        return None
+    by_month: dict[str, list[dict[str, Any]]] = {}
+    with HARMONIZED_CSV.open(encoding="utf-8", newline="") as fh:
+        for r in csv.DictReader(fh):
+            acq_date = r["acq_date"]
+            ym = acq_date[:7]
+            scan = float(r.get("scan") or 1.0)
+            track = float(r.get("track") or 1.0)
+            conf_raw = r.get("confidence", "n")
+            conf = {"l": "low", "n": "nominal", "h": "high"}.get(conf_raw, conf_raw)
+            by_month.setdefault(ym, []).append(
+                {
+                    "lat": round(float(r["latitude"]), 4),
+                    "lon": round(float(r["longitude"]), 4),
+                    "frp_mw": round(float(r["frp"]), 2),
+                    "date": acq_date,
+                    "time": r.get("acq_time", ""),
+                    "confidence": conf,
+                    "in_calendar": int(r.get("in_calendar") or 0),
+                    "brightness": round(float(r["brightness"]), 1),
+                    "bright_t31": round(float(r["bright_t31"]), 1),
+                    "satellite": r.get("satellite", ""),
+                    "daynight": r.get("daynight", ""),
+                    "pixel_area_km2": round(scan * track, 3),
+                }
+            )
+    _HARMONIZED_BY_MONTH = by_month
+    return by_month
+
+
+def harmonized_fires_for_month(month: str) -> list[dict[str, Any]] | None:
+    """Devuelve las filas de `harmonized_hotspots.csv` para `YYYY-MM` si el archivo existe y cubre ese mes."""
+    by_month = _load_harmonized_by_month()
+    if by_month is None or month not in by_month:
+        return None
+    return by_month[month]
+
+
+def harmonized_csv_slice(
+    south: float = 25.5,
+    north: float = 31.8,
+    west: float = -109.5,
+    east: float = -103.3,
+    start_date: str = "2002-07-04",
+    end_date: str = "2026-08-30",
+    only_in_calendar: bool = False,
+) -> str:
+    """Recorta `harmonization/harmonized_hotspots.csv` por caja espacial y rango de fechas (16 columnas)."""
+    if not HARMONIZED_CSV.exists():
+        return ""
+    buf = io.StringIO()
+    with HARMONIZED_CSV.open(encoding="utf-8", newline="") as fh:
+        reader = csv.DictReader(fh)
+        writer = csv.DictWriter(buf, fieldnames=reader.fieldnames or [])
+        writer.writeheader()
+        for r in reader:
+            if only_in_calendar and r.get("in_calendar") != "1":
+                continue
+            d = r.get("acq_date", "")
+            if d < start_date or d > end_date:
+                continue
+            lat = float(r["latitude"])
+            lon = float(r["longitude"])
+            if south <= lat <= north and west <= lon <= east:
+                writer.writerow(r)
+    return buf.getvalue()
+
+

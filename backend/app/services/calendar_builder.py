@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import asyncio
 import calendar as cal
+import collections
+import csv
 import json
 import logging
 import random
@@ -24,7 +26,7 @@ from typing import Any
 
 import httpx
 
-from app.services.nasa_fires import MODIS, VIIRS_N20, FireSource, detections_for_day
+from app.services.nasa_fires import HARMONIZED_CSV, MODIS, VIIRS_N20, FireSource, detections_for_day
 
 log = logging.getLogger("calendar_builder")
 
@@ -119,7 +121,106 @@ def _bootstrap_ci(pairs: list[tuple[int, int]], n: int = 1000) -> tuple[float, f
     return (stats[int(0.025 * len(stats))], stats[min(len(stats) - 1, int(0.975 * len(stats)))])
 
 
+_CSV_CALENDAR_CACHE: dict[str, Any] | None = None
+
+
+def _load_calendar_from_harmonized_csv() -> dict[str, Any] | None:
+    global _CSV_CALENDAR_CACHE
+    if _CSV_CALENDAR_CACHE is not None:
+        return _CSV_CALENDAR_CACHE
+    if not HARMONIZED_CSV.exists():
+        return None
+
+    by_year: dict[int, list[int | None]] = collections.defaultdict(lambda: [0] * 12)
+    aqua_m: dict[int, list[int]] = collections.defaultdict(lambda: [0] * 12)
+    snpp_m: dict[int, list[int]] = collections.defaultdict(lambda: [0] * 12)
+
+    with HARMONIZED_CSV.open(encoding="utf-8", newline="") as fh:
+        for r in csv.DictReader(fh):
+            y, m, _ = map(int, r["acq_date"].split("-"))
+            if r.get("in_calendar") == "1":
+                by_year[y][m - 1] = (by_year[y][m - 1] or 0) + 1
+            if y >= 2012 and r.get("confidence") != "l":
+                if r.get("satellite") == "Aqua":
+                    aqua_m[y][m - 1] += 1
+                elif r.get("satellite") == "SNPP" and r.get("in_calendar") == "1":
+                    snpp_m[y][m - 1] += 1
+
+    # Meses anteriores a 2002-07 y posteriores a 2026-07 se marcan como None (sin cobertura en el archivo)
+    for m_idx in range(6):
+        by_year[2002][m_idx] = None
+    for m_idx in range(7, 12):
+        by_year[2026][m_idx] = None
+
+    km, km_ci = [], []
+    for m in range(12):
+        pairs = [(snpp_m[y][m], aqua_m[y][m]) for y in range(2012, 2026) if aqua_m[y][m] > 0]
+        if pairs:
+            km.append(round(sum(p[0] for p in pairs) / sum(p[1] for p in pairs), 2))
+            lo, hi = _bootstrap_ci(pairs)
+            km_ci.append([round(lo, 2), round(hi, 2)])
+        else:
+            km.append(1.0)
+            km_ci.append(None)
+
+    rows = []
+    for y in sorted(by_year):
+        months = by_year[y]
+        src = (
+            "MODIS Aqua (13:30)"
+            if y < 2012
+            else "MODIS Aqua + VIIRS S-NPP (seam 2012-01-20)"
+            if y == 2012
+            else "VIIRS S-NPP (1.4 km cell ≥ 15 MW)"
+        )
+        rows.append(
+            {
+                "year": y,
+                "sensor_source": src,
+                "months": months,
+                "annual_total": sum(x for x in months if x is not None),
+            }
+        )
+
+    medians = []
+    for m in range(12):
+        vals = [r["months"][m] for r in rows if 2003 <= r["year"] <= 2025 and r["months"][m] is not None]
+        medians.append(float(median(vals)) if vals else 0.0)
+
+    # Último mes completo del archivo armonizado: julio 2026
+    cur_year, cur_month_idx = 2026, 6
+    cur_val = by_year[cur_year][cur_month_idx] or 0
+    med = medians[cur_month_idx]
+
+    _CSV_CALENDAR_CACHE = {
+        "data_source": "nasa-firms-gibs",
+        "source": "Harmonized NASA FIRMS archive (MODIS C6.1 Aqua 13:30 + Suomi-NPP VIIRS 1.4 km ≥ 15 MW, in_calendar = 1)",
+        "origin_filter": "Total",
+        "start_year": 2002,
+        "end_year": 2026,
+        "month_labels": MONTH_LABELS,
+        "km_factors": km,
+        "km_ci95": km_ci,
+        "monthly_medians": medians,
+        "current_month": {
+            "year": cur_year,
+            "month": MONTH_LABELS[cur_month_idx],
+            "value": cur_val,
+            "historical_median": med,
+            "anomaly_pct": round((cur_val - med) / med * 100, 1) if med else 0.0,
+            "partial": False,
+        },
+        "rows": rows,
+        "coverage": 1.0,
+        "updated": datetime.now(timezone.utc).isoformat(),
+    }
+    return _CSV_CALENDAR_CACHE
+
+
 def load_real_calendar() -> dict[str, Any] | None:
+    csv_cal = _load_calendar_from_harmonized_csv()
+    if csv_cal is not None:
+        return csv_cal
     counts = _load_counts()
     modis, viirs = counts.get("modis", {}), counts.get("viirs", {})
     if not modis:

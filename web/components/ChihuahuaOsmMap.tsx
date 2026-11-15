@@ -5,6 +5,7 @@ import "leaflet/dist/leaflet.css";
 import { useEffect, useRef } from "react";
 import {
   directionsUrl,
+  HARMONIZATION_META,
   type HotspotEvent,
   minutesSince,
   type NasaFire,
@@ -46,6 +47,8 @@ interface Props {
   forecast: ModelForecast | null;
   nasaFires: NasaFire[] | null;
   historyFires: NasaFire[] | null;
+  historyOnlyInCalendar?: boolean;
+  showHarmonizationZone?: boolean;
   showCause: boolean;
   satellite: SatelliteLayer | null;
   selectAreaMode?: boolean;
@@ -77,6 +80,7 @@ const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
 export default function ChihuahuaOsmMap(props: Props) {
   const { events, stations, showStations, basemap, selectedId, onSelect, onReady } = props;
   const { condition, grid, showProbability, forecast, nasaFires, historyFires, showCause, satellite } = props;
+  const { historyOnlyInCalendar = true, showHarmonizationZone = false } = props;
   const { selectAreaMode = false, selectedBounds = null, onAreaSelected } = props;
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -189,23 +193,74 @@ export default function ChihuahuaOsmMap(props: Props) {
     }
   }, [grid, condition, showProbability, forecast]);
 
-  // Histórico NASA (puntos pequeños)
+  // Histórico NASA armonizado (MODIS Aqua pre-2012-01-20 + VIIRS S-NPP celdas >= 15 MW, coloreado/escalado por FRP)
   useEffect(() => {
     const g = layers.current?.history;
     if (!g) return;
     g.clearLayers();
-    for (const f of historyFires ?? []) {
-      L.circleMarker([f.lat, f.lon], {
-        renderer: rendererRef.current!,
-        radius: f.confidence === "low" ? 2 : 2.5,
-        stroke: false,
-        fillColor: "#ff9f1c",
-        fillOpacity: f.confidence === "low" ? 0.3 : 0.65,
-      })
-        .bindTooltip(`Historical detection · ${f.date} · FRP ${f.frpMw} MW · ${f.confidence} confidence`)
+    if (showHarmonizationZone) {
+      const b = HARMONIZATION_META.bounds;
+      L.rectangle(
+        [
+          [b.south, b.west],
+          [b.north, b.east],
+        ],
+        {
+          color: "#38bdf8",
+          weight: 1.5,
+          dashArray: "5 5",
+          fillColor: "#38bdf8",
+          fillOpacity: 0.04,
+        }
+      )
+        .bindTooltip(
+          `<strong>Harmonization calibration domain</strong><br>` +
+            `Northern Chihuahua (${b.south}°–${b.north}° N, ${b.west}° to ${b.east}° E)<br>` +
+            `481,029 archive rows → 55,902 <code>in_calendar = 1</code> series (13:30 pass · ≥ ${HARMONIZATION_META.frpThresholdMw} MW cell rule)`
+        )
         .addTo(g);
     }
-  }, [historyFires]);
+    for (const f of historyFires ?? []) {
+      const low = f.confidence === "low" || f.confidence === "l";
+      const isModisEra = f.date < HARMONIZATION_META.dateRange.seam;
+      const inCal = f.inCalendar ?? (!low && (isModisEra || f.frpMw >= HARMONIZATION_META.frpThresholdMw));
+      if (historyOnlyInCalendar && !inCal) continue;
+
+      const radius = low ? 2 : Math.min(6.5, Math.max(2.5, 2 + Math.sqrt(Math.max(0, f.frpMw)) * 0.42));
+      const fillColor = f.frpMw >= 50 ? "#ff2a00" : inCal ? "#ff9f1c" : "#fbbf24";
+      const satName = f.satellite || (isModisEra ? "Aqua" : "SNPP");
+      const passLabel = f.daynight === "N" ? "Night (01:30)" : "Day (13:30)";
+      const sensorLabel =
+        satName === "Aqua" || satName === "Terra"
+          ? `${satName} MODIS 1 km · ${passLabel}`
+          : `${satName} VIIRS 375 m · ${passLabel}`;
+      const calLabel = inCal
+        ? `in_calendar = 1 (strongest pixel in ≥ ${HARMONIZATION_META.frpThresholdMw} MW 1.4 km cell)`
+        : "in_calendar = 0 (detail row: sub-15 MW cell / neighbor pixel / low conf)";
+      const brightLine =
+        f.brightnessK !== undefined && f.brightT31K !== undefined
+          ? `<br>Brightness <b>${f.brightnessK.toFixed(1)} K</b> (T31 ${f.brightT31K.toFixed(1)} K · ΔT +${(f.brightnessK - f.brightT31K).toFixed(1)} K)`
+          : "";
+      const areaLine =
+        f.pixelAreaKm2 && f.pixelAreaKm2 > 0
+          ? ` · <b>${(f.frpMw / f.pixelAreaKm2).toFixed(1)} MW/km²</b> (${f.pixelAreaKm2} km² px)`
+          : "";
+
+      L.circleMarker([f.lat, f.lon], {
+        renderer: rendererRef.current!,
+        radius,
+        stroke: f.frpMw >= 50,
+        color: "#ffe066",
+        weight: 1,
+        fillColor,
+        fillOpacity: low ? 0.3 : inCal ? 0.78 : 0.45,
+      })
+        .bindTooltip(
+          `<strong>Historical · ${f.date}</strong><br>${sensorLabel}<br>FRP <b>${f.frpMw} MW</b>${areaLine} · ${f.confidence} conf${brightLine}<br><span style="opacity:0.8">${calLabel}</span>`
+        )
+        .addTo(g);
+    }
+  }, [historyFires, historyOnlyInCalendar, showHarmonizationZone]);
 
   // Incendios activos NASA FIRMS
   useEffect(() => {

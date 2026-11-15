@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { asset } from "./asset";
 import {
   type BurnCalendar,
+  DEMO_CALENDAR,
   DEMO_HOTSPOTS,
   DEMO_STATIONS,
+  ensureInCalendarFlags,
   type FireOrigin,
   type HotspotEvent,
   type NasaFire,
@@ -97,7 +100,7 @@ function toCalendar(c: any, realCoverage: number | null): BurnCalendar {
   };
 }
 
-/** Calendario real de la NASA si ya está casi completo; si no, el ilustrativo + avance. */
+/** Calendario real de la NASA: si el servidor aún no terminó el backfill de GIBS, usa la serie real de harmonized_hotspots.csv. */
 async function loadCalendar(): Promise<BurnCalendar> {
   let coverage: number | null = null;
   try {
@@ -105,9 +108,9 @@ async function loadCalendar(): Promise<BurnCalendar> {
     coverage = real.coverage ?? null;
     if ((coverage ?? 0) >= 0.9) return toCalendar(real, coverage);
   } catch {
-    // aún no existe: usar el ilustrativo
+    // usar respaldo local de harmonized_hotspots.csv
   }
-  return toCalendar(await getJson<any>("/api/fires/calendar"), coverage);
+  return { ...DEMO_CALENDAR, realCoverage: coverage ?? DEMO_CALENDAR.realCoverage };
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
@@ -127,7 +130,7 @@ export function useDashboardData(): DashboardData {
     status: "loading",
     hotspots: DEMO_HOTSPOTS,
     stations: DEMO_STATIONS,
-    calendar: null,
+    calendar: DEMO_CALENDAR,
     fetchedAt: null,
   });
 
@@ -233,10 +236,123 @@ export function useNasaFires(enabled: boolean) {
   }));
 }
 
-export function useHistoricalFires(month: string | null) {
-  return useOnDemand<NasaFire[]>(month ? `/api/nasa/fires/history?month=${month}` : null, (j: any) =>
-    j.fires.map((f: any[]) => ({ lat: f[0], lon: f[1], frpMw: f[2], date: f[3], time: "", confidence: f[4] ?? "nominal", satellite: "" }))
-  );
+type HarmonizedCompactRow = [number, number, number, number, string, number, number, string, string, number];
+let _archivePromise: Promise<Record<string, NasaFire[]>> | null = null;
+
+function parseStaticMonth(ym: string, rows: HarmonizedCompactRow[]): NasaFire[] {
+  const confMap: Record<string, string> = { l: "low", n: "nominal", h: "high" };
+  return rows.map((r) => ({
+    lat: r[0],
+    lon: r[1],
+    frpMw: r[2],
+    date: `${ym}-${String(r[3]).padStart(2, "0")}`,
+    time: "1330",
+    confidence: confMap[r[4]] ?? r[4],
+    inCalendar: true,
+    brightnessK: r[5],
+    brightT31K: r[6],
+    satellite: r[7] === "A" ? "Aqua" : "SNPP",
+    daynight: r[8],
+    pixelAreaKm2: r[9],
+  }));
+}
+
+export function loadHarmonizedArchive(): Promise<Record<string, NasaFire[]>> {
+  if (!_archivePromise) {
+    _archivePromise = fetch(asset("/data/harmonized_in_calendar.json"))
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((j: { months: Record<string, HarmonizedCompactRow[]> }) => {
+        const out: Record<string, NasaFire[]> = {};
+        for (const [ym, rows] of Object.entries(j.months)) {
+          out[ym] = parseStaticMonth(ym, rows);
+        }
+        return out;
+      });
+  }
+  return _archivePromise;
+}
+
+export function useHarmonizedArchive(enabled: boolean): Remote<Record<string, NasaFire[]>> {
+  const [state, setState] = useState<Remote<Record<string, NasaFire[]>>>({ status: "idle", data: null });
+  useEffect(() => {
+    if (!enabled || state.status === "ready") return;
+    let alive = true;
+    loadHarmonizedArchive()
+      .then((data) => alive && setState({ status: "ready", data }))
+      .catch(() => alive && setState({ status: "error", data: null }));
+    return () => {
+      alive = false;
+    };
+  }, [enabled, state.status]);
+  if (!enabled) return { status: "idle", data: null };
+  if (state.status === "idle") return { status: "loading", data: null };
+  return state;
+}
+
+export function useHistoricalFires(month: string | null): Remote<NasaFire[]> {
+  const [state, setState] = useState<{ month: string | null } & Remote<NasaFire[]>>({
+    month: null,
+    status: "idle",
+    data: null,
+  });
+
+  useEffect(() => {
+    if (!month || state.month === month) return;
+    let alive = true;
+
+    const load = async () => {
+      const staticArchive = await loadHarmonizedArchive().catch(() => null);
+      const staticMonth = staticArchive?.[month] ?? null;
+
+      try {
+        const j = await getJson<any>(`/api/nasa/fires/history?month=${month}`, 20000);
+        const apiFires: NasaFire[] = ensureInCalendarFlags(
+          j.fires.map((f: any[]) => ({
+            lat: f[0],
+            lon: f[1],
+            frpMw: f[2],
+            date: f[3],
+            time: "",
+            confidence: f[4] ?? "nominal",
+            satellite: f[8] ?? "",
+            inCalendar: f[5] !== undefined ? Boolean(f[5]) : undefined,
+            brightnessK: f[6] !== undefined ? Number(f[6]) : undefined,
+            brightT31K: f[7] !== undefined ? Number(f[7]) : undefined,
+            daynight: f[9] ?? undefined,
+            pixelAreaKm2: f[10] !== undefined ? Number(f[10]) : undefined,
+          }))
+        );
+
+        // Si el backend remoto aún no devuelve las columnas de harmonized_hotspots.csv y tenemos el archivo local,
+        // combinamos los puntos `in_calendar = 1` del archivo armonizado con las filas de detalle (`in_calendar = 0`).
+        if (staticMonth && apiFires.every((f) => f.brightnessK === undefined)) {
+          const detailRows = apiFires.filter((f) => !f.inCalendar);
+          if (alive) setState({ month, status: "ready", data: [...staticMonth, ...detailRows] });
+          return;
+        }
+        if (alive) setState({ month, status: "ready", data: apiFires });
+      } catch {
+        if (staticMonth) {
+          if (alive) setState({ month, status: "ready", data: staticMonth });
+        } else if (alive) {
+          setState({ month, status: "error", data: null });
+        }
+      }
+    };
+
+    void load();
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [month]);
+
+  if (!month) return { status: "idle", data: null };
+  if (state.month !== month) return { status: "loading", data: null };
+  return state;
 }
 
 export function useWeatherGrid(enabled: boolean) {
