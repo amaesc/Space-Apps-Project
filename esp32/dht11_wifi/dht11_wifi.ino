@@ -1,7 +1,9 @@
+#include <Adafruit_BMP280.h>
 #include <DHT.h>
 #include <HTTPClient.h>
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
+#include <Wire.h>
 
 // 1. Red WiFi (2.4 GHz para ESP32) - valores estáticos (archivo en .gitignore)
 const char *WIFI_SSID = "POCO M7 Pro 5G";
@@ -28,6 +30,8 @@ const char *STATION_NAME = "ESP32 DHT11 Prueba";
 #define FLAME_PIN 32
 
 DHT dht(DHTPIN, DHTTYPE);
+Adafruit_BMP280 bmp;
+bool bmpReady = false;
 
 float readNoiseDb(uint8_t pin, unsigned long sampleWindowMs = 50) {
   unsigned long startMs = millis();
@@ -79,9 +83,14 @@ void connectWiFi() {
 void setup() {
   Serial.begin(115200);
   delay(1000);
-  Serial.println("=== ESP32 + DHT11 + Luminosidad + WiFi -> FastAPI ===");
+  Serial.println("=== ESP32 + DHT11 + Sensores + WiFi -> FastAPI ===");
   analogReadResolution(12);
   dht.begin();
+  Wire.begin(21, 22);
+  bmpReady = bmp.begin(0x76) || bmp.begin(0x77);
+  if (!bmpReady) {
+    Serial.println("[AVISO] BMP280 no detectado en I2C (SDA=21, SCL=22).");
+  }
   connectWiFi();
 }
 
@@ -96,15 +105,23 @@ void loop() {
   int flameRaw = analogRead(FLAME_PIN);
   float flameIntensityPct = ((4095 - flameRaw) / 4095.0f) * 100.0f;
   bool flameDetected = (flameRaw < 2500);
+  char pressureField[16] = "null";
+  float pressureHpa = NAN;
+  if (bmpReady) {
+    pressureHpa = bmp.readPressure() / 100.0f;
+    if (!isnan(pressureHpa) && pressureHpa >= 300.0f && pressureHpa <= 1100.0f) {
+      snprintf(pressureField, sizeof(pressureField), "%.1f", pressureHpa);
+    }
+  }
 
   if (isnan(humidity) || isnan(tempC)) {
     Serial.println("[ERROR] Fallo lectura del DHT11 en GPIO 4.");
     return;
   }
 
-  Serial.printf("Lectura -> Temp: %.1f °C | Humedad: %.1f %% | Luz: %.1f %% "
-                "(raw %d) | Ruido: %.1f dB | Flama: %s (%.1f %%, raw %d)\n",
-                tempC, humidity, luminosityPct, lightRaw, noiseDb,
+  Serial.printf("Lectura -> Temp: %.1f °C | Humedad: %.1f %% | Presion: %s hPa | "
+                "Luz: %.1f %% (raw %d) | Ruido: %.1f dB | Flama: %s (%.1f %%, raw %d)\n",
+                tempC, humidity, pressureField, luminosityPct, lightRaw, noiseDb,
                 flameDetected ? "SI" : "NO", flameIntensityPct, flameRaw);
 
   if (WiFi.status() != WL_CONNECTED) {
@@ -129,15 +146,15 @@ void loop() {
   http.addHeader("X-Station-Token", STATION_TOKEN);
 
   // rssi_dbm + link_type alimentan la capa de conectividad del mapa.
-  char payload[448];
+  char payload[512];
   snprintf(payload, sizeof(payload),
            "{\"station_id\":\"%s\",\"name\":\"%s\",\"temperature_c\":%.2f,"
-           "\"humidity_pct\":%.2f,\"luminosity_pct\":%.2f,\"noise_db\":%.1f,"
-           "\"flame_detected\":%s,\"flame_intensity_pct\":%.1f,"
+           "\"humidity_pct\":%.2f,\"pressure_hpa\":%s,\"luminosity_pct\":%.2f,"
+           "\"noise_db\":%.1f,\"flame_detected\":%s,\"flame_intensity_pct\":%.1f,"
            "\"rssi_dbm\":%d,\"link_type\":\"wifi\"}",
-           STATION_ID, STATION_NAME, tempC, humidity, luminosityPct, noiseDb,
-           flameDetected ? "true" : "false", flameIntensityPct,
-           (int)WiFi.RSSI());
+           STATION_ID, STATION_NAME, tempC, humidity, pressureField,
+           luminosityPct, noiseDb, flameDetected ? "true" : "false",
+           flameIntensityPct, (int)WiFi.RSSI());
 
   int httpCode = http.POST((uint8_t *)payload, strlen(payload));
   if (httpCode > 0) {
