@@ -14,9 +14,11 @@ Built from NASA FIRMS archive files: MODIS Collection 6.1 (Terra + Aqua) and VII
 | `harmonization_documentation.ipynb` | Step-by-step documentation, validation numbers and check cells (opens in Colab) |
 | `harmonized_hotspots_brightness_mapping.png` | Check of the brightness correction (held-out years, mapping curves) |
 | `analysis/harmonize_brightness.py` | Analysis behind the 15 MW rule (MODIS detection efficiency) and the Aqua/SNPP pairs. Expects the FIRMS download layout `DL_FIRE_*/*.csv` |
+| `analysis/harmonize_grid_frp.py`, `analysis/harmonize_attributes.py` | Earlier exploration: gridded FRP density comparison and confidence / brightness / satellite checks |
+| `analysis/dbf_to_csv.py` | Converts the MODIS shapefile table (`.dbf`) to CSV (standard library only) |
 | `s3_io.py` | Download the inputs from / upload outputs to the S3 bucket with boto3 (credentials from the environment, never in code) |
 
-`harmonized_hotspots.csv` (481,029 rows, 16 columns, ~40 MB) is **not stored in git**: rebuild it (below) or fetch it from the bucket.
+`harmonized_hotspots.csv` (481,029 rows, 16 columns, ~40 MB) is stored in git; you can also rebuild it (below).
 
 ## The one thing to know: `in_calendar`
 

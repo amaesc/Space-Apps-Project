@@ -14,9 +14,7 @@ ml/data/
 ml/.venv/
 .pytest_cache/
 
-# Harmonization / weekly risk model: large files are rebuilt or kept in the S3 bucket
-harmonization/*.csv
+# Harmonization / weekly risk model: raw FIRMS inputs, venv and pickles stay out of git (pickles can run code when loaded)
 harmonization/data/
 risk_model_weekly/.venv/
-risk_model_weekly/outputs/**/test_predictions.parquet
 risk_model_weekly/outputs/**/calibrators.pkl
