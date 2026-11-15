@@ -1,0 +1,38 @@
+# Fire-risk model configuration. Data: NASA FIRMS only (harmonized MODIS + VIIRS hotspots built earlier).
+data:
+  hotspots_csv: ../harmonization/harmonized_hotspots.csv   # built by harmonization/build_harmonized_dataset.py (not stored in git)
+  series_flag: in_calendar          # only the consistent MODIS-equivalent series is used
+grid:
+  lon0: -109.5
+  lat0: 25.5
+  lon1: -103.3
+  lat1: 31.8
+  res: 0.1                          # degrees (~11 km)
+time:
+  epoch: "2002-07-01"               # a Monday; weeks are Monday-Sunday (UTC)
+horizons_days: [7, 14, 28]
+splits:                             # by ORIGIN date (the Monday a forecast is issued)
+  train_start: "2004-07-05"         # >= 2 years of history for climatology features
+  val_start: "2020-01-06"           # early stopping
+  calib_start: "2022-01-03"         # probability calibration
+  test_start: "2023-01-02"          # held out, never used for fitting or tuning
+features:
+  climatology_pad_weeks: 2
+  weeks_since_cap: 156
+model:
+  learning_rate: 0.05
+  num_leaves: 63
+  min_data_in_leaf: 200
+  feature_fraction: 0.8
+  bagging_fraction: 0.8
+  bagging_freq: 1
+  lambda_l2: 1.0
+  max_rounds: 2000
+  early_stopping: 100
+  seed: 42
+backtest:
+  first_test_year: 2009
+  negative_keep: 0.25               # speed: keep 25% of negatives when training backtest folds (ranking metrics only)
+  rounds: 250
+evaluation:
+  topk_frac: 0.05
