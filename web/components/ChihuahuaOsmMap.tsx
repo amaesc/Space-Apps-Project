@@ -255,7 +255,7 @@ export default function ChihuahuaOsmMap(props: Props) {
         .bindTooltip(
           `<strong>Harmonization calibration domain</strong><br>` +
             `Northern Chihuahua (${b.south}°–${b.north}° N, ${b.west}° to ${b.east}° E)<br>` +
-            `481,029 archive rows → 55,902 <code>in_calendar = 1</code> series (13:30 pass · ≥ ${HARMONIZATION_META.frpThresholdMw} MW cell rule)`
+            `Pilot box (N. Chihuahua) · national archive: 5,416,621 rows → 796,098 <code>in_calendar = 1</code> (13:30 pass · per-state T* cell rule)`
         )
         .addTo(g);
     }

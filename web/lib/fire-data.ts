@@ -92,14 +92,19 @@ export interface BurnCalendar {
 }
 
 /** Metadatos y métricas de validación extraídos de harmonization/ (MODIS C6.1 ↔ VIIRS S-NPP). */
+/**
+ * Harmonization summary. Row counts, matched pairs and brightness checks: national run (all of Mexico, held-out 2020–2026).
+ * platformStats, validation.{raw*,harmonized*,heldOut*,eraRatios,aquaDetectionProbByFrp}, cap/Planck/anomaly fields and
+ * bounds: N. Chihuahua pilot (not recomputed nationally); the page labels them as pilot.
+ */
 export const HARMONIZATION_META = {
   bounds: { south: 25.5, north: 31.8, west: -109.5, east: -103.3 },
-  dateRange: { start: "2002-07-04", seam: "2012-01-20", snppEnd: "2026-07-31", modisEnd: "2026-08-30" },
-  totalRows: 481_029,
-  inCalendarRows: 55_902,
-  aquaInCalendarRows: 19_874,
-  snppInCalendarRows: 36_028,
-  detailOnlyRows: 425_127,
+  dateRange: { start: "2002-07-04", seam: "2012-01-20", snppEnd: "2026-11-02", modisEnd: "2026-11-15" },
+  totalRows: 5_416_621,
+  inCalendarRows: 796_098,
+  aquaInCalendarRows: 332_332,
+  snppInCalendarRows: 463_766,
+  detailOnlyRows: 4_620_523,
   modisInputRows: 103_050,
   modisAquaRows: 54_000,
   modisTerraRows: 49_050,
@@ -127,9 +132,9 @@ export const HARMONIZATION_META = {
   planckUpscaleCorrAfter: 0.72,
   anomaly2011Hotspots: 7_452,
   pre2011AnnualMean: 1_900,
-  matchedPairsTotal: 7_028,
-  matchedPairsDay: 6_162,
-  matchedPairsNight: 866,
+  matchedPairsTotal: 95_978,
+  matchedPairsDay: 87_233,
+  matchedPairsNight: 8_745,
   post2012OffsetDivisor: 1.1,
   validation: {
     rawRatioToAqua: 11.7,
@@ -148,18 +153,18 @@ export const HARMONIZATION_META = {
       { bin: "32–64 MW", probPct: 73 },
       { bin: "64+ MW", probPct: 84 },
     ],
-    brightnessDayGapBeforeK: -17.3,
-    brightnessDayGapAfterK: -1.0,
-    brightnessDayKsBefore: 0.58,
-    brightnessDayKsAfter: 0.13,
-    brightnessDayMaeBeforeK: 21.5,
-    brightnessDayMaeAfterK: 11.1,
-    brightnessNightGapBeforeK: -18.6,
-    brightnessNightGapAfterK: 2.5,
-    brightnessNightKsBefore: 0.5,
-    brightnessNightKsAfter: 0.18,
-    brightnessNightMaeBeforeK: 17.5,
-    brightnessNightMaeAfterK: 15.6,
+    brightnessDayGapBeforeK: -17.1,
+    brightnessDayGapAfterK: -0.3,
+    brightnessDayKsBefore: 0.61,
+    brightnessDayKsAfter: 0.08,
+    brightnessDayMaeBeforeK: 19.2,
+    brightnessDayMaeAfterK: 10.2,
+    brightnessNightGapBeforeK: -17.8,
+    brightnessNightGapAfterK: 2.2,
+    brightnessNightKsBefore: 0.45,
+    brightnessNightKsAfter: 0.07,
+    brightnessNightMaeBeforeK: 19.2,
+    brightnessNightMaeAfterK: 17.0,
   },
 } as const;
 

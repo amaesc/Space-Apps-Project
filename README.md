@@ -16,21 +16,22 @@ Satellite sensors **MODIS** (active since 2000) and **VIIRS** (active since 2012
 
 FuegoData couples satellite harmonization, edge IoT hardware, and probabilistic origin modeling:
 
-1. **MODIS → VIIRS Harmonization ($k_m$)**
-   - Monthly calibration using a $k_m$ factor across the overlap window, with confidence intervals and cross-validation.
-   - Enables a continuous historical burn calendar (`Años × Meses`) without sensor distortion.
+1. **MODIS → VIIRS Harmonization (detection level, all of Mexico)**
+   - Each detection gets an `in_calendar` flag: Aqua MODIS before 2012-01-20, then S-NPP VIIRS 1.4 km / 30-min cells whose summed FRP ≥ a per-state threshold T*, fitted for count parity with Aqua on 2012–2019 and tested on 2020–2025 (see section 5).
+   - Enables a continuous historical burn calendar (`Years × Months`) without the 2012 sensor jump: 5.4 M detections, 796,098 in the consistent series.
 2. **Field IoT Stations + Automatic Fallback**
-   - Autonomous solar-powered **ESP32** nodes (WiFi / LoRa) with **BME280** (temperature & relative humidity), wind/rain sensors, **AS3935** lightning detector, local screen, and a 5-LED risk semaphore.
-   - In areas without IoT coverage, the platform falls back to gridded weather and satellite data (**Open-Meteo** & **GOES-GLM**).
-3. **Probable Origin & Risk Estimation**
-   - Combines thermal detections, lightning proximity, weather conditions (FWI), and land context to classify probable origin (`Human`, `Lightning`, `Wildland`, `Undetermined`) and flag potential irregular fire use for preventive inspection.
+   - Current prototype: **ESP32** with a DHT11 (temperature & humidity) and a flame sensor, posting to the API. Target design: solar power, BME280, wind/rain, **AS3935** lightning detector, local screen and a 5-LED risk semaphore.
+   - In areas without IoT coverage, the platform uses gridded weather from **Open-Meteo**.
+3. **Risk Estimation (implemented) & Probable Origin (planned)**
+   - Implemented: a 72-hour LightGBM forecast (Chihuahua pilot) and a weekly 7/14/28-day risk model (section 5).
+   - Planned, not implemented: combine thermal detections, lightning proximity, weather conditions (FWI), and land context to classify probable origin (`Human`, `Lightning`, `Wildland`, `Undetermined`) and flag potential irregular fire use for preventive inspection.
    - _Note: Probabilistic estimates are intended to prioritize preventive inspections and do not constitute legal proof._
 
 ---
 
 ## 3. Current Implementation (`web/`)
 
-The frontend is a **static Next.js export** (`output: "export"`) ready for **GitHub Pages**, connected to a live **Raspberry Pi API** exposed via **Tailscale Funnel** (no built-in demo data: if the API is unreachable, the site says so instead of showing invented values).
+The frontend is a **static Next.js export** (`output: "export"`) ready for **GitHub Pages**, connected to a live **FastAPI backend on AWS EC2** (`https://13-217-192-184.sslip.io`, HTTPS via Caddy) (no built-in demo data: if the API is unreachable, the site says so instead of showing invented values).
 
 ### Tech Stack
 
@@ -38,13 +39,13 @@ The frontend is a **static Next.js export** (`output: "export"`) ready for **Git
 - **Styling:** Tailwind CSS v4 (`@tailwindcss/turbopack`)
 - **Maps:** Leaflet (`1.9.4`) + OpenStreetMap / Satellite basemaps
 - **Package Manager / Runtime:** Bun (`bun@1.4.2`)
-- **Edge Backend:** Raspberry Pi API via Tailscale Funnel (`NEXT_PUBLIC_API_URL`) with a `/lite` mode for slow rural connections
+- **Backend:** FastAPI on AWS EC2 (`NEXT_PUBLIC_API_URL`), with a `/lite` mode for slow rural connections: https://13-217-192-184.sslip.io/lite
 
 ### Routes
 
 | Route           | Purpose                                                                                                                                                                                                                                                                                                           |
 | :-------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/`             | **Live Wildfire Map (`FireMapPage`)**: Satellite/street basemap, time filters (`24HRS`, `7DAYS`, `ALL`), origin filters, on-demand layers (NASA FIRMS, historical monthly fires, model forecast probability, weather grid, IoT stations), burn calendar modal, CSV export, and slow-connection `/lite` detection. |
+| `/`             | **Live Wildfire Map (`FireMapPage`)**: Satellite/street basemap, time filters (`24HRS`, `7DAYS`, `ALL`), on-demand layers (NASA FIRMS, historical monthly fires, model forecast probability, weather grid, IoT stations), burn calendar modal, CSV export, and slow-connection `/lite` detection. |
 | `/data`         | Open data & CSV download center (`DataDownloads`).                                                                                                                                                                                                                                                                |
 | `/challenge`    | Background on the MODIS/VIIRS discontinuity and wildfire detection challenge.                                                                                                                                                                                                                                     |
 | `/how-it-works` | Detailed architecture, harmonization pipeline, and IoT + fallback design.                                                                                                                                                                                                                                         |
@@ -72,7 +73,7 @@ Space-Apps-Project/
     │   ├── AboutTabs.tsx
     │   └── ModelCard.tsx
     ├── lib/
-    │   ├── api.ts              # Live Raspberry Pi API hooks + demo fallback
+    │   ├── api.ts              # Live API hooks (no invented fallback data)
     │   ├── fire-data.ts        # Types, risk scales, CSV/GeoJSON export
     │   ├── layers.ts           # Satellite, weather & historical layer definitions
     │   └── asset.ts            # Base-path helper for GitHub Pages

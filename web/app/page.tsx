@@ -333,10 +333,10 @@ export default function FireMapPage() {
                         ? layerHint(
                             history.status,
                             `${history.data?.filter((f) => f.inCalendar).length ?? 0} in_calendar=1 (${history.data?.length ?? 0} total) in ${monthLabel(historyMonth)} · ${
-                              historyMonth < "2012-01" ? "Aqua MODIS 1 km (13:30)" : "S-NPP/NOAA VIIRS 375 m (1.4 km cell ≥ 15 MW)"
+                              historyMonth < "2012-01" ? "Aqua MODIS 1 km (13:30)" : "S-NPP VIIRS 375 m (1.4 km cell ≥ state T*)"
                             }`
                           )
-                        : "Harmonized archive: Aqua MODIS (2002–2011) + S-NPP VIIRS ≥15 MW cells (2012–2026)"
+                        : "Harmonized archive, all of Mexico: Aqua MODIS (2002–2011) + S-NPP VIIRS cells ≥ per-state T* (2012–2026)"
                     }
                     swatch={<span className="h-2.5 w-2.5 rounded-full bg-[#ff9f1c]" />}
                   >
@@ -454,7 +454,7 @@ export default function FireMapPage() {
                         className="mt-0.5 accent-[#f5c518]"
                       />
                       <span>
-                        <code className="text-fd-gold">in_calendar = 1</code> only (MODIS-eq ≥ 15 MW, 55,902 consistent series)
+                        <code className="text-fd-gold">in_calendar = 1</code> only (MODIS-equivalent consistent series: 796,098 rows nationally)
                       </span>
                     </label>
                     <label className="mt-1 flex cursor-pointer items-start gap-2 text-xs text-white/80">
@@ -997,7 +997,7 @@ function CalendarHeatmap({
             Detection-level Harmonization (MODIS C6.1 ↔ VIIRS S-NPP · <code>in_calendar = 1</code>)
           </h3>
           <span className="font-mono text-[11px] text-white/60">
-            N. Chihuahua ({m.bounds.south}°–{m.bounds.north}° N, {m.bounds.west}° to {m.bounds.east}° E) · {m.dateRange.start} → {m.dateRange.snppEnd}
+            All of Mexico (32 states) · {m.dateRange.start} → {m.dateRange.modisEnd} · cards marked &quot;pilot&quot;: N. Chihuahua run
           </span>
         </div>
 
@@ -1010,14 +1010,14 @@ function CalendarHeatmap({
             </p>
           </div>
           <div className="rounded border border-white/10 bg-white/5 p-2.5">
-            <p className="text-[10px] uppercase text-white/55">13:30 overpass & 15 MW cell rule</p>
-            <p className="mt-0.5 text-lg font-bold tabular-nums text-white">≥ {m.frpThresholdMw} MW / {m.cellSizeKm} km</p>
+            <p className="text-[10px] uppercase text-white/55">13:30 overpass & per-state cell threshold</p>
+            <p className="mt-0.5 text-lg font-bold tabular-nums text-white">≥ T* (Chihuahua 17.06 MW) / {m.cellSizeKm} km</p>
             <p className="text-[11px] text-white/65">
               Aqua before {m.dateRange.seam}; strongest pixel per {m.cellSizeKm} km × {m.cellTimeWindowMin} min S-NPP cell
             </p>
           </div>
           <div className="rounded border border-white/10 bg-white/5 p-2.5">
-            <p className="text-[10px] uppercase text-white/55">Monthly count validation</p>
+            <p className="text-[10px] uppercase text-white/55">Monthly count validation (pilot)</p>
             <p className="mt-0.5 text-lg font-bold tabular-nums text-emerald-300">
               r = {m.validation.harmonizedCorrelation} · {m.validation.harmonizedRatioToAqua}×
             </p>
@@ -1038,7 +1038,7 @@ function CalendarHeatmap({
 
         <div className="grid gap-3 lg:grid-cols-2">
           <div className="rounded border border-white/10 bg-black/25 p-3">
-            <p className="font-semibold text-white">P(Aqua detects | summed VIIRS FRP in 1.4 km cell)</p>
+            <p className="font-semibold text-white">P(Aqua detects | summed VIIRS FRP in 1.4 km cell) (pilot)</p>
             <div className="mt-2 grid grid-cols-4 gap-1.5 text-center tabular-nums">
               {m.validation.aquaDetectionProbByFrp.map((b) => (
                 <div key={b.bin} className="rounded bg-white/5 px-2 py-1.5">
@@ -1060,10 +1060,10 @@ function CalendarHeatmap({
             <p className="font-semibold text-fd-gold">Methodological limits (required for interpretation)</p>
             <ul className="mt-1.5 list-disc space-y-1 pl-4 text-[11px] leading-snug text-white/85">
               <li>
-                <strong>MODIS-equivalent counts:</strong> <code>in_calendar = 1</code> excludes small VIIRS fires (&lt;15 MW cell). Do not use this series for early warning of small ignitions.
+                <strong>MODIS-equivalent counts:</strong> <code>in_calendar = 1</code> excludes small VIIRS fires (cells below the state&apos;s T*, mostly 13–18 MW). Do not use this series for early warning of small ignitions.
               </li>
               <li>
-                <strong>≈10% post-2012 offset:</strong> S-NPP reads ~10% above Aqua; use the <code>÷1.1</code> toggle above when comparing 2012+ against pre-2012 history.
+                <strong>Post-2020 drift:</strong> T* is fitted per state on 2012–2019 for count parity with Aqua (held-out 2020–2025 error 4.8% vs 8.2% at a flat 15 MW), but the national S-NPP/Aqua ratio falls to 0.86–0.93 in 2024–2026, likely Aqua&apos;s orbit drift (not verified).
               </li>
               <li>
                 <strong>Use FRP (MW) for intensity:</strong> Mapped MODIS brightness is capped at {m.brightnessCapK} K ({m.modisAtCapPct}% of MODIS rows sit at cap; {m.modisBrightT31UncappedRows} rows with <code>bright_t31 = {m.modisBrightT31UncappedK} K</code> remain uncapped).
@@ -1270,7 +1270,7 @@ function MapLegend({
     [fire.nasa, "NASA active fire (48 h) · faded = low confidence", "h-2.5 w-2.5 rounded-full border-2 border-[#ffe066] bg-[#ff2a00]"],
     [
       fire.history,
-      `Historical · ${monthLabel(historyMonth)} · sized by FRP (≥15 MW = MODIS-eq)`,
+      `Historical · ${monthLabel(historyMonth)} · sized by FRP (in_calendar = MODIS-equivalent)`,
       "h-2.5 w-2.5 rounded-full bg-[#ff9f1c]",
     ],
   ];
@@ -1526,7 +1526,7 @@ function AreaSummary({
               Harmonized Archive Box Query (<code>harmonized_hotspots.csv</code> · <code>in_calendar = 1</code>)
             </p>
             <p className="text-[11px] text-white/70">
-              Filter the 55,902 consistent series rows (2002-07-04 → 2026-07-31) inside this bounding box by date range:
+              Filter the 796,098 consistent series rows (all of Mexico, 2002-07-04 → 2026-11-15) inside this bounding box by date range:
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-1.5 text-xs">
