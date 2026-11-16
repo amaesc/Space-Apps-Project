@@ -40,6 +40,11 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        "https://firedata.space",
+        "https://www.firedata.space",
+        "https://firedata.earth",
+        "https://www.firedata.earth",
+        "https://amaesc.github.io",
         *[o.strip() for o in os.getenv("ALLOWED_ORIGINS", "").split(",") if o.strip()],
     ],
     allow_credentials=False,
