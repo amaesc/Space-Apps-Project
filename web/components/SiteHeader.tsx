@@ -9,9 +9,9 @@ import { DataIcon, FeatherIcon, InfoIcon, MapIcon } from "./Icons";
 
 // Barra superior roja estilo visor de datos: marca a la izquierda, accesos a la derecha.
 const LINKS = [
-  { href: "/", label: "Fire Map", Icon: MapIcon },
-  { href: "/data", label: "Data", Icon: DataIcon },
-  { href: "/about", label: "About", Icon: InfoIcon },
+  { href: "/", label: "Fire Map", Icon: MapIcon, external: false },
+  { href: "/data", label: "Data", Icon: DataIcon, external: false },
+  { href: "/landing/", label: "About", Icon: InfoIcon, external: true },
 ];
 
 const ABOUT_PATHS = ["/about", "/challenge", "/how-it-works", "/team"];
@@ -39,20 +39,32 @@ export default function SiteHeader() {
         </Link>
 
         <ul className="flex items-center gap-0.5 sm:gap-1">
-          {LINKS.map(({ href, label, Icon }) => {
+          {LINKS.map(({ href, label, Icon, external }) => {
             const active = isActive(href);
+            const className = `flex items-center gap-1.5 rounded px-2.5 py-2 text-[15px] font-semibold sm:px-3 sm:py-1.5 ${active ? "bg-black/25 text-fd-gold" : "text-white hover:bg-black/20 hover:text-fd-gold"
+              }`;
             return (
               <li key={href}>
-                <Link
-                  href={href}
-                  aria-label={label}
-                  aria-current={active ? "page" : undefined}
-                  className={`flex items-center gap-1.5 rounded px-2.5 py-2 text-[15px] font-semibold sm:px-3 sm:py-1.5 ${active ? "bg-black/25 text-fd-gold" : "text-white hover:bg-black/20 hover:text-fd-gold"
-                    }`}
-                >
-                  <Icon className="h-[18px] w-[18px]" />
-                  <span className="hidden sm:inline">{label}</span>
-                </Link>
+                {external ? (
+                  <a
+                    href={asset(href)}
+                    aria-label={label}
+                    className={className}
+                  >
+                    <Icon className="h-[18px] w-[18px]" />
+                    <span className="hidden sm:inline">{label}</span>
+                  </a>
+                ) : (
+                  <Link
+                    href={href}
+                    aria-label={label}
+                    aria-current={active ? "page" : undefined}
+                    className={className}
+                  >
+                    <Icon className="h-[18px] w-[18px]" />
+                    <span className="hidden sm:inline">{label}</span>
+                  </Link>
+                )}
               </li>
             );
           })}
