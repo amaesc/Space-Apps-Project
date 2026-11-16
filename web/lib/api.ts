@@ -113,6 +113,41 @@ async function loadCalendar(): Promise<BurnCalendar | null> {
   }
   return DEFAULT_BURN_CALENDAR;
 }
+/** Los 32 estados (nombres INEGI exactos, como los acepta `?region=` del backend). */
+export const MEXICO_STATES = [
+  "Aguascalientes", "Baja California", "Baja California Sur", "Campeche", "Chiapas", "Chihuahua", "Ciudad de México",
+  "Coahuila de Zaragoza", "Colima", "Durango", "Guanajuato", "Guerrero", "Hidalgo", "Jalisco", "México",
+  "Michoacán de Ocampo", "Morelos", "Nayarit", "Nuevo León", "Oaxaca", "Puebla", "Querétaro", "Quintana Roo",
+  "San Luis Potosí", "Sinaloa", "Sonora", "Tabasco", "Tamaulipas", "Tlaxcala", "Veracruz de Ignacio de la Llave",
+  "Yucatán", "Zacatecas",
+] as const;
+
+const _regionCalendars = new Map<string, BurnCalendar>();
+
+/** Calendario armonizado de un estado ("*" = todo México: usa `national`, el del tablero). */
+export function useRegionCalendar(region: string, national: BurnCalendar | null): Remote<BurnCalendar> {
+  const [state, setState] = useState<{ region: string } & Remote<BurnCalendar>>({ region: "*", status: "idle", data: null });
+  useEffect(() => {
+    if (region === "*" || state.region === region || _regionCalendars.has(region)) return;
+    let alive = true;
+    getJson<any>(`/api/nasa/calendar?region=${encodeURIComponent(region)}`, 60000)
+      .then((c) => {
+        const cal = toCalendar(c, c.coverage ?? null);
+        _regionCalendars.set(region, cal);
+        if (alive) setState({ region, status: "ready", data: cal });
+      })
+      .catch(() => alive && setState({ region, status: "error", data: null }));
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [region]);
+  if (region === "*") return { status: national ? "ready" : "loading", data: national };
+  const hit = _regionCalendars.get(region);
+  if (hit) return { status: "ready", data: hit };
+  if (state.region !== region) return { status: "loading", data: null };
+  return state;
+}
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 export interface DashboardData {

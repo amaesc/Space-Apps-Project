@@ -18,7 +18,7 @@ import {
 } from "../components/Icons";
 import LazyMap from "../components/LazyMap";
 import SiteHeader from "../components/SiteHeader";
-import { LITE_URL, type ModelForecast, useDashboardData, useHarmonizedArchive, useHistoricalFires, useModelForecast, useNasaFires, useNow, useSlowConnection, useWeatherGrid, useWeeklyForecast, type WeeklyForecast } from "../lib/api";
+import { API_URL, LITE_URL, MEXICO_STATES, type ModelForecast, useDashboardData, useRegionCalendar, useHarmonizedArchive, useHistoricalFires, useModelForecast, useNasaFires, useNow, useSlowConnection, useWeatherGrid, useWeeklyForecast, type WeeklyForecast } from "../lib/api";
 import { asset } from "../lib/asset";
 import {
   type BurnCalendar,
@@ -94,6 +94,8 @@ export default function FireMapPage() {
   const [fire, setFire] = useState<FireLayers>({ nasa: true, history: false, probability: false, weekly: false, cause: true });
   const months = historyMonths();
   const [historyMonth, setHistoryMonth] = useState(months.find((m) => m.endsWith("-05")) ?? months[0]);
+  const [calendarRegion, setCalendarRegion] = useState<string>("*");
+  const regionCalendar = useRegionCalendar(calendarRegion, data.calendar);
   const [historyStartDate, setHistoryStartDate] = useState("");
   const [historyEndDate, setHistoryEndDate] = useState("");
   const [historyOnlyInCalendar, setHistoryOnlyInCalendar] = useState(true);
@@ -686,8 +688,30 @@ export default function FireMapPage() {
 
         {modal === "calendar" && (
           <Modal title="Harmonized burn calendar & MODIS ↔ VIIRS calibration" onClose={() => setModal(null)} wide>
+            <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
+              <label htmlFor="calendar-region" className="font-semibold text-white/85">
+                Area of interest
+              </label>
+              <select
+                id="calendar-region"
+                value={calendarRegion}
+                onChange={(e) => setCalendarRegion(e.target.value)}
+                className="rounded border border-white/25 bg-black/40 px-2 py-1 text-sm text-white"
+              >
+                <option value="*">All of Mexico</option>
+                {MEXICO_STATES.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+              {regionCalendar.status === "loading" && <span className="text-xs text-white/60">Loading {calendarRegion}…</span>}
+              {regionCalendar.status === "error" && (
+                <span className="text-xs text-amber-300">Calendar for {calendarRegion} unavailable right now.</span>
+              )}
+            </div>
             <CalendarHeatmap
-              calendar={data.calendar}
+              calendar={regionCalendar.data}
               selectedMonth={historyMonth}
               onSelectMonth={(ym) => {
                 setHistoryMonth(ym);
@@ -1526,7 +1550,7 @@ function AreaSummary({
               Harmonized Archive Box Query (<code>harmonized_hotspots.csv</code> · <code>in_calendar = 1</code>)
             </p>
             <p className="text-[11px] text-white/70">
-              Filter the 796,098 consistent series rows (all of Mexico, 2002-07-04 → 2026-11-15) inside this bounding box by date range:
+              Quick preview from the N. Chihuahua pilot file (55,902 <code>in_calendar = 1</code> rows, 2002-07-04 → 2026-07-31). For any box in Mexico use the national CSV button (5.4 M rows, 2002-07-04 → 2026-11-15).
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-1.5 text-xs">
@@ -1589,6 +1613,13 @@ function AreaSummary({
           >
             Download selection.csv ({archiveBoxFires ? archiveBoxFires.length.toLocaleString() : 0})
           </button>
+          <a
+            href={`${API_URL}/api/nasa/fires/harmonized.csv?south=${bounds.south.toFixed(4)}&north=${bounds.north.toFixed(4)}&west=${bounds.west.toFixed(4)}&east=${bounds.east.toFixed(4)}&start=${boxStartDate}&end=${boxEndDate}`}
+            download
+            className="rounded border border-sky-400 px-3 py-1 text-xs font-bold text-sky-300 hover:bg-sky-400/10"
+          >
+            Download national harmonized CSV (this box · all 17 columns)
+          </a>
         </div>
       </div>
 
