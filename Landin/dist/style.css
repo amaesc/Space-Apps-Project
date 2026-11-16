@@ -129,7 +129,7 @@ header > * {
   background: var(--blanco);
 }
 
-.header-tools .flamin-logo {
+.header-tools .header-logo {
   width: 40px;
   height: 40px;
   object-fit: contain;
@@ -380,7 +380,7 @@ footer p:last-child {
     right: 16px;
   }
 
-  .header-tools .flamin-logo {
+  .header-tools .header-logo {
     width: 34px;
     height: 34px;
   }

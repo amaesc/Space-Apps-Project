@@ -1,0 +1,720 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+/* External links for the hero buttons (leave empty to disable a button) */
+const projectUrl = 'https://amaesc.github.io/Space-Apps-Project/';
+const demoUrl = 'https://youtu.be/9GTanSEWZUc';
+const repoUrl = 'https://github.com/amaesc/Space-Apps-Project';
+---
+
+<Layout>
+	<header>
+		<div class="header-tools">
+			<div class="language-switch" role="group" aria-label="Language selector">
+				<button type="button" data-language="en" aria-pressed="true">EN</button>
+				<button type="button" data-language="es" aria-pressed="false">ES</button>
+			</div>
+			<img
+				class="header-logo"
+				src="/images/flamin-mascot.png"
+				alt="FireData logo"
+				data-en="FireData logo"
+				data-es="Logotipo de FireData"
+			/>
+		</div>
+
+		<p
+			class="header-kicker"
+			data-en="FireData · NASA Space Apps Challenge 2026"
+			data-es="FireData · NASA Space Apps Challenge 2026"
+		>
+			FireData · NASA Space Apps Challenge 2026
+		</p>
+		<h1
+			data-en="FireData: Harmonization of MODIS and VIIRS Hot Spots"
+			data-es="FireData: Armonización de puntos calientes MODIS y VIIRS"
+		>
+			FireData: Harmonization of MODIS and VIIRS Hot Spots
+		</h1>
+		<p
+			class="header-description"
+			data-en="We harmonize two decades of MODIS and VIIRS satellite detections into a consistent burn calendar, forecast where fire is most likely in the coming weeks, and fill satellite gaps with low-cost IoT field stations."
+			data-es="Armonizamos dos décadas de detecciones satelitales de MODIS y VIIRS en un calendario de quemas consistente, pronosticamos dónde es más probable que haya fuego en las próximas semanas y cubrimos los huecos de los satélites con estaciones IoT de bajo costo en campo."
+		>
+			We harmonize two decades of MODIS and VIIRS satellite detections into a
+			consistent burn calendar, forecast where fire is most likely in the coming
+			weeks, and fill satellite gaps with low-cost IoT field stations.
+		</p>
+		<div class="hero-actions">
+			{projectUrl ? (
+				<a
+					class="button-web"
+					href={projectUrl}
+					target="_blank"
+					rel="noopener noreferrer"
+					data-en="Web project"
+					data-es="Proyecto web"
+				>
+					Web project
+				</a>
+			) : (
+				<button
+					class="button-web"
+					type="button"
+					disabled
+					data-en="Web project"
+					data-es="Proyecto web"
+				>
+					Web project
+				</button>
+			)}
+			{demoUrl ? (
+				<a
+					class="button-demo"
+					href={demoUrl}
+					target="_blank"
+					rel="noopener noreferrer"
+					data-en="View demo"
+					data-es="Ver demo"
+				>
+					View demo
+				</a>
+			) : (
+				<button
+					class="button-demo"
+					type="button"
+					disabled
+					data-en="View demo"
+					data-es="Ver demo"
+				>
+					View demo
+				</button>
+			)}
+			{repoUrl ? (
+				<a
+					class="button-repo"
+					href={repoUrl}
+					target="_blank"
+					rel="noopener noreferrer"
+					data-en="GitHub repository"
+					data-es="Repositorio en GitHub"
+				>
+					GitHub repository
+				</a>
+			) : (
+				<button
+					class="button-repo"
+					type="button"
+					disabled
+					data-en="GitHub repository"
+					data-es="Repositorio en GitHub"
+				>
+					GitHub repository
+				</button>
+			)}
+		</div>
+	</header>
+
+	<main>
+		<section>
+			<h2 data-en="The challenge" data-es="La problemática">The challenge</h2>
+			<div class="content-with-image">
+				<div>
+					<p
+						data-en="For more than 20 years, MODIS and VIIRS satellite sensors have recorded hotspots around the world. However, their data cannot be directly compared because of differences in spatial resolution, sensitivity, and observation times. As MODIS approaches the end of its service life and is replaced by VIIRS, the lack of a method to unify both time series threatens to fragment nearly a decade of history and leave emergency teams without a continuous climate record."
+						data-es="Durante más de 20 años, los sensores satelitales MODIS y VIIRS han registrado puntos calientes en todo el planeta. Sin embargo, sus datos no son directamente comparables debido a diferencias en resolución espacial, sensibilidad y horarios de observación. Con MODIS llegando al final de su vida útil para ser reemplazado por VIIRS, la falta de un método que unifique ambas series amenaza con fragmentar casi una década de historial y dejar a los equipos de emergencia sin un registro climático continuo."
+					>
+						For more than 20 years, MODIS and VIIRS satellite sensors have
+						recorded hotspots around the world. However, their data cannot be
+						directly compared because of differences in spatial resolution,
+						sensitivity, and observation times. As MODIS approaches the end of
+						its service life and is replaced by VIIRS, the lack of a method to
+						unify both time series threatens to fragment nearly a decade of
+						history and leave emergency teams without a continuous climate
+						record.
+					</p>
+					<p
+						data-en="Three critical operational challenges add to this historical gap:"
+						data-es="A esta brecha histórica se suman tres obstáculos operativos críticos:"
+					>
+						Three critical operational challenges add to this historical gap:
+					</p>
+					<ul>
+						<li>
+							<strong
+								data-en="Data latency and blind spots:"
+								data-es="Latencia y ceguera de datos:"
+								>Data latency and blind spots:</strong
+							>
+							<span
+								data-en="Near-real-time detection is only available for the United States and Canada. Elsewhere, global reports take 1 to 3 hours to arrive, with delays worsened by areas without continuous satellite coverage or connectivity loss at remote stations."
+								data-es="Mientras que la detección en minutos solo está disponible para Estados Unidos y Canadá, en el resto del mundo los reportes globales tardan entre 1 y 3 horas en llegar, agravado por zonas sin cobertura satelital continua o pérdida de conectividad en estaciones remotas."
+							>
+								Near-real-time detection is only available for the United States
+								and Canada. Elsewhere, global reports take 1 to 3 hours to
+								arrive, with delays worsened by areas without continuous
+								satellite coverage or connectivity loss at remote stations.
+							</span>
+						</li>
+						<li>
+							<strong
+								data-en="Uncertainty about fire origin:"
+								data-es="Incertidumbre sobre el origen:"
+								>Uncertainty about fire origin:</strong
+							>
+							<span
+								data-en="Satellite records detect heat, but cannot determine on their own whether a fire was caused by a natural phenomenon or human activity."
+								data-es="Los registros satelitales detectan el calor, pero no distinguen por sí solos si el fuego fue causado por un fenómeno natural o por actividad humana."
+							>
+								Satellite records detect heat, but cannot determine on their own
+								whether a fire was caused by a natural phenomenon or human
+								activity.
+							</span>
+						</li>
+						<li>
+							<strong
+								data-en="Critical impact in northern Mexico:"
+								data-es="Impacto crítico en el norte de México:"
+								>Critical impact in northern Mexico:</strong
+							>
+							<span
+								data-en="In regions such as Chihuahua, where the State Department of Rural Development (SDR) reports 289 forest fires and 43,206.76 hectares affected so far this year, most incidents are human-caused. Identifying likely causes is essential for prevention and monitoring."
+								data-es="En regiones como Chihuahua, donde la Secretaría de Desarrollo Rural (SDR) reporta 289 incendios forestales y 43,206.76 hectáreas afectadas en lo que va del año, la mayoría de los siniestros tienen origen humano, por lo que identificar causas probables es vital para la prevención y la vigilancia."
+							>
+								In regions such as Chihuahua, where the State Department of Rural
+								Development (SDR) reports 289 forest fires and 43,206.76
+								hectares affected so far this year, most incidents are
+								human-caused. Identifying likely causes is essential for
+								prevention and monitoring.
+							</span>
+						</li>
+					</ul>
+				</div>
+				<figure class="challenge-image project-image">
+					<img
+						src="/images/modis-viirs-chihuahua.png"
+						alt="Comparison of hotspots detected by MODIS and VIIRS in Chihuahua"
+						data-en="Comparison of hotspots detected by MODIS and VIIRS in Chihuahua"
+						data-es="Comparación de puntos calientes detectados por MODIS y VIIRS en Chihuahua"
+						loading="lazy"
+					/>
+					<figcaption
+						data-en="2026 NASA Space Apps Challenge"
+						data-es="2026 NASA Space Apps Challenge"
+					>
+						2026 NASA Space Apps Challenge
+					</figcaption>
+				</figure>
+			</div>
+		</section>
+
+		<section>
+			<h2
+				data-en="Harmonized satellite observations"
+				data-es="Observaciones satelitales armonizadas"
+			>
+				Harmonized satellite observations
+			</h2>
+			<div class="content-with-image">
+				<div>
+					<p
+						data-en="FireData unifies MODIS and VIIRS records to eliminate sensor discrepancies and prevent gaps in historical continuity."
+						data-es="FireData unifica los registros de MODIS y VIIRS para eliminar las discrepancias entre sensores y evitar la pérdida de continuidad histórica."
+					>
+						FireData unifies MODIS and VIIRS records to eliminate sensor
+						discrepancies and prevent gaps in historical continuity.
+					</p>
+					<p
+						data-en="Through monthly calibration, uncertainty estimates, and cross-validation, the platform enables consistent comparisons across time periods and builds a reliable calendar of thermal activity."
+						data-es="Mediante calibración mensual, estimaciones de incertidumbre y validación cruzada, la plataforma permite comparar periodos de forma consistente y construir un calendario confiable de actividad térmica a lo largo del tiempo."
+					>
+						Through monthly calibration, uncertainty estimates, and
+						cross-validation, the platform enables consistent comparisons
+						across time periods and builds a reliable calendar of thermal
+						activity.
+					</p>
+				</div>
+				<figure class="project-image">
+					<img
+						src="/images/demo-stand.jpeg"
+						alt="FireData stand showing the fire map platform and the IoT weather station"
+						data-en="FireData stand showing the fire map platform and the IoT weather station"
+						data-es="Stand de FireData con la plataforma del mapa de incendios y la estación meteorológica IoT"
+						loading="lazy"
+					/>
+					<figcaption
+						data-en="Demo stand at the Open House with the web app and IoT device"
+						data-es="Stand demostrativo en Open House con App Web y dispositivo IoT"
+					>
+						Demo stand at the Open House with the web app and IoT device
+					</figcaption>
+				</figure>
+			</div>
+		</section>
+
+		<section>
+			<h2
+				data-en="Statistical prediction model"
+				data-es="Modelo estadístico de predicción"
+			>
+				Statistical prediction model
+			</h2>
+			<div class="content-with-image">
+				<div>
+					<p
+						data-en="For each 10 km grid cell, our model estimates the probability of a fire occurring in the next 7 to 14 days. It learns from two decades of harmonized MODIS and VIIRS history and considers recent fires, time since the last fire, nearby activity, and the time of year. It uses only past information and outperforms seasonal baselines in years it has never seen."
+						data-es="Nuestro modelo estima, para cada cuadro de 10 km, la probabilidad de que haya un incendio en los próximos 7 a 14 días. Aprende de dos décadas de historia armonizada de MODIS y VIIRS, y considera los incendios recientes, el tiempo desde el último, la actividad cercana y la época del año. Usa solo información pasada y supera a las referencias estacionales en años que nunca vio."
+					>
+						For each 10 km grid cell, our model estimates the probability of a
+						fire occurring in the next 7 to 14 days. It learns from two decades
+						of harmonized MODIS and VIIRS history and considers recent fires,
+						time since the last fire, nearby activity, and the time of year. It
+						uses only past information and outperforms seasonal baselines in
+						years it has never seen.
+					</p>
+					<p
+						data-en="Its probabilities are calibrated, so a 10% risk means that, in similar cases, a fire occurred roughly 1 out of every 10 times. The result is a risk map that helps fire crews and communities decide where to look first."
+						data-es="Sus probabilidades están calibradas, así que un riesgo de 10% significa que, en casos parecidos, hubo fuego más o menos 1 de cada 10 veces. El resultado es un mapa de riesgo que ayuda a brigadas y comunidades a decidir dónde mirar primero."
+					>
+						Its probabilities are calibrated, so a 10% risk means that, in
+						similar cases, a fire occurred roughly 1 out of every 10 times. The
+						result is a risk map that helps fire crews and communities decide
+						where to look first.
+					</p>
+				</div>
+				<figure class="project-image">
+					<img
+						src="/images/prediction-model.jpeg"
+						alt="Fire risk prediction map for Chihuahua and surrounding regions"
+						data-en="Fire risk prediction map for Chihuahua and surrounding regions"
+						data-es="Mapa de predicción de riesgo de incendios en Chihuahua y regiones cercanas"
+						loading="lazy"
+					/>
+					<figcaption
+						data-en="Predictive model for the next 7 days"
+						data-es="Modelo predictivo de los siguientes 7 días"
+					>
+						Predictive model for the next 7 days
+					</figcaption>
+				</figure>
+			</div>
+		</section>
+
+		<section>
+			<h2
+				data-en="Field measurements and continuous backup"
+				data-es="Mediciones en campo y respaldo continuo"
+			>
+				Field measurements and continuous backup
+			</h2>
+			<div class="content-with-image">
+				<div>
+					<p
+						data-en="To mitigate satellite latency in critical areas, our IoT station collects temperature, humidity, wind, precipitation, and electrical activity directly in the field, calculating local ignition-risk indicators."
+						data-es="Para mitigar la latencia satelital en zonas críticas, nuestra estación IoT recopila temperatura, humedad, viento, precipitación y actividad eléctrica directamente en el terreno, calculando indicadores locales de riesgo de ignición."
+					>
+						To mitigate satellite latency in critical areas, our IoT station
+						collects temperature, humidity, wind, precipitation, and electrical
+						activity directly in the field, calculating local ignition-risk
+						indicators.
+					</p>
+					<p
+						data-en="Station data provides continuous backup to detect anomalies and issue early warnings, even without direct satellite coverage."
+						data-es="La información de la estación genera un respaldo continuo que permite detectar anomalías y alertas tempranas, incluso en ausencia de cobertura satelital directa."
+					>
+						Station data provides continuous backup to detect anomalies and
+						issue early warnings, even without direct satellite coverage.
+					</p>
+				</div>
+				<figure class="project-image">
+					<img
+						src="/images/iot-station.jpeg"
+						alt="IoT station with environmental sensors for fire-risk monitoring"
+						data-en="IoT station with environmental sensors for fire-risk monitoring"
+						data-es="Estación IoT con sensores ambientales para monitorear el riesgo de incendios"
+						loading="lazy"
+					/>
+					<figcaption
+						data-en="Field monitoring station"
+						data-es="Estación de monitoreo en campo"
+					>
+						Field monitoring station
+					</figcaption>
+				</figure>
+			</div>
+		</section>
+
+		<section class="tools">
+			<h2
+				data-en="Platform tools"
+				data-es="Herramientas de la plataforma"
+			>
+				Platform tools
+			</h2>
+
+			<article>
+				<h3 data-en="Interactive map" data-es="Mapa interactivo">Interactive map</h3>
+				<p
+					data-en="Explore areas of interest and filter hotspots by risk level and likely origin."
+					data-es="Permite explorar la zona de interés y filtrar puntos calientes según su nivel de riesgo y origen probable."
+				>
+					Explore areas of interest and filter hotspots by risk level and likely
+					origin.
+				</p>
+			</article>
+
+			<article>
+				<h3
+					data-en="Activity calendar"
+					data-es="Calendario de actividad"
+				>
+					Activity calendar
+				</h3>
+				<p
+					data-en="Organize the unified history by year and month, view total records, or filter by natural or human origin."
+					data-es="Organiza el historial unificado por año y mes, permitiendo visualizar el total de registros o segmentarlos por origen natural o humano."
+				>
+					Organize the unified history by year and month, view total records, or
+					filter by natural or human origin.
+				</p>
+			</article>
+
+			<article>
+				<h3
+					data-en="Area monitoring dashboard"
+					data-es="Panel de monitoreo por área"
+				>
+					Area monitoring dashboard
+				</h3>
+				<p
+					data-en="Compare current conditions with historical reference values, highlighting anomalies and early warnings."
+					data-es="Compara las condiciones actuales frente a valores históricos de referencia, destacando anomalías y alertas tempranas."
+				>
+					Compare current conditions with historical reference values,
+					highlighting anomalies and early warnings.
+				</p>
+			</article>
+
+			<article>
+				<h3
+					data-en="Time-series downloads"
+					data-es="Descarga de series de datos"
+				>
+					Time-series downloads
+				</h3>
+				<p
+					data-en="Export harmonized time series with uncertainty metrics and source-sensor metadata."
+					data-es="Facilita la exportación de las series armonizadas junto con sus métricas de incertidumbre y metadatos del sensor de origen."
+				>
+					Export harmonized time series with uncertainty metrics and
+					source-sensor metadata.
+				</p>
+			</article>
+
+			<article>
+				<h3
+					data-en="Event technical report (future development)"
+					data-es="Ficha técnica por evento (implementaciones futuras)"
+				>
+					Event technical report (future development)
+				</h3>
+				<p
+					data-en="Will break down the likely origin of each hotspot and the environmental variables supporting the estimate."
+					data-es="Desglosará la probabilidad de origen de cada punto caliente junto con las variables ambientales que sustentan el cálculo."
+				>
+					Will break down the likely origin of each hotspot and the
+					environmental variables supporting the estimate.
+				</p>
+			</article>
+		</section>
+
+		<section>
+			<h2
+				data-en="Harmonization pilot project: Mexico"
+				data-es="Proyecto piloto de armonización: México"
+			>
+				Harmonization pilot project: Mexico
+			</h2>
+			<div class="content-with-image">
+				<div>
+					<p
+						data-en="FireData is a web app that uses NASA FIRMS satellite fire data to build a consistent burning calendar for any region, from 2002 to today. Our goal is to help fire managers, brigades and researchers in underserved regions see when and where fires really happen."
+						data-es="FireData es una aplicación web que usa los datos satelitales de incendios de NASA FIRMS para construir un calendario de quemas consistente para cualquier región, desde 2002 hasta hoy. Nuestro objetivo es ayudar a gestores del fuego, brigadas e investigadores en regiones desatendidas a ver cuándo y dónde ocurren realmente los incendios."
+					>
+						FireData is a web app that uses NASA FIRMS satellite fire data to
+						build a consistent burning calendar for any region, from 2002 to
+						today. Our goal is to help fire managers, brigades and researchers in
+						underserved regions see when and where fires really happen.
+					</p>
+					<p
+						data-en="By calibrating NASA's newer VIIRS sensor to match the older MODIS record, region by region, FireData lets users pick an area, see which months and years burned the most, compare this month with the historical average, and download the data. The platform also connects our “estaca”, a low-cost ESP32 field station that reports temperature, humidity, pressure, flame and sound from the ground, between satellite passes."
+						data-es="Al calibrar el sensor VIIRS, más reciente, para que coincida con el registro histórico de MODIS, región por región, FireData permite elegir un área, ver qué meses y años tuvieron más incendios, comparar el mes actual con el promedio histórico y descargar los datos. La plataforma también conecta nuestra “estaca”, una estación de campo de bajo costo con ESP32 que reporta temperatura, humedad, presión, flama y sonido desde el terreno, entre pasos de los satélites."
+					>
+						By calibrating NASA's newer VIIRS sensor to match the older MODIS
+						record, region by region, FireData lets users pick an area, see which
+						months and years burned the most, compare this month with the
+						historical average, and download the data. The platform also connects
+						our “estaca”, a low-cost ESP32 field station that reports temperature,
+						humidity, pressure, flame and sound from the ground, between satellite
+						passes.
+					</p>
+					<p
+						data-en="FireData addresses the false jump in fire counts that appears when the two sensors are mixed, and we demonstrate it across all 32 states of Mexico. It would help communities worldwide tell a real fire anomaly from a sensor change, and act earlier."
+						data-es="FireData corrige el falso salto en el número de incendios que aparece cuando se mezclan ambos sensores, y lo demostramos en los 32 estados de México. Esto ayudaría a comunidades de todo el mundo a distinguir una anomalía real de incendios de un cambio de sensor, y a actuar antes."
+					>
+						FireData addresses the false jump in fire counts that appears when the
+						two sensors are mixed, and we demonstrate it across all 32 states of
+						Mexico. It would help communities worldwide tell a real fire anomaly
+						from a sensor change, and act earlier.
+					</p>
+				</div>
+				<figure class="project-image">
+					<img
+						src="/images/harmonization-pilot.jpeg"
+						alt="FireData web app showing NASA active fires across Mexico"
+						data-en="FireData web app showing NASA active fires across Mexico"
+						data-es="Aplicación web de FireData mostrando los incendios activos de la NASA en todo México"
+						loading="lazy"
+					/>
+					<figcaption
+						data-en="FireData web app: harmonized fire data across Mexico"
+						data-es="App web de FireData: datos de incendios armonizados en todo México"
+					>
+						FireData web app: harmonized fire data across Mexico
+					</figcaption>
+				</figure>
+			</div>
+		</section>
+
+		<section>
+			<h2
+				data-en="Prediction pilot project: Sierra de Chihuahua"
+				data-es="Proyecto piloto de predicción: Sierra de Chihuahua"
+			>
+				Prediction pilot project: Sierra de Chihuahua
+			</h2>
+			<div class="content-with-image">
+				<div>
+					<p
+						data-en="We focused the prediction pilot on our own region: the Sierra de Chihuahua, where our team lives and where forest fires have the greatest impact on our communities."
+						data-es="Enfocamos el piloto de predicción en nuestra propia región: la Sierra de Chihuahua, donde vive nuestro equipo y donde los incendios forestales tienen mayor impacto en nuestras comunidades."
+					>
+						We focused the prediction pilot on our own region: the Sierra de
+						Chihuahua, where our team lives and where forest fires have the
+						greatest impact on our communities.
+					</p>
+					<p
+						data-en="Taking Chihuahua's forest-fire situation as a reference, the State Department of Rural Development (SDR) reported 289 forest fires so far this year, preliminarily affecting 43,206.76 hectares. The project proposes a pilot deployment in the Sierra de Chihuahua, combining an IoT station with satellite and meteorological backup."
+						data-es="Tomando como referencia la problemática forestal de Chihuahua, la Secretaría de Desarrollo Rural (SDR) informó que en lo que va del presente año se han registrado 289 incendios forestales en la entidad, los cuales han afectado preliminarmente una superficie de 43 mil 206.76 hectáreas. El proyecto plantea un despliegue piloto en la Sierra de Chihuahua con monitoreo híbrido (estación IoT más respaldo satelital y meteorológico)."
+					>
+						Taking Chihuahua's forest-fire situation as a reference, the State
+						Department of Rural Development (SDR) reported 289 forest fires so
+						far this year, preliminarily affecting 43,206.76 hectares. The
+						project proposes a pilot deployment in the Sierra de Chihuahua,
+						combining an IoT station with satellite and meteorological backup.
+					</p>
+					<p
+						data-en="FireData is developed in Chihuahua, Mexico, by a multidisciplinary team for the NASA Space Apps Challenge 2026."
+						data-es="FireData es desarrollado desde Chihuahua, Chihuahua, conformado por un equipo multidisciplinario para el NASA Space Apps Challenge 2026."
+					>
+						FireData is developed in Chihuahua, Mexico, by a multidisciplinary
+						team for the NASA Space Apps Challenge 2026.
+					</p>
+				</div>
+				<figure class="project-image">
+					<img
+						src="/images/sierra-chihuahua-map.png"
+						alt="Map of Chihuahua showing the pilot monitoring area in the Sierra"
+						data-en="Map of Chihuahua showing the pilot monitoring area in the Sierra"
+						data-es="Mapa de Chihuahua con la zona piloto de monitoreo en la Sierra"
+						loading="lazy"
+					/>
+					<figcaption
+						data-en="Pilot area. Source: 2025 Intercensal Survey (EIC)"
+						data-es="Ubicación del caso piloto. Fuente: Encuesta Intercensal (EIC) 2025"
+					>
+						Pilot area. Source: 2025 Intercensal Survey (EIC)
+					</figcaption>
+				</figure>
+			</div>
+		</section>
+
+		<section>
+			<h2 data-en="The team" data-es="El equipo">The team</h2>
+
+			<article>
+				<h3
+					data-en="Data science and FIRMS"
+					data-es="Ciencia de Datos y FIRMS"
+				>
+					Data science and FIRMS
+				</h3>
+				<p
+					data-en="MODIS and VIIRS time-series harmonization, calibration modeling, uncertainty calculation, and statistical validation. This area turns two decades of NASA FIRMS hotspot records into a single consistent series through monthly calibration and cross-validation, and builds the statistical model that estimates the probability of fire in each 10 km grid cell over the next 7 to 14 days, using only past information and checking that its probabilities stay well calibrated."
+					data-es="Armonización de series MODIS y VIIRS, modelado de calibración, cálculo de incertidumbre y validación estadística. Esta área convierte dos décadas de registros de puntos calientes de NASA FIRMS en una sola serie consistente mediante calibración mensual y validación cruzada, y construye el modelo estadístico que estima la probabilidad de fuego en cada cuadro de 10 km para los próximos 7 a 14 días, usando solo información pasada y verificando que sus probabilidades estén bien calibradas."
+				>
+					MODIS and VIIRS time-series harmonization, calibration modeling,
+					uncertainty calculation, and statistical validation. This area turns
+					two decades of NASA FIRMS hotspot records into a single consistent
+					series through monthly calibration and cross-validation, and builds
+					the statistical model that estimates the probability of fire in each
+					10 km grid cell over the next 7 to 14 days, using only past
+					information and checking that its probabilities stay well calibrated.
+				</p>
+			</article>
+
+			<article>
+				<h3
+					data-en="IoT hardware and ESP32"
+					data-es="Hardware IoT y ESP32"
+				>
+					IoT hardware and ESP32
+				</h3>
+				<p
+					data-en="Field weather-station design, sensor integration, and data-transmission protocols. Built around the ESP32 microcontroller, the low-cost station measures temperature, humidity, wind, precipitation, and electrical activity directly in the field and calculates local ignition-risk indicators. Its continuous readings act as a backup when satellite coverage is delayed or unavailable, helping detect anomalies and issue early warnings in remote areas such as the Sierra de Chihuahua."
+					data-es="Diseño de la estación meteorológica en campo, integración de sensores y protocolos de transmisión de datos. Construida alrededor del microcontrolador ESP32, la estación de bajo costo mide temperatura, humedad, viento, precipitación y actividad eléctrica directamente en el terreno y calcula indicadores locales de riesgo de ignición. Sus lecturas continuas sirven de respaldo cuando la cobertura satelital se retrasa o no está disponible, ayudando a detectar anomalías y emitir alertas tempranas en zonas remotas como la Sierra de Chihuahua."
+				>
+					Field weather-station design, sensor integration, and data-
+					transmission protocols. Built around the ESP32 microcontroller, the
+					low-cost station measures temperature, humidity, wind, precipitation,
+					and electrical activity directly in the field and calculates local
+					ignition-risk indicators. Its continuous readings act as a backup when
+					satellite coverage is delayed or unavailable, helping detect anomalies
+					and issue early warnings in remote areas such as the Sierra de
+					Chihuahua.
+				</p>
+			</article>
+
+			<article>
+				<h3
+					data-en="Frontend and visualization"
+					data-es="Frontend y visualización"
+				>
+					Frontend and visualization
+				</h3>
+				<p
+					data-en="Web interface design for exploring risk maps, historical calendars, and environmental dashboards. This area builds the tools users interact with: an interactive map to filter hotspots by risk level and likely origin, an activity calendar organized by year and month, an area monitoring dashboard that compares current conditions with historical values, and time-series downloads, all available in English and Spanish so brigades and communities can quickly decide where to look first."
+					data-es="Diseño de la interfaz web para explorar mapas de riesgo, calendarios históricos y paneles ambientales. Esta área construye las herramientas con las que interactúan los usuarios: un mapa interactivo para filtrar puntos calientes por nivel de riesgo y origen probable, un calendario de actividad organizado por año y mes, un panel de monitoreo por área que compara las condiciones actuales con valores históricos y la descarga de series de datos, todo en inglés y español para que brigadas y comunidades decidan rápido dónde mirar primero."
+				>
+					Web interface design for exploring risk maps, historical calendars,
+					and environmental dashboards. This area builds the tools users
+					interact with: an interactive map to filter hotspots by risk level and
+					likely origin, an activity calendar organized by year and month, an
+					area monitoring dashboard that compares current conditions with
+					historical values, and time-series downloads, all available in English
+					and Spanish so brigades and communities can quickly decide where to
+					look first.
+				</p>
+			</article>
+
+			<article>
+				<h3
+					data-en="Backend and geospatial analysis"
+					data-es="Backend y análisis geoespacial"
+				>
+					Backend and geospatial analysis
+				</h3>
+				<p
+					data-en="Orchestration of satellite sources, backup services, and geospatial data processing. This area connects MODIS and VIIRS detections with the readings sent by the IoT stations, organizes the data into a 10 km grid, and keeps the harmonized history up to date. It also prepares the risk layers and exportable time series, including uncertainty metrics and source-sensor metadata, so that the web platform and the prediction model always work with the same consistent information."
+					data-es="Orquestación de fuentes satelitales, servicios de respaldo y procesamiento de capas geográficas. Esta área conecta las detecciones de MODIS y VIIRS con las lecturas que envían las estaciones IoT, organiza los datos en una cuadrícula de 10 km y mantiene actualizado el historial armonizado. También prepara las capas de riesgo y las series exportables, con métricas de incertidumbre y metadatos del sensor de origen, para que la plataforma web y el modelo de predicción trabajen siempre con la misma información consistente."
+				>
+					Orchestration of satellite sources, backup services, and geospatial
+					data processing. This area connects MODIS and VIIRS detections with
+					the readings sent by the IoT stations, organizes the data into a 10 km
+					grid, and keeps the harmonized history up to date. It also prepares
+					the risk layers and exportable time series, including uncertainty
+					metrics and source-sensor metadata, so that the web platform and the
+					prediction model always work with the same consistent information.
+				</p>
+			</article>
+
+			<article>
+				<h3
+					data-en="Behind the technology"
+					data-es="Detrás de la tecnología"
+				>
+					Behind the technology
+				</h3>
+				<p
+					data-en="We are a multidisciplinary team from Chihuahua, Mexico, with experience in data science, web development, IoT hardware, and geospatial analysis. We are higher-education students from institutions including UACH, TECNM Delicias, and UTCH BIS. For the NASA Space Apps Challenge, our goal is to harmonize MODIS and VIIRS data and develop innovative solutions for forest-fire prevention and management in areas with limited satellite coverage, starting with a pilot in the Sierra de Chihuahua."
+					data-es="Somos un equipo multidisciplinario de Chihuahua, México, con experiencia en ciencia de datos, desarrollo web, hardware IoT y análisis geoespacial. Somos estudiantes de nivel superior de universidades como UACH, TECNM Delicias y UTCH BIS. Nuestro objetivo en el NASA Space Apps Challenge es ofrecer una armonización de datos entre MODIS y VIIRS y desarrollar soluciones innovadoras para la prevención y gestión de incendios forestales en zonas donde es más difícil captar datos vía satélite, comenzando con un piloto en la Sierra de Chihuahua."
+				>
+					We are a multidisciplinary team from Chihuahua, Mexico, with
+					experience in data science, web development, IoT hardware, and
+					geospatial analysis. We are higher-education students from
+					institutions including UACH, TECNM Delicias, and UTCH BIS. For the
+					NASA Space Apps Challenge, our goal is to harmonize MODIS and VIIRS
+					data and develop innovative solutions for forest-fire prevention and
+					management in areas with limited satellite coverage, starting with a
+					pilot in the Sierra de Chihuahua.
+				</p>
+			</article>
+		</section>
+	</main>
+
+	<footer>
+		<p
+			data-en="FireData · NASA Space Apps Challenge 2026 · Chihuahua, Mexico"
+			data-es="FireData · NASA Space Apps Challenge 2026 · Chihuahua, Chihuahua"
+		>
+			FireData · NASA Space Apps Challenge 2026 · Chihuahua, Mexico
+		</p>
+		<p
+			data-en="FireData provides probabilistic estimates by area to support prevention and inspection prioritization. Its results are not legal evidence and do not identify properties or people."
+			data-es="FireData ofrece estimaciones probabilísticas por zona para apoyar la prevención y priorización de inspecciones. Sus resultados no constituyen prueba legal ni identifican predios o personas."
+		>
+			FireData provides probabilistic estimates by area to support prevention
+			and inspection prioritization. Its results are not legal evidence and do
+			not identify properties or people.
+		</p>
+	</footer>
+
+	<script>
+		const languageButtons = document.querySelectorAll("[data-language]");
+		const translatableElements = document.querySelectorAll("[data-en][data-es]");
+
+		function setLanguage(language: "en" | "es") {
+			document.documentElement.lang = language;
+
+			translatableElements.forEach((element) => {
+				const translation = element.getAttribute(`data-${language}`);
+				if (translation === null) return;
+
+				if (element instanceof HTMLMetaElement) {
+					element.content = translation;
+				} else if (element instanceof HTMLImageElement) {
+					element.alt = translation;
+				} else {
+					element.textContent = translation;
+				}
+			});
+
+			languageButtons.forEach((button) => {
+				button.setAttribute(
+					"aria-pressed",
+					String(button.getAttribute("data-language") === language),
+				);
+			});
+		}
+
+		languageButtons.forEach((button) => {
+			button.addEventListener("click", () => {
+				const language = button.getAttribute("data-language");
+				if (language === "en" || language === "es") setLanguage(language);
+			});
+		});
+
+		setLanguage("en");
+
+		document.querySelectorAll<HTMLImageElement>(".project-image img").forEach((image) => {
+			image.addEventListener(
+				"error",
+				() => {
+					const figure = image.closest<HTMLElement>(".project-image");
+					if (figure) figure.hidden = true;
+				},
+				{ once: true },
+			);
+		});
+	</script>
+</Layout>
