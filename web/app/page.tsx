@@ -469,7 +469,6 @@ export default function FireMapPage() {
                       <span>Show calibration domain (25.5°–31.8° N, −109.5° to −103.3° E)</span>
                     </label>
                   </LayerCheck>
-                  <LayerCheck checked={fire.probability} onChange={() => toggleFire("probability")} label="Fire probability, next 72 h (our model)" hint={model.data ? `Trained on 6 years of NASA data · AUC ${model.data.auc.toFixed(2)} · corrected by IoT stations` : layerHint(grid.status, "Model unavailable: weather index shown instead")} swatch={<span className="h-3 w-3 bg-gradient-to-r from-[#16a34a] via-[#facc15] to-[#dc2626]" />} />
                   <LayerCheck
                     checked={fire.weekly}
                     onChange={() => toggleFire("weekly")}
