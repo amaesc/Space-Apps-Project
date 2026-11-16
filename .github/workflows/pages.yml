@@ -5,7 +5,7 @@ name: Deploy web to GitHub Pages
 on:
   push:
     branches: [main]
-    paths: ["web/**", ".github/workflows/pages.yml"]
+    paths: ["web/**", "Landin/**", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
 permissions:
@@ -29,11 +29,20 @@ jobs:
       NEXT_PUBLIC_API_URL: https://13-217-192-184.sslip.io
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.2
       - run: bun install --frozen-lockfile
       - run: bun run build
+      - name: Build Landin Astro site
+        working-directory: Landin
+        run: |
+          npm ci
+          npm run build
+      - run: cp -r ../Landin/dist out/landing
       - run: touch out/.nojekyll
       - uses: actions/upload-pages-artifact@v3
         with:
