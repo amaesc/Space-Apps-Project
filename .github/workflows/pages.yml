@@ -24,8 +24,8 @@ jobs:
       run:
         working-directory: web
     env:
-      PAGES_BASE_PATH: ""
-      NEXT_PUBLIC_BASE_PATH: ""
+      PAGES_BASE_PATH: /${{ github.event.repository.name }}
+      NEXT_PUBLIC_BASE_PATH: /${{ github.event.repository.name }}
       NEXT_PUBLIC_API_URL: https://13-217-192-184.sslip.io
     steps:
       - uses: actions/checkout@v4
