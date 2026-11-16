@@ -31,12 +31,12 @@ const MODULES = [
   },
   {
     step: "Module 03",
-    title: "Origin Estimation and Calendar",
+    title: "Calendar and Origin Estimation",
     summary:
-      "Combines satellite activity, detected lightning and land context to prioritize preventive inspections.",
+      "Turns the harmonized detections into a comparable calendar; origin estimation is the next phase.",
     points: [
-      "Probabilistic classification of the probable origin (natural vs. human).",
-      "Years × months matrix with filters by origin, anomaly and historical median.",
+      "Planned: probabilistic classification of the probable origin (natural vs. human).",
+      "Years × months matrix with anomaly vs. the historical median.",
       "Export of harmonized series to CSV with per-sensor uncertainty.",
     ],
   },

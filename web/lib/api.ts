@@ -4,8 +4,6 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { asset } from "./asset";
 import {
   DEFAULT_BURN_CALENDAR,
-  DEFAULT_STATIONS,
-  getRecentDefaultHotspots,
 } from "./default-data";
 import {
   type BurnCalendar,
@@ -128,14 +126,17 @@ export interface DashboardData {
 const REFRESH_MS = 5 * 60 * 1000;
 const IOT_REFRESH_MS = 5_000;
 
-/** Carga focos, estaciones y calendario reales; si la API falla conserva lo último real (o respaldo estático) y marca "live". */
+/**
+ * Carga focos, estaciones y calendario reales. Si la API falla conserva lo último real y marca "offline".
+ * Solo el calendario tiene respaldo estático (copia de la serie armonizada real); focos y estaciones nunca se inventan.
+ */
 export function useDashboardData(): DashboardData {
   const [data, setData] = useState<DashboardData>(() => ({
-    status: "live",
-    hotspots: getRecentDefaultHotspots(),
-    stations: DEFAULT_STATIONS,
+    status: "loading",
+    hotspots: [],
+    stations: [],
     calendar: DEFAULT_BURN_CALENDAR,
-    fetchedAt: Date.now(),
+    fetchedAt: null,
   }));
 
   useEffect(() => {
@@ -150,25 +151,14 @@ export function useDashboardData(): DashboardData {
         if (!alive) return;
         setData({
           status: "live",
-          hotspots:
-            h.hotspots && h.hotspots.length > 0
-              ? h.hotspots.map(toHotspot).sort((a, b) => b.detectedAt.localeCompare(a.detectedAt))
-              : getRecentDefaultHotspots(),
-          stations: s.stations && s.stations.length > 0 ? s.stations.map(toStation) : DEFAULT_STATIONS,
+          hotspots: (h.hotspots ?? []).map(toHotspot).sort((a, b) => b.detectedAt.localeCompare(a.detectedAt)),
+          stations: (s.stations ?? []).map(toStation),
           calendar: c ?? DEFAULT_BURN_CALENDAR,
           fetchedAt: Date.now(),
         });
       } catch {
-        if (alive) {
-          setData((d) => ({
-            ...d,
-            status: "live",
-            hotspots: d.hotspots.length > 0 ? d.hotspots : getRecentDefaultHotspots(),
-            stations: d.stations.length > 0 ? d.stations : DEFAULT_STATIONS,
-            calendar: d.calendar ?? DEFAULT_BURN_CALENDAR,
-            fetchedAt: Date.now(),
-          }));
-        }
+        // API no disponible: se conservan los últimos datos reales (si los hubo) y se avisa en la interfaz.
+        if (alive) setData((d) => ({ ...d, status: "offline", calendar: d.calendar ?? DEFAULT_BURN_CALENDAR }));
       }
     };
     const loadStations = async () => {
@@ -280,37 +270,7 @@ export function useNasaFires(enabled: boolean) {
     })
   );
 
-  const [fallbackFires, setFallbackFires] = useState<NasaFire[] | null>(null);
-
-  useEffect(() => {
-    if (!enabled) return;
-    if (
-      remote.status === "error" ||
-      !remote.data ||
-      (remote.status === "ready" && remote.data.fires.length === 0)
-    ) {
-      fetch(asset("/data/default_nasa_fires.json"))
-        .then((r) => {
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          return r.json();
-        })
-        .then((data: NasaFire[]) => setFallbackFires(data))
-        .catch(() => {});
-    }
-  }, [enabled, remote.status, remote.data]);
-
-  if (!enabled) return { status: "idle", data: null };
-  if (remote.data && remote.data.fires.length > 0) return remote;
-  if (fallbackFires && fallbackFires.length > 0) {
-    return {
-      status: "ready",
-      data: {
-        start: "2026-11-14",
-        end: "2026-11-15",
-        fires: fallbackFires,
-      },
-    };
-  }
+  // Sin respaldo estático: si la API falla, la capa muestra el error en lugar de focos que no son de hoy.
   return remote;
 }
 

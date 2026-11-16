@@ -133,15 +133,15 @@ export default function DataPage() {
               cell&apos;s level to drive its 5 LEDs.
             </li>
             <li>
-              <strong className="text-white">Probable origin.</strong> Each detection is classified
-              as Human, Lightning, Wildland or Undetermined using GOES-GLM lightning, distance to
-              roads, time and day of week, land cover, FWI and CONAFOR records (LightGBM + logistic
-              regression).
+              <strong className="text-white">Probable origin (planned, not implemented).</strong> A
+              classifier (Human, Lightning, Wildland) using GOES-GLM lightning, distance to roads, time and
+              day of week, land cover, FWI and CONAFOR records is the next phase. Until then every detection
+              is shown as Undetermined.
             </li>
             <li>
-              <strong className="text-white">Field weather.</strong> ESP32 stations (BME280,
-              AS3935 lightning sensor, wind, rain) compute Hot-Dry-Windy and detect dry
-              thunderstorms. Outside coverage, Open-Meteo and GOES-GLM are used.
+              <strong className="text-white">Field weather.</strong> The current ESP32 prototype reports
+              temperature, humidity (DHT11) and a flame sensor; the target station adds a BME280, an AS3935
+              lightning sensor, wind and rain. Outside coverage, Open-Meteo is used.
             </li>
           </ol>
         </section>
