@@ -13,7 +13,7 @@ const char *WIFI_PASSWORD = "Kentucky";
 //    Para pruebas locales puedes poner
 //    http://<IP-de-tu-PC>:8000/api/iot/telemetry (nunca "localhost": en el
 //    ESP32 apunta al propio ESP32).
-const char *SERVER_URL = "https://raspi.taile2c6bf.ts.net/api/iot/telemetry";
+const char *SERVER_URL = "https://13-217-192-184.sslip.io/api/iot/telemetry";
 const char *STATION_TOKEN = "PEGA_AQUI_TU_TOKEN";
 const char *STATION_ID = "ESP32-DHT11-01";
 const char *STATION_NAME = "ESP32 DHT11 Prueba";

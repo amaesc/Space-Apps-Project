@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import DataDownloads from "../../components/DataDownloads";
 import ModelCard from "../../components/ModelCard";
 import SiteHeader from "../../components/SiteHeader";
-import { IS_DEMO_DATA } from "../../lib/fire-data";
 
 export const metadata: Metadata = {
   title: "Data & methodology — FireData",
@@ -11,13 +10,11 @@ export const metadata: Metadata = {
 };
 
 const FIELDS = [
-  ["id", "Hotspot identifier"],
-  ["municipality", "Municipality (Chihuahua, Mexico)"],
-  ["zone", "Locality or terrain descriptor"],
-  ["date_time", "Detection time, local (CST)"],
-  ["sensor", "VIIRS 375 m or MODIS 1 km"],
-  ["probable_origin", "Human · Lightning · Wildland · Undetermined"],
-  ["probability_pct", "Model probability of the assigned origin (0–100)"],
+  ["id", "Detection identifier (satellite, time, position)"],
+  ["state", "Mexican state (INEGI) containing the detection"],
+  ["date_time_utc", "Satellite overpass time, UTC"],
+  ["sensor", "VIIRS NOAA-20 or NOAA-21 (375 m)"],
+  ["confidence", "FIRMS confidence class: low · nominal · high"],
   ["frp_mw", "Fire Radiative Power, megawatts"],
   ["lat, lon", "WGS84 coordinates (GeoJSON: [lon, lat])"],
 ];
@@ -74,12 +71,10 @@ export default function DataPage() {
           Hotspots for the Sierra de Chihuahua, harmonized across MODIS and VIIRS.
         </p>
 
-        {IS_DEMO_DATA && (
-          <p className="mt-4 rounded border border-fd-gold/60 bg-fd-gold/10 px-4 py-3 text-fd-gold">
-            <strong>Demo data.</strong> The current dataset is illustrative and must not be used
-            for operational decisions. Live NASA FIRMS data is in progress.
-          </p>
-        )}
+        <p className="mt-4 rounded border border-fd-gold/60 bg-fd-gold/10 px-4 py-3 text-fd-gold">
+          The downloads below are <strong>real NASA FIRMS VIIRS detections from the last 48 h</strong>. A
+          detection can be a fire, agricultural burning or another heat source; its cause is not determined.
+        </p>
 
         <section className="mt-8">
           <h2 className="border-b border-white/15 pb-1 text-xl font-bold text-white">Download</h2>
@@ -138,15 +133,15 @@ export default function DataPage() {
               cell&apos;s level to drive its 5 LEDs.
             </li>
             <li>
-              <strong className="text-white">Probable origin.</strong> Each detection is classified
-              as Human, Lightning, Wildland or Undetermined using GOES-GLM lightning, distance to
-              roads, time and day of week, land cover, FWI and CONAFOR records (LightGBM + logistic
-              regression).
+              <strong className="text-white">Probable origin (planned, not implemented).</strong> A
+              classifier (Human, Lightning, Wildland) using GOES-GLM lightning, distance to roads, time and
+              day of week, land cover, FWI and CONAFOR records is the next phase. Until then every detection
+              is shown as Undetermined.
             </li>
             <li>
-              <strong className="text-white">Field weather.</strong> ESP32 stations (BME280,
-              AS3935 lightning sensor, wind, rain) compute Hot-Dry-Windy and detect dry
-              thunderstorms. Outside coverage, Open-Meteo and GOES-GLM are used.
+              <strong className="text-white">Field weather.</strong> The current ESP32 prototype reports
+              temperature and humidity (DHT11), pressure (BMP280), flame and sound level; the target station adds
+              an AS3935 lightning sensor, wind and rain. Outside coverage, Open-Meteo is used.
             </li>
           </ol>
         </section>

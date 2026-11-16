@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 
 from app.db import get_conn, is_db_configured
 from app.services.open_meteo import (
+    WeatherUnavailable,
     compute_fire_risk_level,
     fetch_open_meteo_risk,
 )
@@ -42,54 +43,6 @@ class TelemetryIn(BaseModel):
     flame_intensity_pct: float = Field(default=0.0, ge=0, le=100)
 
 
-def _seed_stations() -> dict[str, dict[str, Any]]:
-    now = datetime.now(timezone.utc).isoformat()
-    return {
-        "ESP32-CHIH-04": {
-            "station_id": "ESP32-CHIH-04",
-            "name": "Bocoyna · San Juanito",
-            "lat": 27.97,
-            "lon": -107.58,
-            "temperature_c": 27.4,
-            "humidity_pct": 22.0,
-            "wind_kmh": 24.5,
-            "rain_mm": 0.0,
-            "lightning_strikes": 0,
-            "battery_v": 4.12,
-            "pressure_hpa": 781.4,
-            "noise_db": 38.0,
-            "rssi_dbm": -67,
-            "link_type": "wifi",
-            "hdw_score": 68.1,
-            "risk_level": 4,
-            "risk_label": "Muy Alto",
-            "source": "esp32-field",
-            "timestamp": now,
-        },
-        "ESP32-CHIH-07": {
-            "station_id": "ESP32-CHIH-07",
-            "name": "Guachochi · Sinforosa",
-            "lat": 26.82,
-            "lon": -107.07,
-            "temperature_c": 22.8,
-            "humidity_pct": 41.0,
-            "wind_kmh": 14.0,
-            "rain_mm": 0.0,
-            "lightning_strikes": 3,
-            "battery_v": 3.98,
-            "pressure_hpa": 802.9,
-            "noise_db": 44.0,
-            "rssi_dbm": -98,
-            "link_type": "lora",
-            "hdw_score": 41.3,
-            "risk_level": 2,
-            "risk_label": "Moderado",
-            "source": "esp32-field",
-            "timestamp": now,
-        },
-    }
-
-
 def _load_stations() -> dict[str, dict[str, Any]]:
     if is_db_configured():
         try:
@@ -117,15 +70,14 @@ def _load_stations() -> dict[str, dict[str, Any]]:
         except Exception as exc:
             print(f"[iot] PostgreSQL no disponible ({exc}); usando fallback JSON.")
 
+    # Sin base de datos: solo las lecturas que las estacas hayan enviado (nada inventado si no hay ninguna).
     if not DATA_FILE.exists():
-        DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
-        seeded = _seed_stations()
-        DATA_FILE.write_text(json.dumps(seeded, indent=2, ensure_ascii=False))
-        return seeded
+        return {}
     try:
         return json.loads(DATA_FILE.read_text(encoding="utf-8"))
-    except Exception:
-        return _seed_stations()
+    except Exception as exc:  # noqa: BLE001
+        print(f"[iot] {DATA_FILE} ilegible ({exc}); sin estaciones.")
+        return {}
 
 
 def _save_reading(record: dict[str, Any]) -> None:
@@ -219,9 +171,12 @@ async def list_stations():
             age_minutes = 999.0
 
         if age_minutes > 15.0:
-            fallback = await fetch_open_meteo_risk(entry["lat"], entry["lon"])
             entry["fallback_active"] = True
-            entry["fallback_weather"] = fallback
+            try:
+                entry["fallback_weather"] = await fetch_open_meteo_risk(entry["lat"], entry["lon"])
+            except WeatherUnavailable as exc:  # sin respaldo disponible: se dice, no se inventa
+                entry["fallback_weather"] = None
+                entry["fallback_error"] = str(exc)
         else:
             entry["fallback_active"] = False
 

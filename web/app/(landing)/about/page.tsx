@@ -8,17 +8,17 @@ import HeroHarmonizationPreview from "../../../components/HeroHarmonizationPrevi
 import Reveal from "../../../components/Reveal";
 
 const IOT_SPECS = [
-  "ESP32 (WiFi / LoRa)",
-  "BME280 (Temp & RH)",
-  "Wind & rain",
-  "AS3935 lightning",
-  "Display + 5 LEDs",
-  "Solar panel",
+  "ESP32 (WiFi)",
+  "DHT11 (Temp & RH)",
+  "BMP280 (pressure)",
+  "Flame + sound",
+  "Planned: LoRa, wind & rain, AS3935 lightning",
+  "Planned: display + 5 LEDs, solar",
 ];
 
 const PLATFORM_VIEWS = [
-  { name: "Interactive map", status: "MVP", desc: "Area of interest, hotspots by origin and risk." },
-  { name: "Burn calendar", status: "MVP", desc: "Years × months with total, natural or human filter." },
+  { name: "Interactive map", status: "MVP", desc: "Area of interest, recent and historical hotspots, and risk." },
+  { name: "Burn calendar", status: "MVP", desc: "Years × months of harmonized detections vs. the historical median." },
   { name: "Area dashboard", status: "MVP", desc: "Current month vs. median, anomalies and alerts." },
   { name: "CSV downloads", status: "MVP", desc: "Harmonized series with uncertainty and sensor." },
   { name: "Hotspot detail", status: "Phase 2", desc: "Origin probability and main reasons." },
@@ -154,8 +154,8 @@ export default function AboutPage() {
                 </h2>
               </div>
               <p className="max-w-md text-sm text-slate-400">
-                Pilot case in the Sierra de Chihuahua, with automatic Open-Meteo
-                and GOES-GLM fallback outside IoT coverage.
+                Pilot case in the Sierra de Chihuahua, with Open-Meteo weather
+                outside IoT coverage.
               </p>
             </div>
           </Reveal>
@@ -215,16 +215,19 @@ export default function AboutPage() {
                       <div className="absolute inset-0 bg-linear-to-t from-[#140d24] via-transparent to-transparent" />
                     </div>
                     <h3 className="text-xl font-semibold text-white">
-                      Probable origin and alerts
+                      Probable origin and alerts{" "}
+                      <span className="align-middle text-xs font-normal text-amber-300">(planned)</span>
                     </h3>
                     <p className="mt-2 text-sm leading-relaxed text-slate-300">
-                      LightGBM + logistic regression with CONAFOR, GOES-GLM and
-                      CONANP polygons to prioritize inspections.
+                      Next phase: a classifier using CONAFOR records, GOES-GLM
+                      lightning and CONANP polygons to prioritize inspections.
+                      Not built yet: detections are currently shown as
+                      &quot;Undetermined&quot;.
                     </p>
                   </div>
 
                   <div className="mt-4 rounded-xl border border-amber-500/20 bg-[#0d0818] px-3.5 py-2.5 font-mono text-xs text-amber-300">
-                    e.g. 82% human · No lightning 5d · 400 m from a road
+                    Planned output: probable origin · lightning in last 5 days · distance to road
                   </div>
                 </div>
               </div>
@@ -243,9 +246,10 @@ export default function AboutPage() {
                       Field IoT station + resilience
                     </h3>
                     <p className="mt-2 text-sm leading-relaxed text-slate-300">
-                      Computes <strong className="text-white">Hot-Dry-Windy</strong>{" "}
-                      and dry thunderstorms on site. If it loses signal, it
-                      switches to Open-Meteo and GOES-GLM automatically.
+                      Reports temperature, humidity, pressure, flame and sound; the
+                      server combines readings into{" "}
+                      <strong className="text-white">Hot-Dry-Windy</strong>.
+                      Outside station coverage the map uses Open-Meteo.
                     </p>
                     <div className="mt-4 flex flex-wrap gap-2 font-mono text-[11px] text-sky-300">
                       {IOT_SPECS.map((spec) => (
@@ -285,7 +289,7 @@ export default function AboutPage() {
                         />
                       </div>
                       <p className="mt-2 px-1 font-mono text-[11px] text-sky-300">
-                        Fallback Open-Meteo / GLM
+                        Fallback Open-Meteo
                       </p>
                     </div>
                   </div>

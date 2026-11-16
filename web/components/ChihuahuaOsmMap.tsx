@@ -5,6 +5,7 @@ import "leaflet/dist/leaflet.css";
 import { useEffect, useRef } from "react";
 import {
   directionsUrl,
+  HARMONIZATION_META,
   type HotspotEvent,
   minutesSince,
   type NasaFire,
@@ -12,7 +13,7 @@ import {
   type Station,
   type WeatherCell,
 } from "../lib/fire-data";
-import type { ModelForecast } from "../lib/api";
+import type { ModelForecast, WeeklyForecast } from "../lib/api";
 import { RISK_SCALE } from "../lib/fire-data";
 import { type ConditionDef, gibsTileUrl, probabilityColor, type SatelliteLayer } from "../lib/layers";
 
@@ -28,6 +29,7 @@ export interface AreaBounds {
 export interface MapApi {
   reset: () => void;
   locate: () => void;
+  focus: (lat: number, lon: number, zoom?: number) => void;
 }
 
 interface Props {
@@ -44,8 +46,13 @@ interface Props {
   showProbability: boolean;
   /** Pronóstico del modelo (72 h); si existe, reemplaza al índice heurístico en la capa de probabilidad. */
   forecast: ModelForecast | null;
+  /** Modelo semanal LightGBM (7 días, malla de 0.1°, entrenado sobre in_calendar = 1). */
+  weeklyForecast?: WeeklyForecast | null;
+  showWeekly?: boolean;
   nasaFires: NasaFire[] | null;
   historyFires: NasaFire[] | null;
+  historyOnlyInCalendar?: boolean;
+  showHarmonizationZone?: boolean;
   showCause: boolean;
   satellite: SatelliteLayer | null;
   selectAreaMode?: boolean;
@@ -76,13 +83,14 @@ const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
 
 export default function ChihuahuaOsmMap(props: Props) {
   const { events, stations, showStations, basemap, selectedId, onSelect, onReady } = props;
-  const { condition, grid, showProbability, forecast, nasaFires, historyFires, showCause, satellite } = props;
+  const { condition, grid, showProbability, forecast, weeklyForecast = null, showWeekly = false, nasaFires, historyFires, showCause, satellite } = props;
+  const { historyOnlyInCalendar = true, showHarmonizationZone = false } = props;
   const { selectAreaMode = false, selectedBounds = null, onAreaSelected } = props;
 
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const rendererRef = useRef<L.Canvas | null>(null);
-  const layers = useRef<Record<"base" | "sat" | "grid" | "history" | "nasa" | "stations" | "hotspots" | "selection", L.LayerGroup> | null>(null);
+  const layers = useRef<Record<"base" | "sat" | "grid" | "weekly" | "history" | "nasa" | "stations" | "hotspots" | "selection", L.LayerGroup> | null>(null);
   const meRef = useRef<L.CircleMarker | null>(null);
   const onAreaSelectedRef = useRef(onAreaSelected);
 
@@ -101,6 +109,7 @@ export default function ChihuahuaOsmMap(props: Props) {
       base: L.layerGroup().addTo(map),
       sat: L.layerGroup().addTo(map),
       grid: L.layerGroup().addTo(map),
+      weekly: L.layerGroup().addTo(map),
       history: L.layerGroup().addTo(map),
       nasa: L.layerGroup().addTo(map),
       stations: L.layerGroup().addTo(map),
@@ -116,7 +125,11 @@ export default function ChihuahuaOsmMap(props: Props) {
         .addTo(map);
     });
 
-    onReady?.({ reset: () => map.setView(CENTER, ZOOM), locate: () => map.locate({ setView: true, maxZoom: 11 }) });
+    onReady?.({
+      reset: () => map.setView(CENTER, ZOOM),
+      locate: () => map.locate({ setView: true, maxZoom: 11 }),
+      focus: (lat, lon, zoom = 10) => map.setView([lat, lon], zoom),
+    });
     return () => {
       map.remove();
       mapRef.current = null;
@@ -189,23 +202,108 @@ export default function ChihuahuaOsmMap(props: Props) {
     }
   }, [grid, condition, showProbability, forecast]);
 
-  // Histórico NASA (puntos pequeños)
+  // Modelo semanal LightGBM (7 días a 0.1°, entrenado sobre in_calendar = 1)
+  useEffect(() => {
+    const g = layers.current?.weekly;
+    if (!g) return;
+    g.clearLayers();
+    if (!showWeekly || !weeklyForecast) return;
+    const h = weeklyForecast.cellDeg / 2;
+    for (const c of weeklyForecast.cells) {
+      const pct = c.probability * 100;
+      if (pct < 0.15) continue;
+      const fillColor =
+        pct >= 5 ? "#dc2626" : pct >= 2 ? "#f97316" : pct >= 0.7 ? "#facc15" : "#16a34a";
+      const fillOpacity = pct >= 5 ? 0.68 : pct >= 2 ? 0.55 : pct >= 0.7 ? 0.42 : 0.24;
+      L.rectangle(
+        [
+          [c.lat - h, c.lon - h],
+          [c.lat + h, c.lon + h],
+        ],
+        { renderer: rendererRef.current!, stroke: pct >= 3.5, color: "#fde047", weight: 0.8, fillColor, fillOpacity }
+      )
+        .bindTooltip(
+          `<strong>Weekly 7-day risk · Cell #${c.cellId} (0.1° ≈ 11 km)</strong><br>` +
+            `Probability: <b>${pct.toFixed(2)}%</b> (climatology ${(c.climatologyProbability * 100).toFixed(2)}%)<br>` +
+            `Ratio vs climatology: <b>${c.ratioVsClimatology}×</b> · Week ${weeklyForecast.weekStart}`,
+          { sticky: true }
+        )
+        .addTo(g);
+    }
+  }, [weeklyForecast, showWeekly]);
+
+  // Histórico NASA armonizado (MODIS Aqua pre-2012-01-20 + VIIRS S-NPP celdas >= 15 MW, coloreado/escalado por FRP)
   useEffect(() => {
     const g = layers.current?.history;
     if (!g) return;
     g.clearLayers();
-    for (const f of historyFires ?? []) {
-      L.circleMarker([f.lat, f.lon], {
-        renderer: rendererRef.current!,
-        radius: f.confidence === "low" ? 2 : 2.5,
-        stroke: false,
-        fillColor: "#ff9f1c",
-        fillOpacity: f.confidence === "low" ? 0.3 : 0.65,
-      })
-        .bindTooltip(`Historical detection · ${f.date} · FRP ${f.frpMw} MW · ${f.confidence} confidence`)
+    if (showHarmonizationZone) {
+      const b = HARMONIZATION_META.bounds;
+      L.rectangle(
+        [
+          [b.south, b.west],
+          [b.north, b.east],
+        ],
+        {
+          color: "#38bdf8",
+          weight: 1.5,
+          dashArray: "5 5",
+          fillColor: "#38bdf8",
+          fillOpacity: 0.04,
+        }
+      )
+        .bindTooltip(
+          `<strong>Harmonization calibration domain</strong><br>` +
+            `Northern Chihuahua (${b.south}°–${b.north}° N, ${b.west}° to ${b.east}° E)<br>` +
+            `Pilot box (N. Chihuahua) · national archive: 5,416,621 rows → 796,098 <code>in_calendar = 1</code> (13:30 pass · per-state T* cell rule)`
+        )
         .addTo(g);
     }
-  }, [historyFires]);
+    for (const f of historyFires ?? []) {
+      const low = f.confidence === "low" || f.confidence === "l";
+      // in_calendar solo del archivo armonizado; si falta no se estima (se trata como 0)
+      const inCal = f.inCalendar === true;
+      if (historyOnlyInCalendar && !inCal) continue;
+
+      const radius = low ? 2 : Math.min(6.5, Math.max(2.5, 2 + Math.sqrt(Math.max(0, f.frpMw)) * 0.42));
+      const fillColor = f.frpMw >= 50 ? "#ff2a00" : inCal ? "#ff9f1c" : "#fbbf24";
+      const satName = f.satellite || "Satellite not reported";
+      const passLabel = f.daynight === "N" ? "Night (01:30)" : "Day (13:30)";
+      const sensorLabel =
+        satName === "Aqua" || satName === "Terra"
+          ? `${satName} MODIS 1 km · ${passLabel}`
+          : satName === "SNPP" || satName.startsWith("VIIRS")
+            ? `${satName} VIIRS 375 m · ${passLabel}`
+            : satName;
+      const calLabel = inCal
+        ? "in_calendar = 1 (Aqua pixel before 2012-01-20, or strongest pixel of a 1.4 km S-NPP cell ≥ the state's threshold)"
+        : f.inCalendar === false
+          ? "in_calendar = 0 (detail row: Terra, cell below threshold, neighbor pixel or low confidence)"
+          : "in_calendar not available for this row";
+      const brightLine =
+        f.brightnessK !== undefined && f.brightT31K !== undefined
+          ? `<br>Brightness <b>${f.brightnessK.toFixed(1)} K</b> (T31 ${f.brightT31K.toFixed(1)} K · ΔT +${(f.brightnessK - f.brightT31K).toFixed(1)} K)`
+          : "";
+      const areaLine =
+        f.pixelAreaKm2 && f.pixelAreaKm2 > 0
+          ? ` · <b>${(f.frpMw / f.pixelAreaKm2).toFixed(1)} MW/km²</b> (${f.pixelAreaKm2} km² px)`
+          : "";
+
+      L.circleMarker([f.lat, f.lon], {
+        renderer: rendererRef.current!,
+        radius,
+        stroke: f.frpMw >= 50,
+        color: "#ffe066",
+        weight: 1,
+        fillColor,
+        fillOpacity: low ? 0.3 : inCal ? 0.78 : 0.45,
+      })
+        .bindTooltip(
+          `<strong>Historical · ${f.date}</strong><br>${sensorLabel}<br>FRP <b>${f.frpMw} MW</b>${areaLine} · ${f.confidence} conf${brightLine}<br><span style="opacity:0.8">${calLabel}</span>`
+        )
+        .addTo(g);
+    }
+  }, [historyFires, historyOnlyInCalendar, showHarmonizationZone]);
 
   // Incendios activos NASA FIRMS
   useEffect(() => {
@@ -235,16 +333,92 @@ export default function ChihuahuaOsmMap(props: Props) {
     g.clearLayers();
     if (!showStations && !condition) return;
     for (const s of stations) {
-      const v = condition?.stationValue(s);
-      const html = v
-        ? `<span class="station-badge" style="--c:${v.color}"><span class="station-marker"></span>${esc(v.text)}</span>`
-        : '<span class="station-marker"></span>';
-      L.marker([s.lat, s.lon], {
+      const isAgora = s.id === "AGORA-TEC" || s.name.includes("Agora");
+      const v = s.flameDetected
+        ? {
+            text:
+              s.flameIntensityPct !== null
+                ? `FLAME ${Math.round(s.flameIntensityPct)}%`
+                : "FLAME ALERT",
+            color: "#ef4444",
+          }
+        : condition?.stationValue(s);
+      
+      const badgeText = v ? esc(v.text) : (isAgora ? `${s.temperatureC}°C · REAL` : "");
+      const badgeColor = v ? v.color : (isAgora ? "#10b981" : "#f59e0b");
+      
+      const html = badgeText
+        ? `<span class="station-badge" style="--c:${badgeColor}; cursor:pointer;"><span class="station-marker"></span>${badgeText}</span>`
+        : '<span class="station-marker" style="cursor:pointer;"></span>';
+      
+      const popupHtml = `
+        <div style="font-family: inherit; min-width: 260px; padding: 2px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
+            <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: ${isAgora ? '#10b981' : '#f59e0b'}; font-weight: 800; display: flex; align-items: center; gap: 4px;">
+              <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${isAgora ? '#10b981' : '#f59e0b'};"></span>
+              ${isAgora ? 'ESTACIÓN REAL (EN VIVO)' : 'Estación Demo'}
+            </span>
+            <span style="font-size: 10px; background: rgba(0,0,0,0.06); padding: 2px 6px; border-radius: 4px; font-weight: bold; color: #555;">
+              ${esc(s.id)}
+            </span>
+          </div>
+
+          <div style="font-size: 15px; font-weight: 800; color: #111; line-height: 1.25; margin-bottom: 8px;">
+            ${esc(s.name)}
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px; margin-bottom: 8px;">
+            <div style="background: white; border: 1px solid #edf2f7; border-radius: 6px; padding: 6px; text-align: center;">
+              <div style="font-size: 10px; text-transform: uppercase; color: #64748b; font-weight: 700;">Temperatura</div>
+              <div style="font-size: 18px; font-weight: 900; color: #d97706; line-height: 1.2; margin-top: 2px;">
+                ${s.temperatureC} <span style="font-size: 12px; font-weight: 600;">°C</span>
+              </div>
+            </div>
+
+            <div style="background: white; border: 1px solid #edf2f7; border-radius: 6px; padding: 6px; text-align: center;">
+              <div style="font-size: 10px; text-transform: uppercase; color: #64748b; font-weight: 700;">Humedad</div>
+              <div style="font-size: 18px; font-weight: 900; color: #0284c7; line-height: 1.2; margin-top: 2px;">
+                ${s.humidityPct} <span style="font-size: 12px; font-weight: 600;">%</span>
+              </div>
+            </div>
+
+            ${s.pressureHpa !== null ? `
+            <div style="background: white; border: 1px solid #edf2f7; border-radius: 6px; padding: 6px; text-align: center;">
+              <div style="font-size: 10px; text-transform: uppercase; color: #64748b; font-weight: 700;">Presión</div>
+              <div style="font-size: 15px; font-weight: 800; color: #4f46e5; line-height: 1.2; margin-top: 2px;">
+                ${s.pressureHpa} <span style="font-size: 10px; font-weight: 600;">hPa</span>
+              </div>
+            </div>
+            ` : ''}
+
+            ${s.luminosityPct !== null ? `
+            <div style="background: white; border: 1px solid #edf2f7; border-radius: 6px; padding: 6px; text-align: center;">
+              <div style="font-size: 10px; text-transform: uppercase; color: #64748b; font-weight: 700;">Luz / Solar</div>
+              <div style="font-size: 15px; font-weight: 800; color: #ca8a04; line-height: 1.2; margin-top: 2px;">
+                ${s.luminosityPct} <span style="font-size: 10px; font-weight: 600;">%</span>
+              </div>
+            </div>
+            ` : ''}
+          </div>
+
+          <div style="font-size: 11px; color: #475569; display: flex; flex-direction: column; gap: 2px; padding: 0 2px;">
+            ${s.noiseDb !== null ? `<div>🔊 <strong>Ruido ambiental:</strong> ${s.noiseDb} dB</div>` : ''}
+            <div>🛡️ <strong>Nivel de Riesgo Fuego:</strong> <strong style="color: ${s.riskLevel >= 4 ? '#dc2626' : s.riskLevel === 3 ? '#d97706' : '#16a34a'};">${s.riskLevel} / 5</strong></div>
+            <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #cbd5e1; font-size: 10px; color: #94a3b8;">
+              📍 ${isAgora ? 'Auditorio Menlo, Tec de Monterrey Campus Chihuahua' : 'Sierra de Chihuahua'}
+            </div>
+          </div>
+        </div>
+      `;
+
+      const marker = L.marker([s.lat, s.lon], {
         icon: L.divIcon({ className: "", iconSize: [0, 0], iconAnchor: [-4, 16], html }),
         title: `Field station ${s.name}`,
-        interactive: false,
-        zIndexOffset: 1500,
-      }).addTo(g);
+        interactive: true,
+        zIndexOffset: isAgora ? 2500 : 1500,
+      });
+      marker.bindPopup(popupHtml, { className: "fd-popup", autoPan: true });
+      marker.addTo(g);
     }
   }, [stations, showStations, condition]);
 
@@ -269,7 +443,7 @@ export default function ChihuahuaOsmMap(props: Props) {
           iconAnchor: [size / 2, size / 2],
           html: `<span class="hotspot${recent ? " hotspot--recent" : ""}${selected ? " hotspot--selected" : ""}" style="--c:${ORIGIN_COLORS[ev.origin].hex};width:${size}px;height:${size}px"></span>`,
         }),
-        title: `${ev.municipality} · probable cause ${ev.origin} ${ev.probability}%`,
+        title: `${ev.state ?? "Mexico"} · ${ev.sensor} · FRP ${ev.frpMw} MW`,
         zIndexOffset: selected ? 1000 : recent ? 500 : 0,
       })
         .on("click", () => onSelect(ev.id))
@@ -280,8 +454,8 @@ export default function ChihuahuaOsmMap(props: Props) {
       L.popup({ className: "fd-popup", offset: [0, -sizeFor(sel.frpMw) / 2], autoPan: true })
         .setLatLng([sel.lat, sel.lon])
         .setContent(
-          `<strong>${esc(sel.municipality)}</strong><br>${esc(sel.zone)}<br>` +
-            `Probable cause: <span style="color:${ORIGIN_COLORS[sel.origin].hex};font-weight:700">${sel.origin} ${sel.probability}%</span><br>` +
+          `<strong>${esc(sel.state ?? "Mexico")}</strong> · ${sel.lat.toFixed(3)}, ${sel.lon.toFixed(3)}<br>` +
+            `${esc(sel.sensor)}${sel.confidence ? ` · ${esc(sel.confidence)} confidence` : ""} · cause not determined<br>` +
             `FRP ${sel.frpMw} MW · <a href="${directionsUrl(sel)}" target="_blank" rel="noopener noreferrer">Directions ↗</a>`
         )
         .openOn(map);
@@ -347,7 +521,7 @@ export default function ChihuahuaOsmMap(props: Props) {
       startPoint = toContainerPoint(e);
       startLatLng = map.containerPointToLatLng(startPoint);
       g.clearLayers();
-      previewRect = L.rectangle([startLatLng, startLatLng], {
+      previewRect = L.rectangle(L.latLngBounds(startLatLng, startLatLng), {
         color: "#f59e0b",
         weight: 2,
         dashArray: "6 4",

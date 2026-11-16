@@ -71,3 +71,50 @@ def test_nasa_and_weather(client):
     assert client.get("/api/nasa/fires/history?month=1999-01").status_code == 400
     grid = client.get("/api/weather/grid").json()
     assert len(grid["cells"]) > 50
+
+
+def test_model_endpoints_are_labelled_pilot(client):
+    for path in ("/api/model/forecast", "/api/model/info", "/api/model/weekly"):
+        r = client.get(path)
+        if r.status_code == 503:
+            continue  # modelo/salidas no disponibles en este entorno
+        j = r.json()
+        assert j["region"] == "Chihuahua" and j["scope"] == "pilot", path
+
+
+def test_no_seeded_stations_without_readings(client):
+    # Sin lecturas enviadas por estacas no aparecen estaciones inventadas
+    assert client.get("/api/iot/stations").json() == {"count": 0, "stations": []}
+
+
+def test_hotspots_are_real_detections_without_invented_fields(client, monkeypatch):
+    import app.services.hotspots as hs
+
+    fake_nasa = [{"lat": 28.1, "lon": -106.2, "frp_mw": 12.5, "confidence": "nominal", "date": "2026-11-15", "time": "20:10",
+                  "daynight": "D", "satellite": "VIIRS NOAA-20", "region": "Chihuahua"},
+                 {"lat": 19.4, "lon": -99.1, "frp_mw": 3.0, "confidence": "high", "date": "2026-11-15", "time": "08:05",
+                  "daynight": "N", "satellite": "VIIRS NOAA-21", "region": "Ciudad de México"}]
+
+    async def fake_range(start, end, sources):
+        return [dict(f) for f in fake_nasa]
+
+    monkeypatch.setattr(hs, "detections_for_range", fake_range)
+    j = client.get("/api/fires/hotspots").json()
+    assert j["count"] == 2 and j["region"] == "*"
+    h = j["hotspots"][0]
+    assert h["timestamp"] == "2026-11-15T20:10:00Z" and h["state"] == "Chihuahua"
+    assert h["origin"] == "Indeterminado" and h["probability"] is None and h["reasons"] == [] and not h["irregular_use_alert"]
+    assert client.get("/api/fires/hotspots?region=Chihuahua").json()["count"] == 1
+    csv_text = client.get("/api/fires/export.csv").text
+    assert csv_text.splitlines()[0].startswith("id,state,timestamp_utc") and len(csv_text.splitlines()) == 3
+    page = client.get("/lite").text
+    assert "Demo data" not in page and "28.100, -106.200" in page and "19.400" not in page   # solo Chihuahua
+
+
+def test_fires_calendar_is_the_real_one(client):
+    assert client.get("/api/fires/calendar?origin=Humano").status_code == 400
+    r = client.get("/api/fires/calendar?start_year=2010&end_year=2012")
+    if r.status_code == 503:
+        pytest.skip("sin datos armonizados en este entorno")
+    j = r.json()
+    assert [row["year"] for row in j["rows"]] == [2010, 2011, 2012] and j["data_source"] == "nasa-firms-gibs"

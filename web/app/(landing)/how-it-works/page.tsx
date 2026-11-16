@@ -22,21 +22,21 @@ const MODULES = [
     step: "Module 02",
     title: "Field IoT Stations",
     summary:
-      "Autonomous nodes installed in forested areas that measure microclimate and lightning strikes in real time.",
+      "Low-cost ESP32 nodes that report microclimate and flame readings to the platform in real time (prototype stage; deployment still being designed).",
     points: [
-      "ESP32 microcontroller with a dual WiFi / long-range LoRa link.",
-      "BME280 sensors (temperature and relative humidity), wind, rain and an AS3935 lightning detector.",
-      "Local display + 5-LED alert light, powered by a solar panel.",
+      "Prototype: ESP32 over WiFi with DHT11 (temperature, humidity), BMP280 (pressure), flame and sound sensors.",
+      "Planned: long-range LoRa link, wind, rain and an AS3935 lightning detector.",
+      "Planned: local display + 5-LED alert light and solar power.",
     ],
   },
   {
     step: "Module 03",
-    title: "Origin Estimation and Calendar",
+    title: "Calendar and Origin Estimation",
     summary:
-      "Combines satellite activity, detected lightning and land context to prioritize preventive inspections.",
+      "Turns the harmonized detections into a comparable calendar; origin estimation is the next phase.",
     points: [
-      "Probabilistic classification of the probable origin (natural vs. human).",
-      "Years × months matrix with filters by origin, anomaly and historical median.",
+      "Planned: probabilistic classification of the probable origin (natural vs. human).",
+      "Years × months matrix with anomaly vs. the historical median.",
       "Export of harmonized series to CSV with per-sensor uncertainty.",
     ],
   },

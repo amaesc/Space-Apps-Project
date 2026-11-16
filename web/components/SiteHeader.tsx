@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LITE_URL } from "../lib/api";
@@ -23,7 +24,14 @@ export default function SiteHeader() {
     <header className="sticky top-0 z-[1100] border-b border-black/40 bg-fd-red shadow-[0_2px_6px_rgba(0,0,0,0.4)]">
       <nav aria-label="Main navigation" className="flex h-14 items-center justify-between gap-3 px-3 sm:px-4">
         <Link href="/" className="flex min-w-0 items-center gap-2.5 focus-visible:outline-2 focus-visible:outline-white">
-          <img src={asset("/images/headerImages.png")} alt="FireData" className="h-8 w-8 shrink-0 rounded object-contain" />
+          <Image
+            src={asset("/images/headerImages.png")}
+            alt="FireData"
+            width={32}
+            height={32}
+            priority
+            className="h-8 w-8 shrink-0 rounded object-contain"
+          />
           <span className="min-w-0 leading-tight">
             <span className="block text-[1.35rem] font-bold tracking-wide text-white">FireData</span>
             <span className="hidden truncate text-xs text-white/85 sm:block">Fire Information for the Sierra de Chihuahua</span>
@@ -39,9 +47,8 @@ export default function SiteHeader() {
                   href={href}
                   aria-label={label}
                   aria-current={active ? "page" : undefined}
-                  className={`flex items-center gap-1.5 rounded px-2.5 py-2 text-[15px] font-semibold sm:px-3 sm:py-1.5 ${
-                    active ? "bg-black/25 text-fd-gold" : "text-white hover:bg-black/20 hover:text-fd-gold"
-                  }`}
+                  className={`flex items-center gap-1.5 rounded px-2.5 py-2 text-[15px] font-semibold sm:px-3 sm:py-1.5 ${active ? "bg-black/25 text-fd-gold" : "text-white hover:bg-black/20 hover:text-fd-gold"
+                    }`}
                 >
                   <Icon className="h-[18px] w-[18px]" />
                   <span className="hidden sm:inline">{label}</span>

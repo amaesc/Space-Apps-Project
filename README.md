@@ -16,21 +16,22 @@ Satellite sensors **MODIS** (active since 2000) and **VIIRS** (active since 2012
 
 FuegoData couples satellite harmonization, edge IoT hardware, and probabilistic origin modeling:
 
-1. **MODIS → VIIRS Harmonization ($k_m$)**
-   - Monthly calibration using a $k_m$ factor across the overlap window, with confidence intervals and cross-validation.
-   - Enables a continuous historical burn calendar (`Años × Meses`) without sensor distortion.
+1. **MODIS → VIIRS Harmonization (detection level, all of Mexico)**
+   - Each detection gets an `in_calendar` flag: Aqua MODIS before 2012-01-20, then S-NPP VIIRS 1.4 km / 30-min cells whose summed FRP ≥ a per-state threshold T*, fitted for count parity with Aqua on 2012–2019 and tested on 2020–2025 (see section 5).
+   - Enables a continuous historical burn calendar (`Years × Months`) without the 2012 sensor jump: 5.4 M detections, 796,098 in the consistent series.
 2. **Field IoT Stations + Automatic Fallback**
-   - Autonomous solar-powered **ESP32** nodes (WiFi / LoRa) with **BME280** (temperature & relative humidity), wind/rain sensors, **AS3935** lightning detector, local screen, and a 5-LED risk semaphore.
-   - In areas without IoT coverage, the platform falls back to gridded weather and satellite data (**Open-Meteo** & **GOES-GLM**).
-3. **Probable Origin & Risk Estimation**
-   - Combines thermal detections, lightning proximity, weather conditions (FWI), and land context to classify probable origin (`Human`, `Lightning`, `Wildland`, `Undetermined`) and flag potential irregular fire use for preventive inspection.
+   - Current prototype: **ESP32** with a DHT11 (temperature & humidity), BMP280 (pressure), flame and sound sensors, posting to the API. Target design: solar power, wind/rain, **AS3935** lightning detector, local screen and a 5-LED risk semaphore.
+   - In areas without IoT coverage, the platform uses gridded weather from **Open-Meteo**.
+3. **Risk Estimation (implemented) & Probable Origin (planned)**
+   - Implemented: a 72-hour LightGBM forecast (Chihuahua pilot) and a weekly 7/14/28-day risk model (section 5).
+   - Planned, not implemented: combine thermal detections, lightning proximity, weather conditions (FWI), and land context to classify probable origin (`Human`, `Lightning`, `Wildland`, `Undetermined`) and flag potential irregular fire use for preventive inspection.
    - _Note: Probabilistic estimates are intended to prioritize preventive inspections and do not constitute legal proof._
 
 ---
 
 ## 3. Current Implementation (`web/`)
 
-The frontend is a **static Next.js export** (`output: "export"`) ready for **GitHub Pages**, connected to a live **Raspberry Pi API** exposed via **Tailscale Funnel** (with automatic fallback to built-in demo data if the API is unreachable).
+The frontend is a **static Next.js export** (`output: "export"`) ready for **GitHub Pages**, connected to a live **FastAPI backend on AWS EC2** (`https://13-217-192-184.sslip.io`, HTTPS via Caddy) (no built-in demo data: if the API is unreachable, the site says so instead of showing invented values).
 
 ### Tech Stack
 
@@ -38,13 +39,13 @@ The frontend is a **static Next.js export** (`output: "export"`) ready for **Git
 - **Styling:** Tailwind CSS v4 (`@tailwindcss/turbopack`)
 - **Maps:** Leaflet (`1.9.4`) + OpenStreetMap / Satellite basemaps
 - **Package Manager / Runtime:** Bun (`bun@1.4.2`)
-- **Edge Backend:** Raspberry Pi API via Tailscale Funnel (`NEXT_PUBLIC_API_URL`) with a `/lite` mode for slow rural connections
+- **Backend:** FastAPI on AWS EC2 (`NEXT_PUBLIC_API_URL`), with a `/lite` mode for slow rural connections: https://13-217-192-184.sslip.io/lite
 
 ### Routes
 
 | Route           | Purpose                                                                                                                                                                                                                                                                                                           |
 | :-------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/`             | **Live Wildfire Map (`FireMapPage`)**: Satellite/street basemap, time filters (`24HRS`, `7DAYS`, `ALL`), origin filters, on-demand layers (NASA FIRMS, historical monthly fires, model forecast probability, weather grid, IoT stations), burn calendar modal, CSV export, and slow-connection `/lite` detection. |
+| `/`             | **Live Wildfire Map (`FireMapPage`)**: Satellite/street basemap, time filters (`24HRS`, `7DAYS`, `ALL`), on-demand layers (NASA FIRMS, historical monthly fires, model forecast probability, weather grid, IoT stations), burn calendar modal, CSV export, and slow-connection `/lite` detection. |
 | `/data`         | Open data & CSV download center (`DataDownloads`).                                                                                                                                                                                                                                                                |
 | `/challenge`    | Background on the MODIS/VIIRS discontinuity and wildfire detection challenge.                                                                                                                                                                                                                                     |
 | `/how-it-works` | Detailed architecture, harmonization pipeline, and IoT + fallback design.                                                                                                                                                                                                                                         |
@@ -72,8 +73,8 @@ Space-Apps-Project/
     │   ├── AboutTabs.tsx
     │   └── ModelCard.tsx
     ├── lib/
-    │   ├── api.ts              # Live Raspberry Pi API hooks + demo fallback
-    │   ├── fire-data.ts        # Types, risk scales, CSV export & demo datasets
+    │   ├── api.ts              # Live API hooks (no invented fallback data)
+    │   ├── fire-data.ts        # Types, risk scales, CSV/GeoJSON export
     │   ├── layers.ts           # Satellite, weather & historical layer definitions
     │   └── asset.ts            # Base-path helper for GitHub Pages
     └── next.config.ts          # output: "export", PAGES_BASE_PATH, unoptimized images
@@ -106,7 +107,7 @@ El sketch `esp32/dht11_wifi/dht11_wifi.ino` está incluido en `.gitignore` porqu
   - Sensor de sonido `KY-037 / KY-038` (`A0`) → `GPIO 35`
   - Sensor de flama IR `KY-026` (`A0`) → `GPIO 32`
   - Barómetro `BMP280` (I2C) → `GPIO 21` (`SDA`), `GPIO 22` (`SCL`)
-- **Referencia de credenciales**: toma como plantilla [secrets.example.h](esp32/dht11_wifi/secrets.example.h) para configurar `WIFI_SSID`, `WIFI_PASSWORD`, `SERVER_URL` (`https://raspi.taile2c6bf.ts.net/api/iot/telemetry` o `http://<IP-local>:8000/api/iot/telemetry`) y `STATION_TOKEN`.
+- **Referencia de credenciales**: toma como plantilla [secrets.example.h](esp32/dht11_wifi/secrets.example.h) para configurar `WIFI_SSID`, `WIFI_PASSWORD`, `SERVER_URL` (`https://13-217-192-184.sslip.io/api/iot/telemetry` o `http://<IP-local>:8000/api/iot/telemetry`) y `STATION_TOKEN`.
 - **Backend local**:
   ```bash
   cd backend
@@ -119,7 +120,7 @@ El sketch `esp32/dht11_wifi/dht11_wifi.ino` está incluido en `.gitignore` porqu
 
 | Variable              | Description                                                                    | Default                           |
 | :-------------------- | :----------------------------------------------------------------------------- | :-------------------------------- |
-| `NEXT_PUBLIC_API_URL` | Base URL of the Raspberry Pi API (Tailscale Funnel)                            | `https://raspi.taile2c6bf.ts.net` |
+| `NEXT_PUBLIC_API_URL` | Base URL of the API (AWS EC2)                            | `https://13-217-192-184.sslip.io` |
 | `PAGES_BASE_PATH`     | Optional base path when deploying to GitHub Pages (e.g. `/Space-Apps-Project`) | `""`                              |
 
 ### Available Scripts (inside `web/`)
@@ -144,7 +145,7 @@ All 481,029 rows are kept and one flag column, `in_calendar`, marks the 55,902 r
 Validation: S-NPP monthly counts go from 11.7x Aqua to 0.91x (correlation 0.967 to 0.984), and the rule holds on held-out years (threshold fitted on 2012 to 2019, tested on 2020 to 2026).
 Known limits: about 10 % residual offset after 2012, the series ends 2026-07-31, parameters were fitted in this region only, night brightness is approximate.
 Details, validation tables and the check notebook: [`harmonization/README.md`](harmonization/README.md).
-The 40 MB output CSV is not stored in git; rebuild it with the script or fetch it from the S3 bucket (`harmonization/s3_io.py`).
+The 40 MB output CSV (`harmonization/harmonized_hotspots.csv`) is stored in git; it can also be rebuilt with the script, and `harmonization/s3_io.py` can move files to the S3 bucket.
 
 **`risk_model_weekly/`** predicts the probability of at least one hotspot per 0.1 degree cell in the next 7, 14 or 28 days from that series (LightGBM, calibrated, time-based validation).
 On 2023-01 to 2026-07 (held out), the 7-day model reaches precision-recall AUC 0.118 against 0.070 for cell climatology, and finds 47 % of the burning cells in its top 5 % (climatology: 37 %);

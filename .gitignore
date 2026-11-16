@@ -3,6 +3,7 @@ backend/.env
 backend/.venv/
 backend/data/
 backend/**/__pycache__/
+backend/nasa-user_accessKeys.csv
 *.pyc
 
 # Credenciales de las estacas ESP32 (WiFi y token)
@@ -14,9 +15,20 @@ ml/data/
 ml/.venv/
 .pytest_cache/
 
-# Harmonization / weekly risk model: large files are rebuilt or kept in the S3 bucket
-harmonization/*.csv
+# Harmonization / weekly risk model: raw FIRMS inputs, venv and pickles stay out of git (pickles can run code when loaded)
 harmonization/data/
 risk_model_weekly/.venv/
-risk_model_weekly/outputs/**/test_predictions.parquet
 risk_model_weekly/outputs/**/calibrators.pkl
+
+# National (Mexico) harmonization: raw downloads and generated outputs are large and reproducible (see harmonization/README.md).
+# GitHub rejects files > 100 MB; host them on S3 (harmonization/s3_io.py) instead.
+datasets/
+harmonization/clean_mexico/
+harmonization/harmonized_hotspots.sqlite
+harmonization/harmonized_hotspots.sqlite.tmp
+harmonization/harmonized_hotspots_mexico.csv
+harmonization/harmonized_hotspots_mexico_brightness_mapping.png
+harmonization/boundaries/mexico_states.geojson
+harmonization/*.log
+.DS_Store
+backend/map-key.txt

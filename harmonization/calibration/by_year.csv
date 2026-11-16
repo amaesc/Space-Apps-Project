@@ -1,0 +1,449 @@
+region,year,set,aqua,ratio_T_star,ratio_15MW
+Aguascalientes,2012,train,16,0.375,0.438
+Aguascalientes,2013,train,13,0.538,0.538
+Aguascalientes,2014,train,19,1.0,1.158
+Aguascalientes,2015,train,15,0.267,0.333
+Aguascalientes,2016,train,38,0.789,0.816
+Aguascalientes,2017,train,63,0.794,0.952
+Aguascalientes,2018,train,42,0.595,0.667
+Aguascalientes,2019,train,114,0.868,0.991
+Aguascalientes,2020,test,23,0.957,1.043
+Aguascalientes,2021,test,53,0.83,0.906
+Aguascalientes,2022,test,61,1.344,1.492
+Aguascalientes,2023,test,24,2.417,2.708
+Aguascalientes,2024,test,36,0.75,0.861
+Aguascalientes,2025,test,206,0.922,0.99
+Baja California,2012,train,472,0.913,0.966
+Baja California,2013,train,370,0.932,1.0
+Baja California,2014,train,443,0.876,0.901
+Baja California,2015,train,324,1.093,1.154
+Baja California,2016,train,277,0.91,0.964
+Baja California,2017,train,699,0.984,1.013
+Baja California,2018,train,380,1.137,1.168
+Baja California,2019,train,503,1.149,1.179
+Baja California,2020,test,843,0.995,1.028
+Baja California,2021,test,410,1.044,1.098
+Baja California,2022,test,244,0.889,0.951
+Baja California,2023,test,456,0.965,1.015
+Baja California,2024,test,458,0.983,1.009
+Baja California,2025,test,691,0.848,0.881
+Baja California Sur,2012,train,30,0.2,0.2
+Baja California Sur,2013,train,66,0.864,0.864
+Baja California Sur,2014,train,65,0.831,0.831
+Baja California Sur,2015,train,68,0.588,0.574
+Baja California Sur,2016,train,45,0.6,0.6
+Baja California Sur,2017,train,49,0.633,0.633
+Baja California Sur,2018,train,33,0.667,0.667
+Baja California Sur,2019,train,34,1.176,1.147
+Baja California Sur,2020,test,66,0.727,0.712
+Baja California Sur,2021,test,72,0.75,0.736
+Baja California Sur,2022,test,73,0.699,0.685
+Baja California Sur,2023,test,43,1.302,1.302
+Baja California Sur,2024,test,52,0.904,0.904
+Baja California Sur,2025,test,36,1.111,1.111
+Campeche,2012,train,2449,1.126,1.073
+Campeche,2013,train,5540,0.928,0.894
+Campeche,2014,train,2153,0.919,0.883
+Campeche,2015,train,4197,1.043,0.999
+Campeche,2016,train,3666,1.013,0.971
+Campeche,2017,train,5409,0.934,0.899
+Campeche,2018,train,2776,1.073,1.025
+Campeche,2019,train,5147,1.044,0.996
+Campeche,2020,test,5900,0.922,0.889
+Campeche,2021,test,2957,0.977,0.938
+Campeche,2022,test,1945,1.484,1.425
+Campeche,2023,test,6327,0.985,0.943
+Campeche,2024,test,6403,0.838,0.805
+Campeche,2025,test,4006,1.072,1.031
+Chiapas,2012,train,2956,1.022,1.053
+Chiapas,2013,train,4187,1.046,1.075
+Chiapas,2014,train,2297,0.923,0.951
+Chiapas,2015,train,3042,0.975,1.004
+Chiapas,2016,train,2975,1.009,1.034
+Chiapas,2017,train,3291,0.982,1.009
+Chiapas,2018,train,2790,0.996,1.024
+Chiapas,2019,train,4282,1.009,1.037
+Chiapas,2020,test,2246,0.967,1.003
+Chiapas,2021,test,2550,0.937,0.968
+Chiapas,2022,test,2190,1.202,1.236
+Chiapas,2023,test,3007,0.986,1.013
+Chiapas,2024,test,4040,0.847,0.873
+Chiapas,2025,test,1424,0.951,0.971
+Chihuahua,2012,train,1852,1.074,1.238
+Chihuahua,2013,train,1189,1.023,1.153
+Chihuahua,2014,train,1008,0.797,0.929
+Chihuahua,2015,train,581,0.688,0.818
+Chihuahua,2016,train,1423,0.861,0.982
+Chihuahua,2017,train,1914,1.043,1.202
+Chihuahua,2018,train,2181,1.18,1.335
+Chihuahua,2019,train,861,0.936,1.084
+Chihuahua,2020,test,649,0.716,0.818
+Chihuahua,2021,test,1486,1.186,1.328
+Chihuahua,2022,test,1558,0.979,1.092
+Chihuahua,2023,test,1278,1.036,1.159
+Chihuahua,2024,test,1283,0.857,0.977
+Chihuahua,2025,test,2587,1.032,1.145
+Ciudad de México,2012,train,4,0.5,1.75
+Ciudad de México,2013,train,32,1.0,1.312
+Ciudad de México,2014,train,11,0.636,1.545
+Ciudad de México,2015,train,6,1.0,1.667
+Ciudad de México,2016,train,3,4.333,6.0
+Ciudad de México,2017,train,22,1.0,1.818
+Ciudad de México,2018,train,29,0.828,1.31
+Ciudad de México,2019,train,32,1.031,1.688
+Ciudad de México,2020,test,13,1.462,2.462
+Ciudad de México,2021,test,47,0.787,1.128
+Ciudad de México,2022,test,7,1.571,2.429
+Ciudad de México,2023,test,11,0.727,1.091
+Ciudad de México,2024,test,13,1.385,2.231
+Ciudad de México,2025,test,18,1.222,1.889
+Coahuila de Zaragoza,2012,train,401,1.257,1.237
+Coahuila de Zaragoza,2013,train,62,0.887,0.855
+Coahuila de Zaragoza,2014,train,75,0.507,0.467
+Coahuila de Zaragoza,2015,train,41,0.707,0.683
+Coahuila de Zaragoza,2016,train,104,1.01,0.971
+Coahuila de Zaragoza,2017,train,138,0.87,0.855
+Coahuila de Zaragoza,2018,train,209,0.909,0.88
+Coahuila de Zaragoza,2019,train,118,0.915,0.89
+Coahuila de Zaragoza,2020,test,117,0.547,0.521
+Coahuila de Zaragoza,2021,test,147,1.054,1.027
+Coahuila de Zaragoza,2022,test,363,1.0,0.986
+Coahuila de Zaragoza,2023,test,211,1.085,1.066
+Coahuila de Zaragoza,2024,test,69,0.565,0.522
+Coahuila de Zaragoza,2025,test,152,0.776,0.763
+Colima,2012,train,134,1.03,0.903
+Colima,2013,train,176,0.932,0.801
+Colima,2014,train,118,0.873,0.737
+Colima,2015,train,122,1.172,1.008
+Colima,2016,train,197,1.31,1.183
+Colima,2017,train,200,0.835,0.79
+Colima,2018,train,188,1.101,0.989
+Colima,2019,train,208,0.784,0.668
+Colima,2020,test,185,0.876,0.757
+Colima,2021,test,126,1.103,0.96
+Colima,2022,test,173,1.179,0.994
+Colima,2023,test,188,1.122,0.952
+Colima,2024,test,228,0.943,0.855
+Colima,2025,test,143,0.909,0.832
+Durango,2012,train,1988,1.076,1.304
+Durango,2013,train,784,1.055,1.314
+Durango,2014,train,443,0.837,1.068
+Durango,2015,train,189,0.794,0.974
+Durango,2016,train,654,1.083,1.419
+Durango,2017,train,1677,0.995,1.272
+Durango,2018,train,1235,0.88,1.124
+Durango,2019,train,1778,1.012,1.227
+Durango,2020,test,372,0.841,1.07
+Durango,2021,test,1109,1.074,1.34
+Durango,2022,test,926,0.938,1.168
+Durango,2023,test,758,1.046,1.293
+Durango,2024,test,612,0.804,0.979
+Durango,2025,test,943,0.837,0.996
+Guanajuato,2012,train,102,1.02,0.873
+Guanajuato,2013,train,235,1.123,0.962
+Guanajuato,2014,train,334,0.808,0.692
+Guanajuato,2015,train,312,0.99,0.872
+Guanajuato,2016,train,557,0.959,0.855
+Guanajuato,2017,train,615,0.974,0.87
+Guanajuato,2018,train,437,1.076,0.979
+Guanajuato,2019,train,616,1.071,0.985
+Guanajuato,2020,test,391,0.852,0.79
+Guanajuato,2021,test,394,0.896,0.815
+Guanajuato,2022,test,405,0.906,0.812
+Guanajuato,2023,test,317,1.054,0.953
+Guanajuato,2024,test,260,1.031,0.95
+Guanajuato,2025,test,645,0.904,0.822
+Guerrero,2012,train,3402,1.052,0.993
+Guerrero,2013,train,4249,1.02,0.963
+Guerrero,2014,train,1343,1.046,0.974
+Guerrero,2015,train,3119,0.956,0.903
+Guerrero,2016,train,2614,1.023,0.955
+Guerrero,2017,train,4280,0.986,0.927
+Guerrero,2018,train,3655,0.978,0.921
+Guerrero,2019,train,5155,0.979,0.921
+Guerrero,2020,test,4748,1.015,0.956
+Guerrero,2021,test,3178,1.047,0.986
+Guerrero,2022,test,2785,1.035,0.977
+Guerrero,2023,test,2968,0.977,0.919
+Guerrero,2024,test,4517,0.897,0.852
+Guerrero,2025,test,1566,0.967,0.921
+Hidalgo,2012,train,135,1.052,1.0
+Hidalgo,2013,train,158,1.259,1.203
+Hidalgo,2014,train,68,1.176,1.118
+Hidalgo,2015,train,81,0.716,0.691
+Hidalgo,2016,train,155,1.0,0.935
+Hidalgo,2017,train,173,0.838,0.769
+Hidalgo,2018,train,127,1.047,1.016
+Hidalgo,2019,train,174,0.92,0.897
+Hidalgo,2020,test,111,1.387,1.306
+Hidalgo,2021,test,131,0.885,0.84
+Hidalgo,2022,test,95,1.242,1.147
+Hidalgo,2023,test,65,0.846,0.846
+Hidalgo,2024,test,99,1.152,1.121
+Hidalgo,2025,test,141,1.0,0.943
+Jalisco,2012,train,2056,1.024,1.123
+Jalisco,2013,train,2629,1.016,1.112
+Jalisco,2014,train,861,1.06,1.163
+Jalisco,2015,train,1356,0.8,0.892
+Jalisco,2016,train,3330,0.941,1.014
+Jalisco,2017,train,3998,1.134,1.225
+Jalisco,2018,train,2025,0.983,1.081
+Jalisco,2019,train,2861,0.941,1.009
+Jalisco,2020,test,1868,0.975,1.063
+Jalisco,2021,test,2691,0.895,0.961
+Jalisco,2022,test,2346,1.008,1.091
+Jalisco,2023,test,3593,1.022,1.097
+Jalisco,2024,test,2400,0.828,0.892
+Jalisco,2025,test,2402,0.784,0.856
+Michoacán de Ocampo,2012,train,2129,0.985,1.05
+Michoacán de Ocampo,2013,train,2557,1.167,1.235
+Michoacán de Ocampo,2014,train,1314,1.027,1.104
+Michoacán de Ocampo,2015,train,2112,0.892,0.948
+Michoacán de Ocampo,2016,train,2260,1.032,1.104
+Michoacán de Ocampo,2017,train,2267,0.966,1.033
+Michoacán de Ocampo,2018,train,2071,0.984,1.035
+Michoacán de Ocampo,2019,train,2280,0.934,0.995
+Michoacán de Ocampo,2020,test,2184,1.012,1.077
+Michoacán de Ocampo,2021,test,2505,0.959,1.014
+Michoacán de Ocampo,2022,test,1806,1.053,1.117
+Michoacán de Ocampo,2023,test,2065,1.021,1.084
+Michoacán de Ocampo,2024,test,2330,0.983,1.045
+Michoacán de Ocampo,2025,test,1595,1.001,1.061
+Morelos,2012,train,122,0.992,1.057
+Morelos,2013,train,175,1.029,1.08
+Morelos,2014,train,171,0.994,1.058
+Morelos,2015,train,101,1.129,1.178
+Morelos,2016,train,103,0.777,0.816
+Morelos,2017,train,209,0.933,0.971
+Morelos,2018,train,145,0.993,1.034
+Morelos,2019,train,159,1.145,1.252
+Morelos,2020,test,188,1.074,1.122
+Morelos,2021,test,165,0.958,1.0
+Morelos,2022,test,186,0.984,1.027
+Morelos,2023,test,169,0.911,0.929
+Morelos,2024,test,146,1.068,1.103
+Morelos,2025,test,359,0.85,0.872
+México,2012,train,215,1.005,1.107
+México,2013,train,432,1.09,1.229
+México,2014,train,149,1.128,1.248
+México,2015,train,173,0.896,1.052
+México,2016,train,311,1.051,1.248
+México,2017,train,472,0.845,0.962
+México,2018,train,280,0.939,1.1
+México,2019,train,428,1.079,1.229
+México,2020,test,294,1.184,1.347
+México,2021,test,444,0.957,1.088
+México,2022,test,257,0.973,1.125
+México,2023,test,372,0.97,1.102
+México,2024,test,620,1.021,1.131
+México,2025,test,377,0.955,1.074
+Nayarit,2012,train,1253,1.07,1.16
+Nayarit,2013,train,904,1.04,1.111
+Nayarit,2014,train,230,0.87,0.97
+Nayarit,2015,train,301,0.877,0.98
+Nayarit,2016,train,892,0.924,1.0
+Nayarit,2017,train,1452,1.04,1.108
+Nayarit,2018,train,838,0.969,1.047
+Nayarit,2019,train,1015,0.981,1.069
+Nayarit,2020,test,558,0.962,1.043
+Nayarit,2021,test,1039,0.896,0.97
+Nayarit,2022,test,977,0.961,1.038
+Nayarit,2023,test,1269,1.114,1.193
+Nayarit,2024,test,1134,0.834,0.891
+Nayarit,2025,test,1363,0.796,0.855
+Nuevo León,2012,train,70,1.314,0.871
+Nuevo León,2013,train,83,1.024,0.699
+Nuevo León,2014,train,77,1.13,0.805
+Nuevo León,2015,train,151,0.841,0.589
+Nuevo León,2016,train,200,0.895,0.685
+Nuevo León,2017,train,167,1.042,0.749
+Nuevo León,2018,train,169,1.012,0.68
+Nuevo León,2019,train,157,1.013,0.682
+Nuevo León,2020,test,171,0.801,0.585
+Nuevo León,2021,test,462,1.396,1.177
+Nuevo León,2022,test,246,1.439,1.154
+Nuevo León,2023,test,190,1.047,0.816
+Nuevo León,2024,test,134,0.888,0.687
+Nuevo León,2025,test,408,0.858,0.696
+Oaxaca,2012,train,2613,1.077,0.967
+Oaxaca,2013,train,3337,0.979,0.871
+Oaxaca,2014,train,1444,1.062,0.93
+Oaxaca,2015,train,1855,1.038,0.901
+Oaxaca,2016,train,2268,0.937,0.82
+Oaxaca,2017,train,2742,0.962,0.862
+Oaxaca,2018,train,2056,0.954,0.845
+Oaxaca,2019,train,3469,1.018,0.902
+Oaxaca,2020,test,1821,1.045,0.924
+Oaxaca,2021,test,2095,0.973,0.865
+Oaxaca,2022,test,2006,1.127,0.987
+Oaxaca,2023,test,1957,0.951,0.839
+Oaxaca,2024,test,3001,0.931,0.846
+Oaxaca,2025,test,1307,1.018,0.913
+Puebla,2012,train,151,1.172,1.205
+Puebla,2013,train,322,0.953,0.984
+Puebla,2014,train,182,0.841,0.885
+Puebla,2015,train,140,0.85,0.893
+Puebla,2016,train,199,0.99,1.025
+Puebla,2017,train,371,0.922,0.946
+Puebla,2018,train,230,1.087,1.126
+Puebla,2019,train,483,1.104,1.151
+Puebla,2020,test,288,1.059,1.094
+Puebla,2021,test,289,0.927,0.955
+Puebla,2022,test,228,1.263,1.32
+Puebla,2023,test,228,0.947,0.969
+Puebla,2024,test,433,0.963,0.991
+Puebla,2025,test,300,0.883,0.917
+Querétaro,2012,train,21,0.905,0.762
+Querétaro,2013,train,50,1.14,1.02
+Querétaro,2014,train,56,0.804,0.732
+Querétaro,2015,train,70,0.714,0.514
+Querétaro,2016,train,140,0.95,0.736
+Querétaro,2017,train,111,1.063,0.874
+Querétaro,2018,train,71,1.0,0.775
+Querétaro,2019,train,105,1.267,1.133
+Querétaro,2020,test,47,0.915,0.745
+Querétaro,2021,test,69,1.29,1.087
+Querétaro,2022,test,68,1.0,0.824
+Querétaro,2023,test,42,1.286,1.095
+Querétaro,2024,test,66,0.803,0.667
+Querétaro,2025,test,189,0.82,0.667
+Quintana Roo,2012,train,451,1.315,1.259
+Quintana Roo,2013,train,1632,0.955,0.911
+Quintana Roo,2014,train,431,1.318,1.269
+Quintana Roo,2015,train,1749,0.955,0.919
+Quintana Roo,2016,train,632,1.082,1.033
+Quintana Roo,2017,train,1072,0.965,0.928
+Quintana Roo,2018,train,495,1.147,1.095
+Quintana Roo,2019,train,1520,0.863,0.816
+Quintana Roo,2020,test,1576,0.928,0.894
+Quintana Roo,2021,test,432,0.984,0.938
+Quintana Roo,2022,test,552,1.192,1.158
+Quintana Roo,2023,test,911,0.921,0.89
+Quintana Roo,2024,test,2153,0.659,0.63
+Quintana Roo,2025,test,787,0.671,0.64
+San Luis Potosí,2012,train,285,0.912,0.789
+San Luis Potosí,2013,train,503,1.231,1.127
+San Luis Potosí,2014,train,265,0.86,0.717
+San Luis Potosí,2015,train,234,0.842,0.722
+San Luis Potosí,2016,train,366,0.904,0.822
+San Luis Potosí,2017,train,415,0.889,0.8
+San Luis Potosí,2018,train,309,0.926,0.816
+San Luis Potosí,2019,train,677,1.136,1.028
+San Luis Potosí,2020,test,213,1.094,1.005
+San Luis Potosí,2021,test,412,1.041,0.947
+San Luis Potosí,2022,test,280,1.329,1.193
+San Luis Potosí,2023,test,199,0.98,0.894
+San Luis Potosí,2024,test,343,1.035,0.956
+San Luis Potosí,2025,test,540,0.837,0.783
+Sinaloa,2012,train,1761,0.879,0.881
+Sinaloa,2013,train,1411,1.118,1.12
+Sinaloa,2014,train,816,1.24,1.245
+Sinaloa,2015,train,857,1.009,1.015
+Sinaloa,2016,train,1076,1.018,1.02
+Sinaloa,2017,train,1314,0.923,0.925
+Sinaloa,2018,train,1092,1.008,1.012
+Sinaloa,2019,train,1306,0.935,0.94
+Sinaloa,2020,test,971,0.946,0.955
+Sinaloa,2021,test,1111,0.938,0.941
+Sinaloa,2022,test,1065,0.965,0.968
+Sinaloa,2023,test,1231,0.91,0.919
+Sinaloa,2024,test,1005,0.696,0.699
+Sinaloa,2025,test,1553,0.856,0.859
+Sonora,2012,train,1389,0.971,1.084
+Sonora,2013,train,1490,0.956,1.08
+Sonora,2014,train,809,0.978,1.122
+Sonora,2015,train,409,0.829,0.958
+Sonora,2016,train,799,0.999,1.131
+Sonora,2017,train,1332,1.079,1.221
+Sonora,2018,train,746,1.012,1.151
+Sonora,2019,train,576,1.144,1.319
+Sonora,2020,test,559,0.834,0.986
+Sonora,2021,test,674,0.835,0.967
+Sonora,2022,test,620,0.927,1.108
+Sonora,2023,test,977,1.003,1.134
+Sonora,2024,test,490,0.671,0.773
+Sonora,2025,test,742,1.024,1.154
+Tabasco,2012,train,660,0.824,0.809
+Tabasco,2013,train,1066,1.067,1.057
+Tabasco,2014,train,492,0.768,0.756
+Tabasco,2015,train,907,0.996,0.985
+Tabasco,2016,train,926,0.917,0.898
+Tabasco,2017,train,1220,1.015,1.0
+Tabasco,2018,train,1024,1.012,0.999
+Tabasco,2019,train,1809,1.118,1.1
+Tabasco,2020,test,837,0.876,0.864
+Tabasco,2021,test,655,0.698,0.682
+Tabasco,2022,test,517,0.886,0.88
+Tabasco,2023,test,1273,0.742,0.731
+Tabasco,2024,test,1652,0.781,0.77
+Tabasco,2025,test,1532,1.001,0.987
+Tamaulipas,2012,train,649,0.888,0.738
+Tamaulipas,2013,train,1028,1.111,0.986
+Tamaulipas,2014,train,490,0.882,0.763
+Tamaulipas,2015,train,400,0.968,0.782
+Tamaulipas,2016,train,878,0.883,0.757
+Tamaulipas,2017,train,935,0.972,0.829
+Tamaulipas,2018,train,744,1.116,0.969
+Tamaulipas,2019,train,725,1.103,0.946
+Tamaulipas,2020,test,610,0.977,0.833
+Tamaulipas,2021,test,1008,0.879,0.765
+Tamaulipas,2022,test,1232,1.14,0.975
+Tamaulipas,2023,test,630,1.056,0.911
+Tamaulipas,2024,test,520,1.019,0.844
+Tamaulipas,2025,test,1222,0.832,0.72
+Tlaxcala,2012,train,14,0.643,0.643
+Tlaxcala,2013,train,41,0.927,1.0
+Tlaxcala,2014,train,10,1.1,1.1
+Tlaxcala,2015,train,16,1.062,1.062
+Tlaxcala,2016,train,41,0.732,0.732
+Tlaxcala,2017,train,81,0.802,0.827
+Tlaxcala,2018,train,44,0.886,0.909
+Tlaxcala,2019,train,65,0.969,1.0
+Tlaxcala,2020,test,69,0.942,0.942
+Tlaxcala,2021,test,61,1.41,1.41
+Tlaxcala,2022,test,18,1.833,1.833
+Tlaxcala,2023,test,56,1.161,1.179
+Tlaxcala,2024,test,59,0.797,0.831
+Tlaxcala,2025,test,52,1.077,1.077
+Veracruz de Ignacio de la Llave,2012,train,1234,0.969,0.815
+Veracruz de Ignacio de la Llave,2013,train,1961,1.006,0.875
+Veracruz de Ignacio de la Llave,2014,train,1163,0.887,0.756
+Veracruz de Ignacio de la Llave,2015,train,1210,0.996,0.854
+Veracruz de Ignacio de la Llave,2016,train,1857,1.034,0.882
+Veracruz de Ignacio de la Llave,2017,train,1534,0.944,0.793
+Veracruz de Ignacio de la Llave,2018,train,1271,1.045,0.882
+Veracruz de Ignacio de la Llave,2019,train,2128,1.061,0.929
+Veracruz de Ignacio de la Llave,2020,test,1195,1.033,0.869
+Veracruz de Ignacio de la Llave,2021,test,1717,0.817,0.702
+Veracruz de Ignacio de la Llave,2022,test,1438,1.113,0.956
+Veracruz de Ignacio de la Llave,2023,test,1320,0.958,0.822
+Veracruz de Ignacio de la Llave,2024,test,1911,0.916,0.817
+Veracruz de Ignacio de la Llave,2025,test,1059,0.933,0.81
+Yucatán,2012,train,1353,1.492,1.44
+Yucatán,2013,train,3521,0.926,0.899
+Yucatán,2014,train,2294,0.904,0.879
+Yucatán,2015,train,2723,1.06,1.024
+Yucatán,2016,train,1870,0.91,0.884
+Yucatán,2017,train,2048,0.944,0.914
+Yucatán,2018,train,1567,0.945,0.911
+Yucatán,2019,train,2397,1.01,0.972
+Yucatán,2020,test,2376,0.835,0.805
+Yucatán,2021,test,1454,1.003,0.971
+Yucatán,2022,test,885,1.528,1.48
+Yucatán,2023,test,2001,0.851,0.824
+Yucatán,2024,test,2732,0.76,0.737
+Yucatán,2025,test,1307,0.935,0.898
+Zacatecas,2012,train,122,1.336,1.328
+Zacatecas,2013,train,92,1.359,1.315
+Zacatecas,2014,train,104,0.865,0.846
+Zacatecas,2015,train,90,0.822,0.822
+Zacatecas,2016,train,285,0.958,0.947
+Zacatecas,2017,train,407,0.904,0.892
+Zacatecas,2018,train,254,1.051,1.043
+Zacatecas,2019,train,327,0.985,0.966
+Zacatecas,2020,test,106,1.311,1.311
+Zacatecas,2021,test,286,1.073,1.07
+Zacatecas,2022,test,358,1.162,1.154
+Zacatecas,2023,test,467,1.176,1.152
+Zacatecas,2024,test,241,0.946,0.942
+Zacatecas,2025,test,590,0.968,0.953
