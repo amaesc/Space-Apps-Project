@@ -3,6 +3,7 @@ backend/.env
 backend/.venv/
 backend/data/
 backend/**/__pycache__/
+backend/nasa-user_accessKeys.csv
 *.pyc
 
 # Credenciales de las estacas ESP32 (WiFi y token)
@@ -30,3 +31,4 @@ harmonization/harmonized_hotspots_mexico_brightness_mapping.png
 harmonization/boundaries/mexico_states.geojson
 harmonization/*.log
 .DS_Store
+backend/map-key.txt

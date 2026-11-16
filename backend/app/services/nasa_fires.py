@@ -387,7 +387,9 @@ def _load_harmonized_by_month() -> dict[str, list[dict[str, Any]]] | None:
     return by_month
 
 
-@lru_cache(maxsize=48)
+# Sin caché grande aquí: un mes nacional son ~90k filas (~45 MB como dicts). La caché vive en el router como
+# JSON ya serializado (~7 MB por mes nacional). Con 48 meses en dicts el proceso llegaba a ~1.2 GB.
+@lru_cache(maxsize=2)
 def _db_fires_for_month(month: str, region: str) -> list[dict[str, Any]] | None:
     con = harmonized_db()
     if con is None:

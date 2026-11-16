@@ -106,7 +106,7 @@ El sketch `esp32/dht11_wifi/dht11_wifi.ino` está incluido en `.gitignore` porqu
   - Sensor de sonido `KY-037 / KY-038` (`A0`) → `GPIO 35`
   - Sensor de flama IR `KY-026` (`A0`) → `GPIO 32`
   - Barómetro `BMP280` (I2C) → `GPIO 21` (`SDA`), `GPIO 22` (`SCL`)
-- **Referencia de credenciales**: toma como plantilla [secrets.example.h](esp32/dht11_wifi/secrets.example.h) para configurar `WIFI_SSID`, `WIFI_PASSWORD`, `SERVER_URL` (`https://raspi.taile2c6bf.ts.net/api/iot/telemetry` o `http://<IP-local>:8000/api/iot/telemetry`) y `STATION_TOKEN`.
+- **Referencia de credenciales**: toma como plantilla [secrets.example.h](esp32/dht11_wifi/secrets.example.h) para configurar `WIFI_SSID`, `WIFI_PASSWORD`, `SERVER_URL` (`https://13-217-192-184.sslip.io/api/iot/telemetry` o `http://<IP-local>:8000/api/iot/telemetry`) y `STATION_TOKEN`.
 - **Backend local**:
   ```bash
   cd backend
@@ -119,7 +119,7 @@ El sketch `esp32/dht11_wifi/dht11_wifi.ino` está incluido en `.gitignore` porqu
 
 | Variable              | Description                                                                    | Default                           |
 | :-------------------- | :----------------------------------------------------------------------------- | :-------------------------------- |
-| `NEXT_PUBLIC_API_URL` | Base URL of the Raspberry Pi API (Tailscale Funnel)                            | `https://raspi.taile2c6bf.ts.net` |
+| `NEXT_PUBLIC_API_URL` | Base URL of the API (AWS EC2)                            | `https://13-217-192-184.sslip.io` |
 | `PAGES_BASE_PATH`     | Optional base path when deploying to GitHub Pages (e.g. `/Space-Apps-Project`) | `""`                              |
 
 ### Available Scripts (inside `web/`)

@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 import calendar
+import json
 from datetime import date, timedelta
+from functools import lru_cache
 
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import JSONResponse, Response
 
 from app.services.calendar_builder import load_real_calendar
 from app.services.mexico_states import mexico_bbox, state_names
+import app.services.nasa_fires as _nf
 from app.services.nasa_fires import (
     MODIS,
     VIIRS_N20,
@@ -66,6 +69,42 @@ async def active_fires(
     )
 
 
+HISTORY_FIELDS = ["lat", "lon", "frp_mw", "date", "confidence", "in_calendar", "brightness", "bright_t31", "satellite",
+                  "daynight", "pixel_area_km2"]
+
+
+def _json_bytes(content: dict) -> bytes:
+    # mismo formato que JSONResponse.render de Starlette
+    return json.dumps(content, ensure_ascii=False, allow_nan=False, indent=None, separators=(",", ":")).encode("utf-8")
+
+
+def _archive_key() -> tuple[str, float]:
+    """La caché se invalida sola si cambia el archivo de datos (ruta o fecha de modificación)."""
+    for path in (_nf.HARMONIZED_DB, _nf.HARMONIZED_CSV):
+        if path.exists():
+            return str(path), path.stat().st_mtime
+    return "", 0.0
+
+
+@lru_cache(maxsize=24)
+def _archive_month_json(month: str, reg: str, _key: tuple[str, float]) -> bytes | None:
+    """Respuesta de /fires/history desde el archivo armonizado, ya serializada (~7 MB por mes nacional en temporada)."""
+    fires = harmonized_fires_for_month(month, reg)
+    if fires is None:
+        return None
+    compact = [[f[k] for k in HISTORY_FIELDS] for f in fires]
+    return _json_bytes({
+        "source": "NASA FIRMS — Harmonized MODIS C6.1 + Suomi-NPP VIIRS (harmonized archive)",
+        "attribution": ATTRIBUTION,
+        "region": reg,
+        "month": month,
+        "count": len(compact),
+        "in_calendar_count": sum(1 for f in fires if f["in_calendar"] == 1),
+        "fields": HISTORY_FIELDS,
+        "fires": compact,
+    })
+
+
 @router.get("/fires/history")
 async def historical_fires(
     month: str = Query(..., pattern=r"^\d{4}-\d{2}$", description="YYYY-MM"), region: str | None = REGION_QUERY
@@ -81,50 +120,9 @@ async def historical_fires(
     if start < MODIS.first_day.replace(day=1) or end > last_full:
         raise HTTPException(400, f"Month must be between {MODIS.first_day:%Y-%m} and {last_full:%Y-%m}")
 
-    csv_fires = harmonized_fires_for_month(month, reg)
-    if csv_fires is not None:
-        compact = [
-            [
-                f["lat"],
-                f["lon"],
-                f["frp_mw"],
-                f["date"],
-                f["confidence"],
-                f["in_calendar"],
-                f["brightness"],
-                f["bright_t31"],
-                f["satellite"],
-                f["daynight"],
-                f["pixel_area_km2"],
-            ]
-            for f in csv_fires
-        ]
-        in_cal_count = sum(1 for f in csv_fires if f["in_calendar"] == 1)
-        return JSONResponse(
-            {
-                "source": "NASA FIRMS — Harmonized MODIS C6.1 + Suomi-NPP VIIRS (harmonized archive)",
-                "attribution": ATTRIBUTION,
-                "region": reg,
-                "month": month,
-                "count": len(compact),
-                "in_calendar_count": in_cal_count,
-                "fields": [
-                    "lat",
-                    "lon",
-                    "frp_mw",
-                    "date",
-                    "confidence",
-                    "in_calendar",
-                    "brightness",
-                    "bright_t31",
-                    "satellite",
-                    "daynight",
-                    "pixel_area_km2",
-                ],
-                "fires": compact,
-            },
-            headers={"Cache-Control": "public, max-age=86400"},
-        )
+    body = _archive_month_json(month, reg, _archive_key())
+    if body is not None:
+        return Response(body, media_type="application/json", headers={"Cache-Control": "public, max-age=86400"})
 
     sources = history_sources(start)
     fires = await detections_for_range(start, end, sources)

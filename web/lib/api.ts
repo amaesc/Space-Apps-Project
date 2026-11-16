@@ -17,7 +17,7 @@ import {
 } from "./fire-data";
 
 /** API pública de la Raspberry Pi (Tailscale Funnel). */
-export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "https://raspi.taile2c6bf.ts.net").replace(/\/$/, "");
+export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "https://13-217-192-184.sslip.io").replace(/\/$/, "");
 export const LITE_URL = `${API_URL}/lite`;
 
 // La API conserva las etiquetas en español; la interfaz está en inglés.
