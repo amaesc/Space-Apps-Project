@@ -20,7 +20,7 @@ FuegoData couples satellite harmonization, edge IoT hardware, and probabilistic 
    - Each detection gets an `in_calendar` flag: Aqua MODIS before 2012-01-20, then S-NPP VIIRS 1.4 km / 30-min cells whose summed FRP ≥ a per-state threshold T*, fitted for count parity with Aqua on 2012–2019 and tested on 2020–2025 (see section 5).
    - Enables a continuous historical burn calendar (`Years × Months`) without the 2012 sensor jump: 5.4 M detections, 796,098 in the consistent series.
 2. **Field IoT Stations + Automatic Fallback**
-   - Current prototype: **ESP32** with a DHT11 (temperature & humidity) and a flame sensor, posting to the API. Target design: solar power, BME280, wind/rain, **AS3935** lightning detector, local screen and a 5-LED risk semaphore.
+   - Current prototype: **ESP32** with a DHT11 (temperature & humidity), BMP280 (pressure), flame and sound sensors, posting to the API. Target design: solar power, wind/rain, **AS3935** lightning detector, local screen and a 5-LED risk semaphore.
    - In areas without IoT coverage, the platform uses gridded weather from **Open-Meteo**.
 3. **Risk Estimation (implemented) & Probable Origin (planned)**
    - Implemented: a 72-hour LightGBM forecast (Chihuahua pilot) and a weekly 7/14/28-day risk model (section 5).

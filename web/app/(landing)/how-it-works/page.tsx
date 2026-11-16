@@ -22,11 +22,11 @@ const MODULES = [
     step: "Module 02",
     title: "Field IoT Stations",
     summary:
-      "Autonomous nodes installed in forested areas that measure microclimate and lightning strikes in real time.",
+      "Low-cost ESP32 nodes that report microclimate and flame readings to the platform in real time (prototype stage; deployment still being designed).",
     points: [
-      "ESP32 microcontroller with a dual WiFi / long-range LoRa link.",
-      "BME280 sensors (temperature and relative humidity), wind, rain and an AS3935 lightning detector.",
-      "Local display + 5-LED alert light, powered by a solar panel.",
+      "Prototype: ESP32 over WiFi with DHT11 (temperature, humidity), BMP280 (pressure), flame and sound sensors.",
+      "Planned: long-range LoRa link, wind, rain and an AS3935 lightning detector.",
+      "Planned: local display + 5-LED alert light and solar power.",
     ],
   },
   {

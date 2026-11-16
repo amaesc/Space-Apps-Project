@@ -140,8 +140,8 @@ export default function DataPage() {
             </li>
             <li>
               <strong className="text-white">Field weather.</strong> The current ESP32 prototype reports
-              temperature, humidity (DHT11) and a flame sensor; the target station adds a BME280, an AS3935
-              lightning sensor, wind and rain. Outside coverage, Open-Meteo is used.
+              temperature and humidity (DHT11), pressure (BMP280), flame and sound level; the target station adds
+              an AS3935 lightning sensor, wind and rain. Outside coverage, Open-Meteo is used.
             </li>
           </ol>
         </section>

@@ -8,12 +8,12 @@ import HeroHarmonizationPreview from "../../../components/HeroHarmonizationPrevi
 import Reveal from "../../../components/Reveal";
 
 const IOT_SPECS = [
-  "ESP32 (WiFi / LoRa)",
-  "BME280 (Temp & RH)",
-  "Wind & rain",
-  "AS3935 lightning",
-  "Display + 5 LEDs",
-  "Solar panel",
+  "ESP32 (WiFi)",
+  "DHT11 (Temp & RH)",
+  "BMP280 (pressure)",
+  "Flame + sound",
+  "Planned: LoRa, wind & rain, AS3935 lightning",
+  "Planned: display + 5 LEDs, solar",
 ];
 
 const PLATFORM_VIEWS = [
@@ -246,7 +246,7 @@ export default function AboutPage() {
                       Field IoT station + resilience
                     </h3>
                     <p className="mt-2 text-sm leading-relaxed text-slate-300">
-                      Reports temperature, humidity and flame detection; the
+                      Reports temperature, humidity, pressure, flame and sound; the
                       server combines readings into{" "}
                       <strong className="text-white">Hot-Dry-Windy</strong>.
                       Outside station coverage the map uses Open-Meteo.
